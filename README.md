@@ -2,7 +2,6 @@
 
   # Lifestyle Health App
 
-  This is a code bundle for Lifestyle Health App. The original project is available at https://www.figma.com/design/NxCcZJGdbdL6l2vKCKcbFp/Lifestyle-Health-App.
 
   ## Running the code
 

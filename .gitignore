@@ -30,3 +30,6 @@ Thumbs.db
 # Figma/Design exports
 *.fig
 *.svg
+
+## --- IGNORE ---
+projectroughtexts.txt
