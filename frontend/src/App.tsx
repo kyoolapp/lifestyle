@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { LandingPage } from "./components/LandingPage";
+import { LoginPage } from "./components/LoginPage";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Dashboard } from "./components/Dashboard";
@@ -11,39 +12,44 @@ import { FitnessTracker } from "./components/FitnessTracker";
 import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
 
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [activeTab, setActiveTab] = useState("activity");
-  const [user, setUser] = useState({
-    id: "1",
-    name: "John Doe",
-    email: "john@example.com",
-    avatar:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-    isPremium: false,
-    height: 175, // cm
-    weight: 85, // kg - higher weight for higher BMI
-    age: 48, // 48 years old as requested
-    activityLevel: "light", // more realistic for 48 year old
-    medicalConditions: [], // for future health tracking
-    dailyCalorieTarget: 1800, // calculated based on age, weight, height for weight loss
-  });
-
+  const [user, setUser] = useState(null as any);
   const [safeZone, setSafeZone] = useState(false);
 
   const handleLogin = () => {
-    // Mock login - in real app this would handle authentication
-    setIsAuthenticated(true);
+    setShowLogin(true);
   };
 
   const handleSignUp = () => {
-    // Mock signup - in real app this would handle registration
+    setShowLogin(true);
+  };
+
+  const handleGoogleLogin = (user:any) => {
     setIsAuthenticated(true);
+    setShowLogin(false);
+    setUser({
+      id: user.uid,
+      name: user.displayName,
+      email: user.email,
+      avatar: user.photoURL,
+      isPremium: false,
+      height: 175,
+      weight: 85,
+      age: 48,
+      activityLevel: "light",
+      medicalConditions: [],
+      dailyCalorieTarget: 1800,
+    });
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setActiveTab("activity");
+    setUser(null);
   };
 
   const renderContent = () => {
@@ -78,10 +84,14 @@ export default function App() {
     <div className="min-h-screen bg-background">
       {/* Show landing page for non-authenticated users */}
       {!isAuthenticated ? (
-        <LandingPage
-          onLogin={handleLogin}
-          onSignUp={handleSignUp}
-        />
+        showLogin ? (
+          <LoginPage onLogin={handleGoogleLogin} />
+        ) : (
+          <LandingPage
+            onLogin={handleLogin}
+            onSignUp={handleSignUp}
+          />
+        )
       ) : (
         <>
           {/* Show header only after authentication */}
