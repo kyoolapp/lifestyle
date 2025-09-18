@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { WorkoutListDialog } from './WorkoutListDialog';
+import { QuickWalkTimer } from './QuickWalkTimer';
 import { 
   Heart, 
   Droplets, 
@@ -13,16 +16,96 @@ import {
   TrendingUp,
   Clock,
   MessageCircle,
-  ThumbsUp
+  ThumbsUp,
+  Play,
+  Eye,
+  MoreVertical,
+  Dumbbell,
+  Footprints,
+  Zap,
+  Flame
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface ActivityFeedProps {
   user: any;
   onViewAllFriends: () => void;
+  onStartWorkout?: (workout: any) => void;
 }
 
-export function ActivityFeed({ user, onViewAllFriends }: ActivityFeedProps) {
+export function ActivityFeed({ user, onViewAllFriends, onStartWorkout }: ActivityFeedProps) {
+  const [isWorkoutListOpen, setIsWorkoutListOpen] = useState(false);
+  const [currentWorkout, setCurrentWorkout] = useState<any>(null);
+  const [visibleActivities, setVisibleActivities] = useState(5);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [showQuickWalkTimer, setShowQuickWalkTimer] = useState(false);
+  // Workout routines data (from FitnessTracker)
+  const workoutRoutines = [
+    {
+      id: 1,
+      name: 'Push Day',
+      difficulty: 'Intermediate',
+      duration: '45 min',
+      targetMuscles: ['Chest', 'Shoulders', 'Triceps'],
+      exercises: [
+        { name: 'Bench Press', sets: 3, reps: '8-12', weight: '80kg' },
+        { name: 'Push Ups', sets: 3, reps: '15-20', weight: 'bodyweight' },
+        { name: 'Dumbbell Flyes', sets: 3, reps: '12-15', weight: '15kg' },
+        { name: 'Inclined Bench Press', sets: 3, reps: '8-10', weight: '70kg' }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Pull Day',
+      difficulty: 'Intermediate',
+      duration: '40 min',
+      targetMuscles: ['Back', 'Biceps'],
+      exercises: [
+        { name: 'Pull-ups', sets: 3, reps: '8-12', weight: 'bodyweight' },
+        { name: 'Barbell Rows', sets: 3, reps: '10-12', weight: '60kg' },
+        { name: 'Lat Pulldowns', sets: 3, reps: '12-15', weight: '50kg' }
+      ]
+    },
+    {
+      id: 3,
+      name: 'Leg Day',
+      difficulty: 'Advanced',
+      duration: '50 min',
+      targetMuscles: ['Quadriceps', 'Glutes', 'Hamstrings'],
+      exercises: [
+        { name: 'Squats', sets: 4, reps: '8-10', weight: '100kg' },
+        { name: 'Deadlifts', sets: 3, reps: '6-8', weight: '120kg' },
+        { name: 'Lunges', sets: 3, reps: '12-15', weight: '20kg' }
+      ]
+    }
+  ];
+
+  const handleStartWorkout = (routine: any) => {
+    if (onStartWorkout) {
+      onStartWorkout(routine);
+    } else {
+      // Fallback for when the prop is not provided
+      console.log('Starting workout:', routine.name);
+      alert(`Starting ${routine.name} workout!`);
+    }
+  };
+
+  const handleOpenWorkoutList = () => {
+    setIsWorkoutListOpen(true);
+  };
+
+  const handleSetCurrentWorkout = (workout: any) => {
+    setCurrentWorkout(workout);
+  };
+
+  const handleQuickWalkClick = () => {
+    setShowQuickWalkTimer(true);
+  };
+
+  const handleBackFromTimer = () => {
+    setShowQuickWalkTimer(false);
+  };
+
   const activities = [
     {
       id: 1,
@@ -135,6 +218,77 @@ export function ActivityFeed({ user, onViewAllFriends }: ActivityFeedProps) {
       user: { name: 'You', avatar: user.avatar },
       likes: 0,
       comments: 0
+    },
+    // Additional activities for "Load more" functionality
+    {
+      id: 9,
+      type: 'social',
+      icon: Users,
+      iconColor: 'text-purple-500',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-200',
+      title: 'Alex K. completed a workout challenge',
+      description: '30-day fitness challenge completed successfully!',
+      time: '3 days ago',
+      user: { name: 'Alex K.', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face' },
+      likes: 18,
+      comments: 5
+    },
+    {
+      id: 10,
+      type: 'nutrition',
+      icon: ChefHat,
+      iconColor: 'text-orange-500',
+      bgColor: 'bg-orange-50',
+      borderColor: 'border-orange-200',
+      title: 'Healthy meal prep session',
+      description: 'Prepared 7 balanced meals for the week ahead',
+      time: '4 days ago',
+      user: { name: 'You', avatar: user.avatar },
+      likes: 0,
+      comments: 0
+    },
+    {
+      id: 11,
+      type: 'achievement',
+      icon: Trophy,
+      iconColor: 'text-yellow-500',
+      bgColor: 'bg-yellow-50',
+      borderColor: 'border-yellow-200',
+      title: 'Lisa M. achieved weight loss goal',
+      description: 'Lost 10 pounds in 2 months with healthy habits',
+      time: '5 days ago',
+      user: { name: 'Lisa M.', avatar: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=40&h=40&fit=crop&crop=face' },
+      likes: 35,
+      comments: 12
+    },
+    {
+      id: 12,
+      type: 'fitness',
+      icon: Activity,
+      iconColor: 'text-green-500',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-200',
+      title: 'Morning yoga session completed',
+      description: '45 minutes of mindful stretching and breathing',
+      time: '6 days ago',
+      user: { name: 'You', avatar: user.avatar },
+      likes: 0,
+      comments: 0
+    },
+    {
+      id: 13,
+      type: 'health',
+      icon: Heart,
+      iconColor: 'text-red-500',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-200',
+      title: 'David L. shared health tips',
+      description: '5 simple ways to boost your metabolism naturally',
+      time: '1 week ago',
+      user: { name: 'David L.', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face' },
+      likes: 22,
+      comments: 7
     }
   ];
 
@@ -145,19 +299,103 @@ export function ActivityFeed({ user, onViewAllFriends }: ActivityFeedProps) {
     { label: 'Active Friends', value: '23', change: '+3', icon: Users, color: 'text-purple-500' }
   ];
 
+  const handleLoadMore = async () => {
+    setIsLoadingMore(true);
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setVisibleActivities(prev => Math.min(prev + 5, activities.length));
+    setIsLoadingMore(false);
+  };
+
+  const displayedActivities = activities.slice(0, visibleActivities);
+  const hasMoreActivities = visibleActivities < activities.length;
+
+  // Quick workout types data
+  const quickWorkouts = [
+    {
+      id: 'quick-walk',
+      name: 'Quick Walk',
+      duration: '15 min',
+      icon: Footprints,
+      iconColor: 'text-green-600',
+      bgColor: 'bg-green-100',
+      hoverColor: 'hover:bg-green-200',
+      borderColor: 'border-green-300',
+      description: 'Light cardio walk'
+    },
+    {
+      id: 'hiit-training',
+      name: 'HIIT Training',
+      duration: '20 min',
+      icon: Zap,
+      iconColor: 'text-orange-600',
+      bgColor: 'bg-orange-100',
+      hoverColor: 'hover:bg-orange-200',
+      borderColor: 'border-orange-300',
+      description: 'High intensity workout'
+    },
+    {
+      id: 'strength-training',
+      name: 'Strength Training',
+      duration: '45 min',
+      icon: Dumbbell,
+      iconColor: 'text-blue-600',
+      bgColor: 'bg-blue-100',
+      hoverColor: 'hover:bg-blue-200',
+      borderColor: 'border-blue-300',
+      description: 'Muscle building'
+    },
+    {
+      id: 'yoga-flow',
+      name: 'Yoga Flow',
+      duration: '30 min',
+      icon: Heart,
+      iconColor: 'text-purple-600',
+      bgColor: 'bg-purple-100',
+      hoverColor: 'hover:bg-purple-200',
+      borderColor: 'border-purple-300',
+      description: 'Mindful movement'
+    }
+  ];
+
+  const handleQuickWorkoutClick = (workout: any) => {
+    if (workout.id === 'quick-walk') {
+      handleQuickWalkClick();
+    } else {
+      // Handle other workout types - could navigate to different screens or show different timers
+      console.log(`Starting ${workout.name}`);
+      // For now, just show an alert for other workouts
+      alert(`${workout.name} - Coming soon!`);
+    }
+  };
+
+  // Show Quick Walk Timer if active
+  if (showQuickWalkTimer) {
+    return <QuickWalkTimer onBack={handleBackFromTimer} />;
+  }
+
   return (
     <div className="space-y-6">
+      <WorkoutListDialog
+        open={isWorkoutListOpen}
+        onOpenChange={setIsWorkoutListOpen}
+        currentWorkout={currentWorkout}
+        onStartWorkout={onStartWorkout || (() => {})}
+        onSetCurrentWorkout={handleSetCurrentWorkout}
+      />
       {/* Header with Quick Stats */}
       <div className="space-y-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold">Your Activity</h1>
-          <p className="text-muted-foreground">See what's happening in your health journey</p>
+          <p className="text-muted-foreground">Your Fitness, Fully Personalized</p>
         </div>
 
         {/* Quick Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {quickStats.map((stat, index) => {
             const Icon = stat.icon;
+            const isActiveFriends = stat.label === 'Active Friends';
+            
             return (
               <motion.div
                 key={index}
@@ -165,7 +403,12 @@ export function ActivityFeed({ user, onViewAllFriends }: ActivityFeedProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="hover:shadow-md transition-shadow">
+                <Card 
+                  className={`hover:shadow-md transition-shadow ${
+                    isActiveFriends ? 'cursor-pointer hover:bg-accent/50' : ''
+                  }`}
+                  onClick={isActiveFriends ? onViewAllFriends : undefined}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Icon className={`w-4 h-4 ${stat.color}`} />
@@ -180,6 +423,139 @@ export function ActivityFeed({ user, onViewAllFriends }: ActivityFeedProps) {
               </motion.div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Quick Workouts Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Dumbbell className="w-5 h-5" />
+              Quick Workouts
+            </h2>
+            <p className="text-muted-foreground text-sm">Ready-to-go workout routines</p>
+          </div>
+        </div>
+
+        <div className="flex gap-6">
+          {/* Left side - Push Day workout (existing) */}
+          <div className="flex-1 max-w-md">
+            {(() => {
+              const displayWorkout = currentWorkout || workoutRoutines[0];
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="hover:shadow-lg transition-all duration-200 border border-gray-200 rounded-2xl bg-white">
+                    <CardContent className="p-6">
+                      {/* Header with title and action buttons */}
+                      <div className="flex items-start justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">{displayWorkout.name}</h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          onClick={() => {/* More options would go here */}}
+                        >
+                          <MoreVertical className="w-4 h-4 text-gray-600" />
+                        </Button>
+                      </div>
+
+                      {/* Badges */}
+                      <div className="flex gap-2 mb-4">
+                        <Badge 
+                          variant="secondary" 
+                          className="bg-gray-100 text-gray-700 hover:bg-gray-100 px-3 py-1 rounded-full"
+                        >
+                          {displayWorkout.difficulty}
+                        </Badge>
+                        <Badge 
+                          variant="secondary" 
+                          className="bg-gray-100 text-gray-700 hover:bg-gray-100 px-3 py-1 rounded-full"
+                        >
+                          {displayWorkout.duration}
+                        </Badge>
+                      </div>
+
+                      {/* Target Muscles */}
+                      <div className="mb-4">
+                        <p className="text-sm text-gray-500 mb-2">Target Muscles:</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {displayWorkout.targetMuscles.join(', ')}
+                        </p>
+                      </div>
+
+                      {/* Exercises */}
+                      <div className="mb-6">
+                        <p className="text-sm text-gray-500 mb-2">Exercises ({displayWorkout.exercises.length}):</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {displayWorkout.exercises.slice(0, 3).map(ex => ex.name).join(', ')}
+                          {displayWorkout.exercises.length > 3 && '...'}
+                        </p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={() => handleStartWorkout(displayWorkout)}
+                          className="flex-1 bg-gray-900 hover:bg-gray-800 text-white rounded-xl py-3 h-auto"
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Start Workout
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleOpenWorkoutList}
+                          className="px-6 border-gray-200 hover:bg-gray-50 rounded-xl py-3 h-auto"
+                        >
+                          Workout List
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })()}
+          </div>
+
+          {/* Right side - 2x2 Grid of Quick Workouts */}
+          <div className="flex-1 max-w-md">
+            <div className="grid grid-cols-2 gap-3">
+              {quickWorkouts.map((workout, index) => {
+                const Icon = workout.icon;
+                return (
+                  <motion.div
+                    key={workout.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card 
+                      className={`cursor-pointer transition-all duration-200 border ${workout.borderColor} ${workout.bgColor} ${workout.hoverColor} hover:shadow-md group`}
+                      onClick={() => handleQuickWorkoutClick(workout)}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <div className="space-y-3">
+                          {/* Icon */}
+                          <div className="w-12 h-12 mx-auto rounded-full bg-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                            <Icon className={`w-6 h-6 ${workout.iconColor}`} />
+                          </div>
+                          
+                          {/* Content */}
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-sm text-gray-900">{workout.name}</h3>
+                            <p className="text-xs text-muted-foreground">{workout.duration}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -249,7 +625,7 @@ export function ActivityFeed({ user, onViewAllFriends }: ActivityFeedProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {activities.map((activity, index) => {
+            {displayedActivities.map((activity, index) => {
               const Icon = activity.icon;
               return (
                 <motion.div
@@ -314,11 +690,33 @@ export function ActivityFeed({ user, onViewAllFriends }: ActivityFeedProps) {
           </div>
 
           {/* Load More */}
-          <div className="text-center mt-6">
-            <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Load more activities...
-            </button>
-          </div>
+          {hasMoreActivities && (
+            <div className="text-center mt-6">
+              <Button
+                variant="ghost"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="text-sm"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load more activities...'
+                )}
+              </Button>
+            </div>
+          )}
+          
+          {!hasMoreActivities && displayedActivities.length > 5 && (
+            <div className="text-center mt-6">
+              <p className="text-sm text-muted-foreground">
+                You've reached the end of your activity feed
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
