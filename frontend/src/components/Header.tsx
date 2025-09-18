@@ -177,7 +177,10 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">H</span>
             </div>
-            <h1 className="text-xl font-semibold">Health Hub</h1>
+            <div className="hidden sm:block">
+            <h1 className="text-lg font-semibold">Health Hub</h1>
+            <p className="text-sm text-muted-foreground">Stay Healthy</p>
+          </div>
           </div>
           
           {/* Today's Goals - Friendly Design */}
@@ -191,7 +194,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   
                   return (
                     <div key={goal.id} className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full">
-                      {typeof Icon === 'function' ? <Icon /> : <Icon className={`w-4 h-4 ${goal.color}`} />}
+                      {Icon ? <Icon className={`w-4 h-4 ${goal.color}`} /> : null}
                       <span className="text-sm font-medium">
                         {goal.id === 'steps' ? goal.current.toLocaleString() : 
                          goal.id === 'water' ? (goal.current % 1 === 0 ? goal.current : goal.current.toFixed(1)) : 

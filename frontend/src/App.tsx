@@ -11,17 +11,96 @@ import { Profile } from "./components/Profile";
 import { FitnessTracker } from "./components/FitnessTracker";
 import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { auth } from "./firebase"; // Adjust path if needed
 
 
 export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
+
+function AppRoutes() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [activeTab, setActiveTab] = useState("activity");
   const [user, setUser] = useState(null as any);
   const [safeZone, setSafeZone] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Sync activeTab with route
+  useEffect(() => {
+    switch (location.pathname) {
+      case "/dashboard":
+        setActiveTab("activity");
+        break;
+      case "/features":
+        setActiveTab("features");
+        break;
+      case "/health":
+        setActiveTab("health");
+        break;
+      case "/water":
+        setActiveTab("water");
+        break;
+      case "/recipes":
+        setActiveTab("recipes");
+        break;
+      case "/fitness":
+        setActiveTab("fitness");
+        break;
+      case "/devices":
+        setActiveTab("devices");
+        break;
+      case "/profile":
+        setActiveTab("profile");
+        break;
+      default:
+        setActiveTab("");
+    }
+  }, [location.pathname]);
+
+  // Debug: log state on every render
+  useEffect(() => {
+    console.log('AppRoutes render: isAuthenticated:', isAuthenticated, 'user:', user);
+  });
+
+  // Redirect to dashboard only after login or from landing page
+  useEffect(() => {
+    if (isAuthenticated && (location.pathname === "/login" || location.pathname === "/")) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, location.pathname, navigate]);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      console.log('Firebase Auth State Changed:', user);
+      if (user) {
+        console.log('User detected after redirect:', user);
+        setIsAuthenticated(true);
+        setUser({
+          id: user.uid,
+          name: user.displayName,
+          email: user.email,
+          avatar: user.photoURL,
+          // ...other fields
+        });
+      } else {
+        console.log('No user detected after redirect.');
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLogin = () => {
-    setShowLogin(true);
+    navigate("/login");
   };
 
   const handleSignUp = () => {
@@ -46,78 +125,107 @@ export default function App() {
     });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await auth.signOut();
     setIsAuthenticated(false);
-    setActiveTab("activity");
     setUser(null);
+    navigate("/"); // Redirect to landing page
   };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case "activity":
-        return <Dashboard user={user} />;
-      case "features":
-        return (
-          <FeaturesShowcase
-            user={user}
-            onFeatureSelect={setActiveTab}
-          />
-        );
-      case "health":
-        return <HealthMetrics user={user} setUser={setUser} />;
-      case "water":
-        return <WaterTracker />;
-      case "recipes":
-        return <RecipeSearch user={user} safeZone={safeZone} />;
-      case "fitness":
-        return <FitnessTracker />;
-      case "devices":
-        return <DeviceConnections />;
-      case "profile":
-        return <Profile user={user} setUser={setUser} />;
-      default:
-        return <Dashboard user={user} />;
-    }
-  };
+  // Auth-protected route wrapper
+  function PrivateRoute({ children }: { children: React.ReactNode }) {
+    return isAuthenticated ? (
+      <>
+        <Header
+          user={user}
+          activeTab={activeTab}
+          safeZone={safeZone}
+          setSafeZone={setSafeZone}
+        />
+        <div className="flex h-screen pt-16">
+          <Sidebar user={user} onLogout={handleLogout} />
+          <main className="flex-1 overflow-auto">
+            <div className="p-3 sm:p-4 lg:p-6 h-full">
+              <div className="max-w-7xl mx-auto w-full">{children}</div>
+            </div>
+          </main>
+        </div>
+      </>
+    ) : (
+      <Navigate to="/login" replace />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Show landing page for non-authenticated users */}
-      {!isAuthenticated ? (
-        showLogin ? (
-          <LoginPage onLogin={handleGoogleLogin} />
-        ) : (
-          <LandingPage
-            onLogin={handleLogin}
-            onSignUp={handleSignUp}
-          />
-        )
-      ) : (
-        <>
-          {/* Show header only after authentication */}
-          <Header
-            user={user}
-            activeTab={activeTab}
-            safeZone={safeZone}
-            setSafeZone={setSafeZone}
-          />
-          <div className="flex h-screen pt-16">
-            <Sidebar
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              user={user}
-              onLogout={handleLogout}
-            />
-            <main className="flex-1 overflow-auto">
-              <div className="p-3 sm:p-4 lg:p-6 h-full">
-                <div className="max-w-7xl mx-auto w-full">
-                  {renderContent()}
-                </div>
-              </div>
-            </main>
-          </div>
-        </>
-      )}
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<LandingPage onLogin={handleLogin} onSignUp={handleSignUp} />} />
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard user={user} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/features"
+          element={
+            <PrivateRoute>
+              <FeaturesShowcase user={user} onFeatureSelect={setActiveTab} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/health"
+          element={
+            <PrivateRoute>
+              <HealthMetrics user={user} setUser={setUser} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/water"
+          element={
+            <PrivateRoute>
+              <WaterTracker />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/recipes"
+          element={
+            <PrivateRoute>
+              <RecipeSearch user={user} safeZone={safeZone} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/fitness"
+          element={
+            <PrivateRoute>
+              <FitnessTracker />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/devices"
+          element={
+            <PrivateRoute>
+              <DeviceConnections />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Profile user={user} setUser={setUser} />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
     </div>
   );
 }

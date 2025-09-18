@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+import { useNavigate } from "react-router-dom";
 import { 
   Heart, 
   Droplets, 
@@ -37,6 +38,13 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onLogin, onSignUp }: LandingPageProps) {
+  
+const navigate = useNavigate();
+const handleLoginClick = () => {
+  navigate("/login");
+};
+
+
   const features = [
     {
       icon: Heart,
@@ -182,6 +190,7 @@ export function LandingPage({ onLogin, onSignUp }: LandingPageProps) {
     { number: '156', label: 'Workouts Logged (We need more gym selfies!)' },
     { number: '4.9', label: 'App Store Rating (OK, this one is real!)' }
   ];
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 relative overflow-hidden">

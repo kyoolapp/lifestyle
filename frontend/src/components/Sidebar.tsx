@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -18,43 +19,30 @@ import {
 } from 'lucide-react';
 
 interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
   user: any;
   onLogout?: () => void;
 }
 
-export function Sidebar({ activeTab, setActiveTab, user, onLogout }: SidebarProps) {
+
+export function Sidebar({ user, onLogout }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
   
   const navItems = [
-    { id: 'activity', label: 'Activity', icon: Home },
-    { id: 'features', label: 'Features', icon: Sparkles },
-    { id: 'health', label: 'Health Metrics', icon: Heart },
-    { id: 'water', label: 'Water Tracker', icon: Droplets },
-    { id: 'recipes', label: 'Recipes', icon: ChefHat },
-    { id: 'fitness', label: 'Fitness', icon: Dumbbell },
-    { id: 'devices', label: 'Connected Devices', icon: Smartphone },
-    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'activity', label: 'Activity', icon: Home, path: '/dashboard' },
+    { id: 'features', label: 'Features', icon: Sparkles, path: '/features' },
+    { id: 'health', label: 'Health Metrics', icon: Heart, path: '/health' },
+    { id: 'water', label: 'Water Tracker', icon: Droplets, path: '/water' },
+    { id: 'recipes', label: 'Recipes', icon: ChefHat, path: '/recipes' },
+    { id: 'fitness', label: 'Fitness', icon: Dumbbell, path: '/fitness' },
+    { id: 'devices', label: 'Connected Devices', icon: Smartphone, path: '/devices' },
+    { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
 
-  const handleNavClick = (tabId: string) => {
-    setActiveTab(tabId);
-    setIsMobileMenuOpen(false);
-  };
-
+  
   const SidebarContent = () => (
     <>
       <div className="p-4 sm:p-6 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-semibold text-sm sm:text-base">H</span>
-          </div>
-          <div className="hidden sm:block">
-            <h1 className="text-lg font-semibold">Health Hub</h1>
-            <p className="text-sm text-muted-foreground">Stay Healthy</p>
-          </div>
-        </div>
       </div>
 
       <div className="p-3 sm:p-4 border-b border-border">
@@ -79,20 +67,22 @@ export function Sidebar({ activeTab, setActiveTab, user, onLogout }: SidebarProp
         <ul className="space-y-1 sm:space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isActive = location.pathname === item.path;
             return (
               <li key={item.id}>
-                <button
-                  onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-colors ${
-                    activeTab === item.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                  title={item.label}
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-xs sm:text-sm hidden sm:inline truncate">{item.label}</span>
-                </button>
+                <Link
+              to={item.path}
+              className={`w-full flex items-center gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              }`}
+              title={item.label}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm hidden sm:inline truncate">{item.label}</span>
+            </Link>
               </li>
             );
           })}
