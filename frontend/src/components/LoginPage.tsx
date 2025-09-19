@@ -4,6 +4,9 @@ import { auth } from "../firebase";
 import { Button } from "./ui/button";
 import { Shield, Sparkles, CheckCircle2, Loader2 } from "lucide-react";
 
+import { createOrUpdateUser } from "../api/user_api"; // adjust path if needed
+
+
 // NOTE: Functionality preserved exactly: same named export, same popup flow, same states
 export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
@@ -17,6 +20,18 @@ export function LoginPage() {
       setError("");
       const result = await signInWithPopup(auth, googleProvider);
       console.log("signInWithPopup result:", result);
+      const googleUser = result.user;
+      const userId = googleUser.uid;
+      const userData = {
+      username: "your_username", // or prompt user for this
+      name: googleUser.displayName,
+      email: googleUser.email,
+  // ...other fields you want to send
+      };
+      await createOrUpdateUser(userId, userData);
+      //onLogin(googleUser);
+
+
       // No onLogin calls — App.tsx can listen to auth state
     } catch (err: any) {
       console.error(err);

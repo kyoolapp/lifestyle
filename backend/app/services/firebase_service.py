@@ -1,17 +1,24 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
-from app.core.config import FIREBASE_KEY_PATH
 
-# Initialize Firebase app if not already initialized
+cred = credentials.Certificate("keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json")
 if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_KEY_PATH)
     firebase_admin.initialize_app(cred)
-
 db = firestore.client()
 
-# Example function to get recipes
+class FirestoreUserService:
+    def get_user(self, user_id: str):
+        doc = db.collection('users').document(user_id).get()
+        return doc.to_dict() if doc.exists else None
 
-def get_recipes():
-    recipes_ref = db.collection('recipes')
-    docs = recipes_ref.stream()
-    return [doc.to_dict() for doc in docs]
+    def create_user(self, user_id: str, user_data: dict):
+        db.collection('users').document(user_id).set(user_data)
+        return user_id
+
+    def update_user(self, user_id: str, user_data: dict):
+        db.collection('users').document(user_id).update(user_data)
+        return True
+
+    def delete_user(self, user_id: str):
+        db.collection('users').document(user_id).delete()
+        return True

@@ -1,7 +1,28 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from app.models.user_model import UserProfile
+from app.services.firebase_service import FirestoreUserService
 
 router = APIRouter(prefix="/users", tags=["users"])
+user_service = FirestoreUserService()
 
-@router.get("/")
-def get_users():
-    return {"message": "User endpoint"}
+@router.get("/{user_id}", response_model=UserProfile)
+def get_user(user_id: str):
+    user = user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@router.post("/{user_id}", response_model=dict)
+def create_user(user_id: str, user: UserProfile):
+    user_service.create_user(user_id, user.dict())
+    return {"id": user_id}
+
+@router.put("/{user_id}", response_model=dict)
+def update_user(user_id: str, user: UserProfile):
+    success = user_service.update_user(user_id, user.dict())
+    return {"success": success}
+
+@router.delete("/{user_id}", response_model=dict)
+def delete_user(user_id: str):
+    success = user_service.delete_user(user_id)
+    return {"success": success}

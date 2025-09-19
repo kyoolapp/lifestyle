@@ -44,7 +44,7 @@ export function Profile({ user, setUser }: ProfileProps) {
     totalRecipes: 23,
     waterGoalsAchieved: 28,
     currentStreak: 7,
-    followers: 156,
+    followers: 2000,
     following: 89
   };
 
@@ -396,7 +396,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                     </div>
                     <div>
                       <Label htmlFor="edit-activity">Activity Level</Label>
-                      <Select onValueChange={(value) => setEditForm({ ...editForm, activityLevel: value })}>
+                      <Select onValueChange={(value: any) => setEditForm({ ...editForm, activityLevel: value })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select activity level" />
                         </SelectTrigger>
