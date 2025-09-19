@@ -1,5 +1,9 @@
-import React, { useState } from "react";
+//App.tsx
+import React, { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+
 import { LandingPage } from "./components/LandingPage";
+import SignUpPage from "./components/SignUpPage";
 import { LoginPage } from "./components/LoginPage";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
@@ -11,10 +15,8 @@ import { Profile } from "./components/Profile";
 import { FitnessTracker } from "./components/FitnessTracker";
 import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
-import { auth } from "./firebase"; // Adjust path if needed
 
+import { auth } from "./firebase";
 
 export default function App() {
   return (
@@ -26,14 +28,13 @@ export default function App() {
 
 function AppRoutes() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
   const [activeTab, setActiveTab] = useState("activity");
-  const [user, setUser] = useState(null as any);
+  const [user, setUser] = useState<any>(null);
   const [safeZone, setSafeZone] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Sync activeTab with route
+  // Sync active tab with route
   useEffect(() => {
     switch (location.pathname) {
       case "/dashboard":
@@ -65,33 +66,33 @@ function AppRoutes() {
     }
   }, [location.pathname]);
 
-  // Debug: log state on every render
+  // Log state each render (dev)
   useEffect(() => {
-    console.log('AppRoutes render: isAuthenticated:', isAuthenticated, 'user:', user);
+    console.log("AppRoutes render: isAuthenticated:", isAuthenticated, "user:", user);
   });
 
-  // Redirect to dashboard only after login or from landing page
+  // After login, go to dashboard if on / or /login
   useEffect(() => {
     if (isAuthenticated && (location.pathname === "/login" || location.pathname === "/")) {
       navigate("/dashboard");
     }
   }, [isAuthenticated, location.pathname, navigate]);
 
+  // Firebase auth listener
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      console.log('Firebase Auth State Changed:', user);
-      if (user) {
-        console.log('User detected after redirect:', user);
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      console.log("Firebase Auth State Changed:", u);
+      if (u) {
         setIsAuthenticated(true);
         setUser({
-          id: user.uid,
-          name: user.displayName,
-          email: user.email,
-          avatar: user.photoURL,
-          // ...other fields
+          id: u.uid,
+          name: u.displayName,
+          email: u.email,
+          avatar: u.photoURL,
+          // You can merge local profile if needed:
+          // ...JSON.parse(localStorage.getItem("kyool_profile") || "{}"),
         });
       } else {
-        console.log('No user detected after redirect.');
         setIsAuthenticated(false);
         setUser(null);
       }
@@ -99,40 +100,17 @@ function AppRoutes() {
     return () => unsubscribe();
   }, []);
 
-  const handleLogin = () => {
-    navigate("/login");
-  };
-
-  const handleSignUp = () => {
-    setShowLogin(true);
-  };
-
-  const handleGoogleLogin = (user:any) => {
-    setIsAuthenticated(true);
-    setShowLogin(false);
-    setUser({
-      id: user.uid,
-      name: user.displayName,
-      email: user.email,
-      avatar: user.photoURL,
-      isPremium: false,
-      height: 175,
-      weight: 85,
-      age: 48,
-      activityLevel: "light",
-      medicalConditions: [],
-      dailyCalorieTarget: 1800,
-    });
-  };
+  const handleLogin = () => navigate("/login");
+  const handleSignUp = () => navigate("/signup");
 
   const handleLogout = async () => {
     await auth.signOut();
     setIsAuthenticated(false);
     setUser(null);
-    navigate("/"); // Redirect to landing page
+    navigate("/"); // back to landing
   };
 
-  // Auth-protected route wrapper
+  // Protected wrapper
   function PrivateRoute({ children }: { children: React.ReactNode }) {
     return isAuthenticated ? (
       <>
@@ -159,8 +137,12 @@ function AppRoutes() {
   return (
     <div className="min-h-screen bg-background">
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        {/* Public */}
         <Route path="/" element={<LandingPage onLogin={handleLogin} onSignUp={handleSignUp} />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+
+        {/* Private */}
         <Route
           path="/dashboard"
           element={
