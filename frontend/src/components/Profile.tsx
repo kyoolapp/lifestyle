@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
+import { createOrUpdateUser } from '../api/user_api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -27,6 +29,14 @@ interface ProfileProps {
 }
 
 export function Profile({ user, setUser }: ProfileProps) {
+  // Calculate health metrics
+  const gender = user.gender || 'male'; // Default to male if not set
+  const bmi = calculateBMI(user.weight, user.height);
+  const bmr = calculateBMR(user.weight, user.height, user.age, gender);
+  const tdee = bmr !== null ? calculateTDEE(bmr, user.activityLevel) : null;
+  const maintenanceCalories = tdee;
+  // Debug: log user object on every render
+  console.log('Profile user:', user);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user.name,
@@ -34,7 +44,8 @@ export function Profile({ user, setUser }: ProfileProps) {
     height: user.height,
     weight: user.weight,
     age: user.age,
-    activityLevel: user.activityLevel
+    activityLevel: user.activityLevel,
+    gender: user.gender || 'male',
   });
 
   // Mock user stats
@@ -89,11 +100,23 @@ export function Profile({ user, setUser }: ProfileProps) {
   ];
 
   const handleSave = () => {
-    setUser({
+    // Calculate new metrics
+    const newBMI = calculateBMI(editForm.weight, editForm.height);
+    const newBMR = calculateBMR(editForm.weight, editForm.height, editForm.age, editForm.gender);
+    const newTDEE = newBMR !== null ? calculateTDEE(newBMR, editForm.activityLevel) : null;
+    const updatedUser = {
       ...user,
-      ...editForm
-    });
+      ...editForm,
+      bmi: newBMI,
+      bmr: newBMR,
+      maintenance_calories: newTDEE,
+    };
+    setUser(updatedUser);
     setIsEditing(false);
+    // Update backend
+    if (user.id) {
+      createOrUpdateUser(user.id, updatedUser);
+    }
   };
 
   const handleCancel = () => {
@@ -103,7 +126,8 @@ export function Profile({ user, setUser }: ProfileProps) {
       height: user.height,
       weight: user.weight,
       age: user.age,
-      activityLevel: user.activityLevel
+      activityLevel: user.activityLevel,
+      gender: user.gender || 'male',
     });
     setIsEditing(false);
   };
@@ -154,7 +178,12 @@ export function Profile({ user, setUser }: ProfileProps) {
             <CardContent className="p-6">
               <div className="flex items-start gap-6">
                   <Avatar className="w-24 h-24">
-                    <AvatarImage src={user.photoURL || user.avatar} />
+                    <AvatarImage 
+                      src={user.photoURL || user.avatar}
+                      onError={() => {
+                        console.warn('Avatar image failed to load:', user.photoURL || user.avatar);
+                      }}
+                    />
                     <AvatarFallback className="text-xl">
                       {user.name.split(' ').map((n: string) => n[0]).join('')}
                     </AvatarFallback>
@@ -204,45 +233,41 @@ export function Profile({ user, setUser }: ProfileProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Current Weight</CardTitle>
+                <CardTitle className="text-sm font-medium">Weight / Height</CardTitle>
                 <User className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.weight}kg</div>
-                <p className="text-xs text-muted-foreground">Height: {user.height}cm</p>
+                <div className="text-2xl font-bold">{user.weight} kg / {user.height} cm</div>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+                <CardTitle className="text-sm font-medium">BMI</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{userStats.currentStreak}</div>
-                <p className="text-xs text-muted-foreground">days active</p>
+                <div className="text-2xl font-bold">{bmi ?? '--'}</div>
+                <p className="text-xs text-muted-foreground">Body Mass Index</p>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Water Goals</CardTitle>
+                <CardTitle className="text-sm font-medium">BMR</CardTitle>
                 <Droplets className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{userStats.waterGoalsAchieved}</div>
-                <p className="text-xs text-muted-foreground">goals achieved</p>
+                <div className="text-2xl font-bold">{bmr ?? '--'}</div>
+                <p className="text-xs text-muted-foreground">Basal Metabolic Rate</p>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Member Since</CardTitle>
+                <CardTitle className="text-sm font-medium">TDEE / Maintenance</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Jan</div>
-                <p className="text-xs text-muted-foreground">2024</p>
+                <div className="text-2xl font-bold">{tdee ?? '--'}</div>
+                <p className="text-xs text-muted-foreground">Total Daily Energy Expenditure</p>
               </CardContent>
             </Card>
           </div>
@@ -350,6 +375,18 @@ export function Profile({ user, setUser }: ProfileProps) {
               {isEditing ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="edit-gender">Gender</Label>
+                      <Select onValueChange={(value: any) => setEditForm({ ...editForm, gender: value })} value={editForm.gender}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div>
                       <Label htmlFor="edit-name">Full Name</Label>
                       <Input

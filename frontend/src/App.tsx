@@ -101,7 +101,12 @@ function AppRoutes() {
             if (res.ok) {
               const userData = await res.json();
               setIsAppUser(true);
-              setUser(userData);
+              // Patch: preserve avatar/photoURL from Firebase user if backend user lacks it
+              setUser({
+                ...userData,
+                avatar: userData.avatar || u.photoURL,
+                photoURL: u.photoURL,
+              });
             } else {
               setIsAppUser(false);
               setUser(null);
