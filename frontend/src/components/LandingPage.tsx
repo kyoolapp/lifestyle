@@ -217,12 +217,12 @@ const handleLoginClick = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button variant="ghost" onClick={onLogin}>
-                Sign In
-              </Button>
-              <Button onClick={onSignUp}>
+              <Button onClick={onLogin}>
                 Get Started
               </Button>
+              {/*<Button onClick={onSignUp}>
+                Get Started
+              </Button>*/}
             </div>
           </div>
         </div>

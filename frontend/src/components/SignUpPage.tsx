@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase";
-
+import { createOrUpdateUser } from "../api/user_api";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
@@ -31,6 +31,7 @@ type ActivityLevel =
   | "athlete";
 
 export default function SignUpPage() {
+  console.log("SignUpPage mounted/re-rendered");
   const navigate = useNavigate();
   const [googleUser, setGoogleUser] = useState<null | {
     uid: string;
@@ -49,9 +50,23 @@ export default function SignUpPage() {
   const [height, setHeight] = useState<string>(""); // cm
   const [weight, setWeight] = useState<string>(""); // kg
   const [activity, setActivity] = useState<ActivityLevel | "">("");
+  const [username, setUsername] = useState<string>("");
 
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(false);
+  const signupCompleted = useRef(false);
+  const signupStarted = useRef(false);
+
+
+  useEffect(() => {
+    return () => {
+      // Only sign out if signup was started but NOT completed
+      if (signupStarted.current && !signupCompleted.current) {
+        console.log("Signing out incomplete signup user", signupCompleted, signupStarted);
+        auth.signOut();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((u) => {
@@ -72,6 +87,7 @@ export default function SignUpPage() {
   const handleGoogle = async () => {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
+    signupStarted.current = true;
     const u = result.user;
     const gu = {
       uid: u.uid,
@@ -88,46 +104,80 @@ export default function SignUpPage() {
   }, [googleUser, name, accepted, goal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
+  console.log("handleSubmit called");
+  // ...existing code...
+  console.log("Before backend createOrUpdateUser");
+  e.preventDefault();
+  if (!canSubmit) return;
+  signupStarted.current = true;
+  setSubmitting(true);
+  try {
+    const ageNum =
+      age.trim() === "" ? null : Math.max(0, Math.min(120, Number(age)));
+    const heightNum =
+      height.trim() === ""
+        ? null
+        : Math.max(50, Math.min(250, Number(height)));
+    const weightNum =
+      weight.trim() === ""
+        ? null
+        : Math.max(20, Math.min(400, Number(weight)));
 
-    try {
-      setSubmitting(true);
+    // Generate username from email or name
+    const username = googleUser?.email?.split("@")[0] || name.replace(/\s+/g, "_").toLowerCase();
+    const userData = {
+      username,
+      name,
+      email: googleUser?.email,
+      gender: gender || null,
+      height: Number.isFinite(heightNum as number) ? heightNum : null,
+      weight: Number.isFinite(weightNum as number) ? weightNum : null,
+      age: Number.isFinite(ageNum as number) ? ageNum : null,
+      activity_level: activity || null,
+      date_joined: new Date().toISOString(),
+      // Optionally add phone_number, food_preferences, allergies, bmi, bmr, maintenance_calories if you collect them
+    };
 
-      const ageNum =
-        age.trim() === "" ? null : Math.max(0, Math.min(120, Number(age)));
-      const heightNum =
-        height.trim() === ""
-          ? null
-          : Math.max(50, Math.min(250, Number(height)));
-      const weightNum =
-        weight.trim() === ""
-          ? null
-          : Math.max(20, Math.min(400, Number(weight)));
+    // Call backend to create user in Firestore
+  await createOrUpdateUser(googleUser?.uid, userData);
+  console.log("After backend createOrUpdateUser");
 
-      localStorage.setItem(
-        "kyool_profile",
-        JSON.stringify({
-          uid: googleUser?.uid,
-          name,
-          gender: gender || null,
-          fitnessGoal: goal,
-          activityLevel: activity || null,
-          age: Number.isFinite(ageNum as number) ? ageNum : null,
-          heightCm: Number.isFinite(heightNum as number) ? heightNum : null,
-          weightKg: Number.isFinite(weightNum as number) ? weightNum : null,
-          acceptedTermsAt: new Date().toISOString(),
-        })
-      );
+    localStorage.setItem("kyool_profile", JSON.stringify(userData));
 
+    // Poll backend for user existence before navigating
+    const pollUserExists = async () => {
+      const maxAttempts = 10;
+      const delay = 300;
+      for (let i = 0; i < maxAttempts; i++) {
+        try {
+          const res = await fetch(`http://127.0.0.1:8000/users/by-email/${encodeURIComponent(googleUser?.email ?? "")}`);
+          if (res.ok) {
+            return true;
+          }
+        } catch (err) {}
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+      return false;
+    };
+
+    const exists = await pollUserExists();
+    console.log("Poll user exists result:", exists);
+    if (exists) {
       setCreated(true);
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 900);
-    } finally {
-      setSubmitting(false);
+    } else {
+      alert("Account created, but could not verify user in backend. Please try logging in.");
     }
-  };
+  } finally {
+    setSubmitting(false);
+  }
+};
+  useEffect(() => {
+    if (created) {
+      console.log("useEffect: navigating to dashboard");
+      signupCompleted.current = true;
+      navigate("/dashboard");
+    }
+  }, [created, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center px-4 py-10">
@@ -151,14 +201,14 @@ export default function SignUpPage() {
           {/* Google Sign In */}
           {!googleUser ? (
             <div className="mb-6">
-              <Button
+              {/*<Button
                 type="button"
                 onClick={handleGoogle}
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
               >
                 <LogIn className="w-4 h-4 mr-2" />
                 Continue with Google
-              </Button>
+              </Button>*/}
             </div>
           ) : (
             <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between">
@@ -191,7 +241,7 @@ export default function SignUpPage() {
           )}
 
           {/* The Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-8">
             <div>
               <Label htmlFor="name">Name</Label>
               <Input
@@ -201,14 +251,12 @@ export default function SignUpPage() {
                 onChange={(e) => setName(e.target.value)}
                 disabled={!googleUser}
               />
-              <p className="text-xs text-slate-500 mt-1">
-                (Prefilled from Google — you can edit if needed)
-              </p>
+              
             </div>
 
             {/* Gender + Goal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div >
                 <Label>Gender (optional)</Label>
                 <Select value={gender} onValueChange={setGender}>
                   <SelectTrigger>
@@ -229,7 +277,7 @@ export default function SignUpPage() {
                 <Label>Fitness goal</Label>
                 <Select
                   value={goal}
-                  onValueChange={(v) => setGoal(v as FitnessGoal)}
+                  onValueChange={(v: string) => setGoal(v as FitnessGoal)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a goal" />
@@ -248,12 +296,12 @@ export default function SignUpPage() {
             {/* Age + Height + Weight */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="age">Age (years, optional)</Label>
+                <Label htmlFor="age">Age (years)</Label>
                 <Input
                   id="age"
                   type="number"
                   inputMode="numeric"
-                  min={0}
+                  min={1}
                   max={120}
                   placeholder="e.g., 48"
                   value={age}
@@ -296,7 +344,7 @@ export default function SignUpPage() {
               <Label>Activity level (optional)</Label>
               <Select
                 value={activity}
-                onValueChange={(v) => setActivity(v as ActivityLevel)}
+                onValueChange={(v: string) => setActivity(v as ActivityLevel)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Choose your typical activity" />
@@ -324,7 +372,7 @@ export default function SignUpPage() {
               <Checkbox
                 id="terms"
                 checked={accepted}
-                onCheckedChange={(v) => setAccepted(Boolean(v))}
+                onCheckedChange={(v: any) => setAccepted(Boolean(v))}
               />
               <Label htmlFor="terms" className="text-slate-600">
                 I agree to the{" "}

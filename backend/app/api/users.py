@@ -26,3 +26,10 @@ def update_user(user_id: str, user: UserProfile):
 def delete_user(user_id: str):
     success = user_service.delete_user(user_id)
     return {"success": success}
+
+@router.get("/by-email/{email}", response_model=UserProfile)
+def get_user_by_email(email: str):
+    user = user_service.get_user_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

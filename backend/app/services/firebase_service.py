@@ -22,3 +22,9 @@ class FirestoreUserService:
     def delete_user(self, user_id: str):
         db.collection('users').document(user_id).delete()
         return True
+    
+    def get_user_by_email(self, email: str):
+        users = db.collection('users').where('email', '==', email).stream()
+        for user in users:
+            return user.to_dict()
+        return None

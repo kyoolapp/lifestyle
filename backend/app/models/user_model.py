@@ -6,9 +6,9 @@ class UserProfile(BaseModel):
     name: str
     email: str
     phone_number: Optional[str] = None
-    height: Optional[float] = None
-    weight: Optional[float] = None
-    age: Optional[int] = None
+    height: float = None
+    weight: float
+    age: int = None
     activity_level: Optional[str] = None
     food_preferences: Optional[List[str]] = None
     allergies: Optional[List[str]] = None

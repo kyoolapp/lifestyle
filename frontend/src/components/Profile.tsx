@@ -153,12 +153,12 @@ export function Profile({ user, setUser }: ProfileProps) {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-start gap-6">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback className="text-xl">
-                    {user.name.split(' ').map((n: string) => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
+                  <Avatar className="w-24 h-24">
+                    <AvatarImage src={user.photoURL || user.avatar} />
+                    <AvatarFallback className="text-xl">
+                      {user.name.split(' ').map((n: string) => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
                 
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">

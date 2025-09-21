@@ -3,15 +3,16 @@ import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase";
 import { Button } from "./ui/button";
 import { Shield, Sparkles, CheckCircle2, Loader2 } from "lucide-react";
-
+import { signOut } from "firebase/auth";
 import { createOrUpdateUser } from "../api/user_api"; // adjust path if needed
-
+import { getUserByEmail } from "../api/user_api"; // create this function
+import { useNavigate } from "react-router-dom";
 
 // NOTE: Functionality preserved exactly: same named export, same popup flow, same states
 export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
+  const navigate = useNavigate();
   const googleProvider = new GoogleAuthProvider();
 
   const handleGoogleLogin = async () => {
@@ -19,16 +20,37 @@ export function LoginPage() {
       setSubmitting(true);
       setError("");
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("signInWithPopup result:", result);
+      // Check if user exists in DB
       const googleUser = result.user;
-      const userId = googleUser.uid;
-      const userData = {
-      username: "your_username", // or prompt user for this
-      name: googleUser.displayName,
-      email: googleUser.email,
+      const email = googleUser.email;
+      const user = await getUserByEmail(email);
+      if (!user || user.detail === "User not found") {
+        // Redirect to signup, passing Google user info
+        navigate("/signup", {
+          state: {
+            googleUser: {
+              uid: googleUser.uid,
+              displayName: googleUser.displayName,
+              email: googleUser.email,
+              photoURL: googleUser.photoURL,
+            },
+          },
+        });
+        return;
+      }
+      //console.log("signInWithPopup result:", result);
+      
+      
+
+    //const userId = googleUser.uid;
+
+      //const userData = {
+      //username: "your_username", // or prompt user for this
+      //name: googleUser.displayName,
+      //email: googleUser.email,
   // ...other fields you want to send
-      };
-      await createOrUpdateUser(userId, userData);
+      //};
+      //await createOrUpdateUser(userId, userData);
       //onLogin(googleUser);
 
 
@@ -51,6 +73,7 @@ export function LoginPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-zinc-900">
+    
       {/* Ambient orbs */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-fuchsia-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl" />

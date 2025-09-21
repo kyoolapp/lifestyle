@@ -1,5 +1,6 @@
 //App.tsx
 import React, { useEffect, useState } from "react";
+import { getUserByEmail } from "./api/user_api";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 
 import { LandingPage } from "./components/LandingPage";
@@ -28,6 +29,7 @@ export default function App() {
 
 function AppRoutes() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAppUser, setIsAppUser] = useState(true); // true by default for non-auth
   const [activeTab, setActiveTab] = useState("activity");
   const [user, setUser] = useState<any>(null);
   const [safeZone, setSafeZone] = useState(false);
@@ -68,20 +70,23 @@ function AppRoutes() {
 
   // Log state each render (dev)
   useEffect(() => {
-    console.log("AppRoutes render: isAuthenticated:", isAuthenticated, "user:", user);
+    //console.log("AppRoutes render: isAuthenticated:", isAuthenticated, "user:", user);
   });
 
-  // After login, go to dashboard if on / or /login
+  // After login and backend user check, go to dashboard if on /, /login, or /signup
   useEffect(() => {
-    if (isAuthenticated && (location.pathname === "/login" || location.pathname === "/")) {
+    if (
+      isAuthenticated &&
+      isAppUser &&
+      ["/", "/login", "/signup"].includes(location.pathname)
+    ) {
       navigate("/dashboard");
     }
-  }, [isAuthenticated, location.pathname, navigate]);
+  }, [isAuthenticated, isAppUser, location.pathname, navigate]);
 
-  // Firebase auth listener
+  // Firebase auth listener + backend user check
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => {
-      console.log("Firebase Auth State Changed:", u);
+    const unsubscribe = auth.onAuthStateChanged(async (u) => {
       if (u) {
         setIsAuthenticated(true);
         setUser({
@@ -89,16 +94,30 @@ function AppRoutes() {
           name: u.displayName,
           email: u.email,
           avatar: u.photoURL,
-          // You can merge local profile if needed:
-          // ...JSON.parse(localStorage.getItem("kyool_profile") || "{}"),
         });
+          // Check backend for user existence
+          try {
+            const res = await fetch(`http://127.0.0.1:8000/users/by-email/${encodeURIComponent(u.email ?? "")}`);
+            if (res.ok) {
+              const userData = await res.json();
+              setIsAppUser(true);
+              setUser(userData);
+            } else {
+              setIsAppUser(false);
+              setUser(null);
+            }
+          } catch (err) {
+            setIsAppUser(false);
+            setUser(null);
+          }
       } else {
         setIsAuthenticated(false);
         setUser(null);
+        setIsAppUser(true);
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleLogin = () => navigate("/login");
   const handleSignUp = () => navigate("/signup");
@@ -112,7 +131,14 @@ function AppRoutes() {
 
   // Protected wrapper
   function PrivateRoute({ children }: { children: React.ReactNode }) {
-    return isAuthenticated ? (
+    if (!isAuthenticated) {
+      return <Navigate to="/login" replace />;
+    }
+    if (!isAppUser) {
+      // Block access if not in backend DB
+      return <Navigate to="/signup" replace />;
+    }
+    return (
       <>
         <Header
           user={user}
@@ -129,8 +155,6 @@ function AppRoutes() {
           </main>
         </div>
       </>
-    ) : (
-      <Navigate to="/login" replace />
     );
   }
 
