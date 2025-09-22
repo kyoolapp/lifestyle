@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { 
   Home, 
@@ -23,7 +22,6 @@ interface SidebarProps {
   onLogout?: () => void;
 }
 
-
 export function Sidebar({ user, onLogout }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -39,19 +37,25 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
     { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
 
-  
   const SidebarContent = () => (
     <>
-      <div className="p-4 sm:p-6 border-b border-border">
-      </div>
+      <div className="p-4 sm:p-6 border-b border-border" />
 
-      <div className="p-3 sm:p-4 border-b border-border">
+      {/* User header wrapped in Link */}
+      <Link
+        to="/profile"
+        title="Open profile"
+        onClick={() => setIsMobileMenuOpen(false)}
+        className="block p-3 sm:p-4 border-b border-border hover:bg-accent/60 focus:outline-none focus:ring-2 focus:ring-primary/50"
+      >
         <div className="flex items-center gap-3">
           <Avatar className="w-8 h-8 sm:w-10 sm:h-10">
             <AvatarImage src={user.avatar} />
-            <AvatarFallback className="text-xs sm:text-sm">{user.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+            <AvatarFallback className="text-xs sm:text-sm">
+              {user.name.split(' ').map((n: string) => n[0]).join('')}
+            </AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0 hidden sm:block">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{user.name}</p>
             <div className="flex items-center gap-2">
               <p className="text-xs text-muted-foreground">
@@ -61,8 +65,9 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
             </div>
           </div>
         </div>
-      </div>
+      </Link>
 
+      {/* Nav items */}
       <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
         <ul className="space-y-1 sm:space-y-2">
           {navItems.map((item) => {
@@ -71,24 +76,25 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
             return (
               <li key={item.id}>
                 <Link
-              to={item.path}
-              className={`w-full flex items-center gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
-              title={item.label}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs sm:text-sm hidden sm:inline truncate">{item.label}</span>
-            </Link>
+                  to={item.path}
+                  className={`w-full flex items-center gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                  title={item.label}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm hidden sm:inline truncate">{item.label}</span>
+                </Link>
               </li>
             );
           })}
         </ul>
       </nav>
 
+      {/* Footer actions */}
       <div className="p-3 sm:p-4 border-t border-border space-y-3">
         {!user.isPremium && (
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-2 sm:p-3 text-white">
