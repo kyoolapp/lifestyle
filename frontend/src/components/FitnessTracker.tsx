@@ -13,6 +13,7 @@ import { Separator } from './ui/separator';
 import { AppleWatchRoller } from './AppleWatchRoller';
 import { EmojiMoodSelector } from './EmojiMoodSelector';
 import { WorkoutEditor } from './WorkoutEditor';
+import { WorkoutLibrary } from './WorkoutLibrary';
 import { 
   Dumbbell, 
   Plus, 
@@ -422,6 +423,9 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
   // Workout Editor states
   const [isWorkoutEditorOpen, setIsWorkoutEditorOpen] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<any>(null);
+  
+  // Workout Library states
+  const [isWorkoutLibraryOpen, setIsWorkoutLibraryOpen] = useState(false);
 
   const [workoutRoutines, setWorkoutRoutines] = useState([
     {
@@ -635,6 +639,31 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
     setWorkoutRoutines(prev => prev.map(routine => 
       routine.id === updatedRoutine.id ? updatedRoutine : routine
     ));
+  };
+
+  const handleCopyWorkout = (workout: any) => {
+    const newWorkout = {
+      id: workoutRoutines.length + 1,
+      name: `${workout.name} (Copied)`,
+      exercises: workout.exercises.map((ex: any, idx: number) => ({
+        id: `ex-${workoutRoutines.length + 1}-${idx + 1}`,
+        name: ex.name,
+        sets: ex.sets || 3,
+        reps: ex.reps || '8-12',
+        weight: ex.weight || 'bodyweight',
+        completed: false
+      })),
+      duration: workout.duration,
+      difficulty: workout.difficulty,
+      targetMuscles: workout.targetMuscles,
+      createdBy: 'You (Copied)',
+      isPublic: false,
+      downloads: 0,
+      originalCreator: workout.creator.name
+    };
+    
+    setWorkoutRoutines(prev => [...prev, newWorkout]);
+    setIsWorkoutLibraryOpen(false);
   };
 
   // Filter exercises based on search and category

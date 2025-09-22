@@ -5,9 +5,10 @@ import { AddFriends } from './AddFriends';
 
 interface DashboardProps {
   user: any;
+  onStartWorkout?: (workout: any) => void;
 }
 
-export function Dashboard({ user }: DashboardProps) {
+export function Dashboard({ user, onStartWorkout }: DashboardProps) {
   const [activeView, setActiveView] = useState<'dashboard' | 'friends' | 'addFriends'>('dashboard');
 
   const handleViewAllFriends = () => {
@@ -39,5 +40,5 @@ export function Dashboard({ user }: DashboardProps) {
     );
   }
 
-  return <ActivityFeed user={user} onViewAllFriends={handleViewAllFriends} />;
+  return <ActivityFeed user={user} onViewAllFriends={handleViewAllFriends} onStartWorkout={onStartWorkout} />;
 }
