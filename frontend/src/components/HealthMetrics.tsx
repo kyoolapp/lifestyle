@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+        import React, { useState } from 'react';
+import { addWeightLog, getWeightLogs } from '../api/user_api';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -20,6 +22,7 @@ interface HealthMetricsProps {
 }
 
 export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
+  const [weightLogs, setWeightLogs] = useState([]);
   const [metrics, setMetrics] = useState({
     height: user.height,
     weight: user.weight,
@@ -89,6 +92,21 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
       weight: metrics.weight,
       age: metrics.age
     });
+    // Log weight update to backend
+    if (user.id) {
+      const now = new Date().toISOString();
+      addWeightLog(user.id, metrics.weight, now);
+    }
+  // Fetch weight logs on mount
+  React.useEffect(() => {
+    async function fetchLogs() {
+      if (user.id) {
+        const logs = await getWeightLogs(user.id);
+        setWeightLogs(logs);
+      }
+    }
+    fetchLogs();
+  }, [user.id]);
   };
 
   const bmi = parseFloat(calculateBMI());
@@ -158,6 +176,23 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
       </Card>
 
       {/* Calculated Metrics */}
+      {/* Weight Progress Graph */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Weight Progress</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={weightLogs} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" tickFormatter={date => new Date(date).toLocaleDateString()} />
+              <YAxis domain={['auto', 'auto']} />
+              <Tooltip labelFormatter={date => new Date(date).toLocaleString()} />
+              <Line type="monotone" dataKey="weight" stroke="#8884d8" dot={true} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
