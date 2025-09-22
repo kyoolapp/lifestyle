@@ -97,7 +97,7 @@ function AppRoutes() {
         });
           // Check backend for user existence
           try {
-            const res = await fetch(`http://127.0.0.1:8000/users/by-email/${encodeURIComponent(u.email ?? "")}`);
+            const res = await fetch(`https://kyool-backend-606917950237.us-central1.run.app/users/by-email/${encodeURIComponent(u.email ?? "")}`);
             if (res.ok) {
               const userData = await res.json();
               setIsAppUser(true);

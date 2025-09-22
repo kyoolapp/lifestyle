@@ -150,7 +150,7 @@ export default function SignUpPage() {
       const delay = 300;
       for (let i = 0; i < maxAttempts; i++) {
         try {
-          const res = await fetch(`http://127.0.0.1:8000/users/by-email/${encodeURIComponent(googleUser?.email ?? "")}`);
+          const res = await fetch(`https://kyool-backend-606917950237.us-central1.run.app/users/by-email/${encodeURIComponent(googleUser?.email ?? "")}`);
           if (res.ok) {
             return true;
           }
