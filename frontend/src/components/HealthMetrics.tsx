@@ -22,6 +22,7 @@ interface HealthMetricsProps {
 }
 
 export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
+  // console.log('HealthMetrics component rendered');
   const [weightLogs, setWeightLogs] = useState([]);
   const [metrics, setMetrics] = useState({
     height: user.height,
@@ -32,6 +33,8 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
     bloodPressureSystolic: 120,
     bloodPressureDiastolic: 80
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const calculateBMI = () => {
     const heightInM = metrics.height / 100;
@@ -90,26 +93,47 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   React.useEffect(() => {
     async function fetchLogs() {
       if (user.id) {
-        const logs = await getWeightLogs(user.id);
-        setWeightLogs(logs);
+        try {
+          const logs = await getWeightLogs(user.id);
+          setWeightLogs(logs);
+        } catch (err) {
+          setError('Failed to fetch weight logs');
+        }
       }
     }
     fetchLogs();
   }, [user.id]);
 
-  const handleSave = () => {
-    setUser({
-      ...user,
-      height: metrics.height,
-      weight: metrics.weight,
-      age: metrics.age
-    });
-    // Log weight update to backend
-    if (user.id) {
+  const handleSave = async () => {
+  // console.log('handleSave called');
+    setLoading(true);
+    setError(null);
+    try {
+      setUser({
+        ...user,
+        height: metrics.height,
+        weight: metrics.weight,
+        age: metrics.age
+      });
+      if (!user.id) {
+        // console.warn('No user.id found, skipping API calls');
+        setLoading(false);
+        return;
+      }
       const now = new Date().toISOString();
-      addWeightLog(user.id, metrics.weight, now);
+      // console.log('Calling addWeightLog with:', user.id, metrics.weight, now);
+      const addLogResult = await addWeightLog(user.id, metrics.weight, now);
+      // console.log('addWeightLog result:', addLogResult);
+      // console.log('Fetching updated weight logs...');
+      const logs = await getWeightLogs(user.id);
+      // console.log('Fetched logs:', logs);
+      setWeightLogs(logs);
+    } catch (err) {
+      // console.error('Error in handleSave:', err);
+      setError('Failed to save changes');
+    } finally {
+      setLoading(false);
     }
- 
   };
 
   const bmi = parseFloat(calculateBMI());
@@ -172,9 +196,11 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
               />
             </div>
           </div>
-          <Button onClick={handleSave} className="mt-4">
-            Save Changes
+          <Button type="button" onClick={handleSave} className="mt-4" disabled={loading}>
+            {loading ? 'Saving...' : 'Save Changes'}
           </Button>
+        
+          {error && <div className="text-red-500 mt-2">{error}</div>}
         </CardContent>
       </Card>
 

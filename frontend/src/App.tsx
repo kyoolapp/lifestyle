@@ -95,26 +95,27 @@ function AppRoutes() {
           email: u.email,
           avatar: u.photoURL,
         });
-          // Check backend for user existence
-          try {
-            const res = await fetch(`https://kyool-backend-606917950237.us-central1.run.app/users/by-email/${encodeURIComponent(u.email ?? "")}`);
-            if (res.ok) {
-              const userData = await res.json();
-              setIsAppUser(true);
-              // Patch: preserve avatar/photoURL from Firebase user if backend user lacks it
-              setUser({
-                ...userData,
-                avatar: userData.avatar || u.photoURL,
-                photoURL: u.photoURL,
-              });
-            } else {
-              setIsAppUser(false);
-              setUser(null);
-            }
-          } catch (err) {
+        // Check backend for user existence
+        try {
+          const res = await fetch(`https://kyool-backend-606917950237.us-central1.run.app/users/by-email/${encodeURIComponent(u.email ?? "")}`);
+          if (res.ok) {
+            const userData = await res.json();
+            setIsAppUser(true);
+            // Patch: ensure 'id' is present and consistent
+            setUser({
+              ...userData,
+              id: userData.id || userData.userId || userData.uid || u.uid,
+              avatar: userData.avatar || u.photoURL,
+              photoURL: u.photoURL,
+            });
+          } else {
             setIsAppUser(false);
             setUser(null);
           }
+        } catch (err) {
+          setIsAppUser(false);
+          setUser(null);
+        }
       } else {
         setIsAuthenticated(false);
         setUser(null);
