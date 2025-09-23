@@ -85,6 +85,18 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
     }
   };
 
+
+   // Fetch weight logs on mount
+  React.useEffect(() => {
+    async function fetchLogs() {
+      if (user.id) {
+        const logs = await getWeightLogs(user.id);
+        setWeightLogs(logs);
+      }
+    }
+    fetchLogs();
+  }, [user.id]);
+
   const handleSave = () => {
     setUser({
       ...user,
@@ -97,16 +109,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
       const now = new Date().toISOString();
       addWeightLog(user.id, metrics.weight, now);
     }
-  // Fetch weight logs on mount
-  React.useEffect(() => {
-    async function fetchLogs() {
-      if (user.id) {
-        const logs = await getWeightLogs(user.id);
-        setWeightLogs(logs);
-      }
-    }
-    fetchLogs();
-  }, [user.id]);
+ 
   };
 
   const bmi = parseFloat(calculateBMI());
