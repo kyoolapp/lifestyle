@@ -5,6 +5,7 @@ import { auth } from "../firebase";
 import { createOrUpdateUser } from "../api/user_api";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { calculateBMI, calculateBMR, calculateTDEE } from "../utils/health";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";

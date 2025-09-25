@@ -1,4 +1,4 @@
-        import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { addWeightLog, getWeightLogs } from '../api/user_api';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -7,14 +7,8 @@ import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
-import { 
-  Heart, 
-  Scale, 
-  Ruler, 
-  Calculator,
-  TrendingUp,
-  Activity
-} from 'lucide-react';
+import { Heart, Scale, Calculator, TrendingUp, Activity } from 'lucide-react';
+import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 
 interface HealthMetricsProps {
   user: any;
@@ -35,35 +29,6 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const calculateBMI = () => {
-    const heightInM = metrics.height / 100;
-    const bmi = metrics.weight / (heightInM * heightInM);
-    return bmi.toFixed(1);
-  };
-
-  const calculateBMR = () => {
-    // Mifflin-St Jeor Equation
-    let bmr;
-    if (user.gender === 'male') {
-      bmr = (10 * metrics.weight) + (6.25 * metrics.height) - (5 * metrics.age) + 5;
-    } else {
-      bmr = (10 * metrics.weight) + (6.25 * metrics.height) - (5 * metrics.age) - 161;
-    }
-    return Math.round(bmr);
-  };
-
-  const calculateTDEE = () => {
-    const bmr = calculateBMR();
-    const activityMultipliers: Record<string, number> = {
-      sedentary: 1.2,
-      light: 1.375,
-      moderate: 1.55,
-      active: 1.725,
-      veryActive: 1.9
-    };
-    return Math.round(bmr * activityMultipliers[user.activityLevel || 'moderate']);
-  };
 
   const getBMICategory = (bmi: number) => {
     if (bmi < 18.5) return { label: 'Underweight', color: 'blue', description: 'Consider gaining weight' };
@@ -105,42 +70,43 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   }, [user.id]);
 
   const handleSave = async () => {
-  // console.log('handleSave called');
-    setLoading(true);
-    setError(null);
-    try {
-      setUser({
-        ...user,
-        height: metrics.height,
-        weight: metrics.weight,
-        age: metrics.age
-      });
-      if (!user.id) {
-        // console.warn('No user.id found, skipping API calls');
-        setLoading(false);
-        return;
-      }
-      const now = new Date().toISOString();
-      // console.log('Calling addWeightLog with:', user.id, metrics.weight, now);
-      const addLogResult = await addWeightLog(user.id, metrics.weight, now);
-      // console.log('addWeightLog result:', addLogResult);
-      // console.log('Fetching updated weight logs...');
-      const logs = await getWeightLogs(user.id);
-      // console.log('Fetched logs:', logs);
-      setWeightLogs(logs);
-    } catch (err) {
-      // console.error('Error in handleSave:', err);
-      setError('Failed to save changes');
-    } finally {
+  setLoading(true);
+  setError(null);
+  try {
+    setUser({
+      ...user,
+      height: metrics.height,
+      weight: metrics.weight,
+      age: metrics.age
+    });
+    if (!user.id) {
       setLoading(false);
+      return;
     }
-  };
+    const now = new Date().toISOString();
+    await addWeightLog(
+      user.id,
+      metrics.weight,
+      now,
+      bmi,
+      bmr,
+      tdee
+    );
+    console.log('Saving:', { bmi, bmr, tdee });
+    const logs = await getWeightLogs(user.id);
+    setWeightLogs(logs);
+  } catch (err) {
+    setError('Failed to save changes');
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const bmi = parseFloat(calculateBMI());
-  const bmiCategory = getBMICategory(bmi);
+  const bmi = calculateBMI(metrics.weight, metrics.height);
+  const bmiCategory = getBMICategory(bmi ?? 0);
   const bodyFatCategory = getBodyFatCategory(metrics.bodyFat);
-  const bmr = calculateBMR();
-  const tdee = calculateTDEE();
+  const bmr = calculateBMR(metrics.weight, metrics.height, metrics.age, user.gender);
+  const tdee = calculateTDEE(bmr ?? 0, user.activityLevel || 'moderate');
 
   return (
     <div className="space-y-6">
@@ -229,7 +195,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
             <Heart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{calculateBMI()}</div>
+            <div className="text-2xl font-bold">{bmi ?? ''}</div>
             <Badge variant={bmiCategory.color === 'green' ? 'default' : 'secondary'} className="mt-1">
               {bmiCategory.label}
             </Badge>
@@ -328,11 +294,11 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
               <p className="text-sm text-muted-foreground">Maintain Weight</p>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{tdee - 500}</div>
+              <div className="text-2xl font-bold text-blue-600">{(tdee ?? 0) - 500}</div>
               <p className="text-sm text-muted-foreground">Lose 0.5kg/week</p>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">{tdee + 300}</div>
+              <div className="text-2xl font-bold text-orange-600">{(tdee ?? 0) + 300}</div>
               <p className="text-sm text-muted-foreground">Gain Weight</p>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">

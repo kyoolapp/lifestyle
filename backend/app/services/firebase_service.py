@@ -7,12 +7,12 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 class FirestoreUserService:
-    def add_weight_log(self, user_id: str, weight: float, date: str):
+    def add_weight_log(self, user_id: str, weight: float, date: str, bmi: float = None, bmr: float = None, tdee: float = None):
         doc_ref = db.collection('users').document(user_id)
         doc = doc_ref.get()
         if doc.exists:
             logs = doc.to_dict().get('weight_logs', [])
-            logs.append({'weight': weight, 'date': date})
+            logs.append({'weight': weight, 'date': date, 'bmi': bmi, 'bmr': bmr, 'tdee': tdee})
             doc_ref.update({'weight_logs': logs})
             return True
         return False

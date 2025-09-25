@@ -1,12 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from app.models.user_model import UserProfile
 from app.services.firebase_service import FirestoreUserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 user_service = FirestoreUserService()
 
-from fastapi import Body
-
+# User profile endpoints
 @router.get("/{user_id}", response_model=UserProfile)
 def get_user(user_id: str):
     user = user_service.get_user(user_id)
@@ -38,8 +37,8 @@ def get_user_by_email(email: str):
 
 # Weight log endpoints
 @router.post("/{user_id}/weight-log")
-def add_weight_log(user_id: str, weight: float = Body(...), date: str = Body(...)):
-    success = user_service.add_weight_log(user_id, weight, date)
+def add_weight_log(user_id: str, weight: float = Body(...), date: str = Body(...), bmi: float = Body(...), bmr: float = Body(None), tdee: float = Body(None)):
+    success = user_service.add_weight_log(user_id, weight, date, bmi, bmr, tdee)
     return {"success": success}
 
 @router.get("/{user_id}/weight-logs")

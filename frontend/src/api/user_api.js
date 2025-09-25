@@ -1,10 +1,10 @@
 const BASE_URL = import.meta.env.VITE_API_URL;
 
-export async function addWeightLog(userId, weight, date) {
+export async function addWeightLog(userId, weight, date, bmi, bmr, tdee) {
   const res = await fetch(`${BASE_URL}/users/${userId}/weight-log`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ weight, date }),
+    body: JSON.stringify({ weight, date, bmi, bmr, tdee}),
   });
   return res.json();
 }

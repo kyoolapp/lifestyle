@@ -66,3 +66,5 @@ This is the frontend for the Kyool health and lifestyle app, built with React, V
 ## License
 
 MIT
+
+backend url: https://kyool-backend-606917950237.us-central1.run.app
