@@ -376,7 +376,7 @@ export function WaitlistDialog({ open, onOpenChange, isInline = false }: Waitlis
             <Button
               onClick={handleSubmit}
               disabled={!formData.email}
-              className="flex items-center px-8 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium shadow-lg disabled:opacity-50"
+              className="flex items-center px-8 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-black font-medium shadow-lg disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Join Waitlist
@@ -394,9 +394,10 @@ export function WaitlistDialog({ open, onOpenChange, isInline = false }: Waitlis
           <CheckCircle className="w-10 h-10 text-white" />
         </div>
         <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl font-bold mb-2">
-            Welcome to KA!
-          </DialogTitle>
+<DialogTitle className="mb-6 text-2xl font-bold">
+  Welcome to KyoolApp!  
+</DialogTitle>
+
           <DialogDescription className="mb-6">
             You've successfully joined our exclusive waitlist for early access.
           </DialogDescription>
