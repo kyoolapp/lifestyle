@@ -17,3 +17,4 @@ class UserProfile(BaseModel):
     maintenance_calories: Optional[float] = None
     gender: Optional[str] = None
     date_joined: Optional[str] = None
+    tdee: Optional[float] = None

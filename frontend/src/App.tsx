@@ -48,6 +48,9 @@ import { FeaturesShowcase } from "./components/FeaturesShowcase";
 
 import { auth } from "./firebase";
 
+
+const BASE_URL= import.meta.env.VITE_API_URL;
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -635,7 +638,7 @@ function AppRoutes() {
         });
         try {
           const res = await fetch(
-            `https://kyool-backend-606917950237.us-central1.run.app/users/by-email/${encodeURIComponent(
+            `${BASE_URL}/users/by-email/${encodeURIComponent(
               u.email ?? ""
             )}`
           );

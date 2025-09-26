@@ -70,43 +70,44 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   }, [user.id]);
 
   const handleSave = async () => {
-  setLoading(true);
-  setError(null);
-  try {
-    setUser({
-      ...user,
-      height: metrics.height,
-      weight: metrics.weight,
-      age: metrics.age
-    });
-    if (!user.id) {
+    setLoading(true);
+    setError(null);
+    try {
+      setUser({
+        ...user,
+        height: metrics.height,
+        weight: metrics.weight,
+        age: metrics.age
+      });
+      if (!user.id) {
+        setLoading(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      await addWeightLog(
+        user.id,
+        metrics.weight,
+        now,
+        bmi,
+        bmr,
+        tdee
+      );
+      // Refetch logs after saving to update graph immediately
+      const updatedLogs = await getWeightLogs(user.id);
+      setWeightLogs(updatedLogs);
+    } catch (err) {
+      setError('Failed to save changes');
+    } finally {
       setLoading(false);
-      return;
     }
-    const now = new Date().toISOString();
-    await addWeightLog(
-      user.id,
-      metrics.weight,
-      now,
-      bmi,
-      bmr,
-      tdee
-    );
-    console.log('Saving:', { bmi, bmr, tdee });
-    const logs = await getWeightLogs(user.id);
-    setWeightLogs(logs);
-  } catch (err) {
-    setError('Failed to save changes');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const bmi = calculateBMI(metrics.weight, metrics.height);
   const bmiCategory = getBMICategory(bmi ?? 0);
   const bodyFatCategory = getBodyFatCategory(metrics.bodyFat);
   const bmr = calculateBMR(metrics.weight, metrics.height, metrics.age, user.gender);
-  const tdee = calculateTDEE(bmr ?? 0, user.activityLevel || 'moderate');
+  //console.log("User activity level:",user.activity_level);
+  const tdee = calculateTDEE(bmr ?? 0, user.activityLevel);
 
   return (
     <div className="space-y-6">

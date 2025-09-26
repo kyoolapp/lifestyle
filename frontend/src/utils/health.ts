@@ -19,7 +19,8 @@ export function getActivityFactor(activityLevel: string) {
     case 'light': return 1.375;
     case 'moderate': return 1.55;
     case 'active': return 1.725;
-    case 'veryActive': return 1.9;
+    case 'very_active': return 1.9;
+    case 'athlete': return 1.9;
     default: return 1.2;
   }
 }

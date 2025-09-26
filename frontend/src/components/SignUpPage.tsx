@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Shield, ArrowRight, CheckCircle2, LogIn } from "lucide-react";
-
+const BASE_URL= import.meta.env.VITE_API_URL; 
 type FitnessGoal =
   | "lose_weight"
   | "build_muscle"
@@ -52,6 +52,7 @@ export default function SignUpPage() {
   const [weight, setWeight] = useState<string>(""); // kg
   const [activity, setActivity] = useState<ActivityLevel | "">("");
   const [username, setUsername] = useState<string>("");
+  const [bmr, setBmr] = useState<number | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(false);
@@ -105,9 +106,9 @@ export default function SignUpPage() {
   }, [googleUser, name, accepted, goal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-  console.log("handleSubmit called");
+  //console.log("handleSubmit called");
   // ...existing code...
-  console.log("Before backend createOrUpdateUser");
+  //console.log("Before backend createOrUpdateUser");
   e.preventDefault();
   if (!canSubmit) return;
   signupStarted.current = true;
@@ -124,24 +125,35 @@ export default function SignUpPage() {
         ? null
         : Math.max(20, Math.min(400, Number(weight)));
 
+    const bmr = calculateBMR(weightNum ?? 0, heightNum ?? 0, ageNum ?? 0, gender);
+    
+
     // Generate username from email or name
     const username = googleUser?.email?.split("@")[0] || name.replace(/\s+/g, "_").toLowerCase();
     const userData = {
       username,
+      bmi: calculateBMI(weightNum ?? 0, heightNum ?? 0),
+      bmr,
+      tdee: calculateTDEE(bmr ?? 0, activity),
+      activity_level: activity || null,
       name,
       email: googleUser?.email,
       gender: gender || null,
       height: Number.isFinite(heightNum as number) ? heightNum : null,
       weight: Number.isFinite(weightNum as number) ? weightNum : null,
       age: Number.isFinite(ageNum as number) ? ageNum : null,
-      activity_level: activity || null,
+      
       date_joined: new Date().toISOString(),
+      
+
       // Optionally add phone_number, food_preferences, allergies, bmi, bmr, maintenance_calories if you collect them
     };
 
+    //console.log("User data to submit:", userData);
+
     // Call backend to create user in Firestore
   await createOrUpdateUser(googleUser?.uid, userData);
-  console.log("After backend createOrUpdateUser");
+  //console.log("After backend createOrUpdateUser");
 
     localStorage.setItem("kyool_profile", JSON.stringify(userData));
 
@@ -151,7 +163,7 @@ export default function SignUpPage() {
       const delay = 300;
       for (let i = 0; i < maxAttempts; i++) {
         try {
-          const res = await fetch(`https://kyool-backend-606917950237.us-central1.run.app/users/by-email/${encodeURIComponent(googleUser?.email ?? "")}`);
+          const res = await fetch(`${BASE_URL}/users/by-email/${encodeURIComponent(googleUser?.email ?? "")}`);
           if (res.ok) {
             return true;
           }

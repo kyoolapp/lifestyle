@@ -36,11 +36,11 @@ export function Profile({ user, setUser }: ProfileProps) {
   const tdee = bmr !== null ? calculateTDEE(bmr, user.activityLevel) : null;
   const maintenanceCalories = tdee;
   // Debug: log user object on every render
-  console.log('Profile user:', user);
+  //console.log('Profile user:', user);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user.name,
-    email: user.email,
+    username: user.username,
     height: user.height,
     weight: user.weight,
     age: user.age,
@@ -122,7 +122,7 @@ export function Profile({ user, setUser }: ProfileProps) {
   const handleCancel = () => {
     setEditForm({
       name: user.name,
-      email: user.email,
+      username: user.username,
       height: user.height,
       weight: user.weight,
       age: user.age,
@@ -199,7 +199,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-muted-foreground mb-4">{user.email}</p>
+                  <p className="text-muted-foreground mb-4">@{user.username}</p>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                     <div>
@@ -396,12 +396,12 @@ export function Profile({ user, setUser }: ProfileProps) {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="edit-email">Email</Label>
+                      <Label htmlFor="edit-email">UserName</Label>
                       <Input
                         id="edit-email"
                         type="email"
-                        value={editForm.email}
-                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                        value={editForm.username}
+                        onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
                       />
                     </div>
                     <div>

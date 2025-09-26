@@ -27,6 +27,20 @@ class FirestoreUserService:
         return doc.to_dict() if doc.exists else None
 
     def create_user(self, user_id: str, user_data: dict):
+        from datetime import datetime
+        # Store initial weight log using values from frontend
+        weight = user_data.get('weight')
+        bmi = user_data.get('bmi')
+        bmr = user_data.get('bmr')
+        tdee = user_data.get('tdee')
+        initial_log = {
+            'weight': weight,
+            'date': datetime.utcnow().isoformat(),
+            'bmi': bmi,
+            'bmr': bmr,
+            'tdee': tdee
+        } if weight else None
+        user_data['weight_logs'] = [initial_log] if initial_log else []
         db.collection('users').document(user_id).set(user_data)
         return user_id
 
