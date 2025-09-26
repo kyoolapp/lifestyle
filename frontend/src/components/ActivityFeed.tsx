@@ -363,7 +363,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                     <div className="mb-6">
                       <p className="text-sm text-gray-500 mb-2">Exercises ({displayWorkout.exercises.length}):</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {displayWorkout.exercises.slice(0, 3).map(ex => ex.name).join(', ')}
+                        {displayWorkout.exercises.slice(0, 3).map((ex: { name: any; }) => ex.name).join(', ')}
                         {displayWorkout.exercises.length > 3 && '...'}
                       </p>
                     </div>
