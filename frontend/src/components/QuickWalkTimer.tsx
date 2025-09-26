@@ -24,7 +24,7 @@ export function QuickWalkTimer({ onBack }: QuickWalkTimerProps) {
   const [startTime] = useState(20 * 60);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
