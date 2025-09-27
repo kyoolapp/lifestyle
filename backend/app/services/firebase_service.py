@@ -1,7 +1,8 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-cred = credentials.Certificate("keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json")
+# The absolute path is now /tmp/firebase-key.json
+cred = credentials.Certificate("/tmp/firebase-key.json")
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 db = firestore.client()

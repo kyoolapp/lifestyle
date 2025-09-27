@@ -23,7 +23,7 @@ steps:
 # 💥 ADD THIS LINE TO MOUNT THE SECRET AS A FILE 💥
       - '--set-secrets'
       # Format: ENV_VAR=SECRET_NAME:latest,filename=/path/in/container
-      - 'FIREBASE_KEY=FIREBASE_ADMIN_KEY:latest,filename=/keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'
+      - 'FIREBASE_KEY=FIREBASE_ADMIN_KEY:latest,filename=/tmp/firebase-key.json'
       
       # Note: We name the environment variable (FIREBASE_KEY) but the
       # filename parameter is what tells Cloud Run to mount the file.
