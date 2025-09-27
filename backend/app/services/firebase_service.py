@@ -3,8 +3,9 @@ from firebase_admin import credentials, firestore
 import os
 
 # Use environment variable for service account key path, default to Cloud Run secret mount path
-#key_path = os.environ.get("FIREBASE_KEY_PATH")
-cred = credentials.Certificate(os.environ.get("FIREBASE_KEY_PATH"))
+key_path = os.environ.get("FIREBASE_KEY_PATH")
+print(f"Using Firebase key path: {key_path}")
+cred = credentials.Certificate(key_path)
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 db = firestore.client()
