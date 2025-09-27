@@ -1,10 +1,14 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
+import json
 
 # Use environment variable for service account key path, default to Cloud Run secret mount path
-key_path = os.environ.get("FIREBASE_KEY_PATH", "/secrets/firebase-key.json")
-print(f"Using Firebase key path: {key_path}")
+secret_keys = os.environ.get("FIREBASE_KEY_PATH")
+print(f"Using Firebase key path: {secret_keys}")
+key_path= json.loads(secret_keys) 
+print(f"Decoded Firebase key path: {key_path}")
+
 cred = credentials.Certificate(key_path)
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
