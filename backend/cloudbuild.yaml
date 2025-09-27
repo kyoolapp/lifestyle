@@ -21,4 +21,4 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--set-secrets'
-      - 'FIREBASE_KEY=FIREBASE_KEY:latest'
+      - 'FIREBASE_ADMIN_KEY=FIREBASE_KEY:latest'
