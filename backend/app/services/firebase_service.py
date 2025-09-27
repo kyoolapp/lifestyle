@@ -3,7 +3,7 @@ from firebase_admin import credentials, firestore
 import os
 
 
-key_path = os.environ.get("FIREBASE_KEY_PATH", "/secrets/firebase-key.json")
+key_path = os.environ.get("FIREBASE_KEY_PATH", "projects/606917950237/secrets/FIREBASE_KEY/secrets/firebase-key.json")
 cred = credentials.Certificate(key_path)
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
