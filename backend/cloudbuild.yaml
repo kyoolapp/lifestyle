@@ -20,7 +20,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
     secretEnv: ['FIREBASE_KEY']
-    availableSecrets:
+availableSecrets:
       secretManager:
        - versionName: projects/＄PROJECT_ID/secrets/firebase-key.json/versions/latest
          env: 'FIREBASE_KEY'
