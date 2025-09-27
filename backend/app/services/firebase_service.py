@@ -1,6 +1,8 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
+
+
 key_path = os.environ.get("FIREBASE_KEY_PATH", "/secrets/firebase-key.json")
 cred = credentials.Certificate(key_path)
 if not firebase_admin._apps:
