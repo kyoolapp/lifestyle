@@ -19,7 +19,7 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      - '--set-secrets=FIREBASE_KEY_PATH=FIREBASE_ADMIN_KEY:latest, filename=/tmp/firebase-key.json:latest'
+      - '--set-secrets=FIREBASE_KEY_PATH=FIREBASE_ADMIN_KEY:latest, filename=/secrets/firebase-key.json:latest'
        
       #- '--set-env-vars=FIREBASE_KEY_PATH=/secrets/firebase-key.json'
       #- '--set-secrets=FIREBASE_KEY_PATH=FIREBASE_KEY:latest'
