@@ -10,7 +10,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy app code
 COPY app ./app
-COPY .env .env
 COPY keys ./keys
 
 # Expose port
