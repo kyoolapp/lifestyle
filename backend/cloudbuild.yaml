@@ -21,9 +21,9 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
 # 💥 ADD THIS LINE TO MOUNT THE SECRET AS A FILE 💥
-      - '--set-secrets=FIREBASE_KEY=FIREBASE_ADMIN_KEY:latest,filename=/tmp/firebase-key.json'
+      - '--set-secrets'
       # Format: ENV_VAR=SECRET_NAME:latest,filename=/path/in/container
-      
+      - 'FIREBASE_KEY=FIREBASE_ADMIN_KEY:latest,filename=projects/606917950237/secrets/FIREBASE_ADMIN_KEY'
       
       # Note: We name the environment variable (FIREBASE_KEY) but the
       # filename parameter is what tells Cloud Run to mount the file.
