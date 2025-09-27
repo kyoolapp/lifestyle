@@ -22,7 +22,7 @@ steps:
     secretEnv: ['FIREBASE_KEY']
 availableSecrets:
       secretManager:
-       - versionName: projects/606917950237/secrets/firebase-key.json/versions/latest
+       - versionName: projects/606917950237/secrets/FIREBASE_KEY/versions/latest
          env: 'FIREBASE_KEY'
        
       #- '--set-env-vars=FIREBASE_KEY_PATH=/secrets/firebase-key.json'
