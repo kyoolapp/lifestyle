@@ -2,6 +2,7 @@ import UserSearch from "./components/UserSearch";
 // App.tsx
 import React, { useEffect, useState } from "react";
 import { getUserByEmail } from "./api/user_api";
+import { useUserHeartbeat } from "./hooks/useUserHeartbeat";
 import {
   BrowserRouter,
   Routes,
@@ -69,6 +70,19 @@ function AppRoutes() {
   const [waitlistOpen, setWaitlistOpen] = useState(false); // needed by Home
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Keep user active with heartbeat (only when authenticated)
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Trigger immediate heartbeat when user becomes authenticated
+      import('./api/user_api').then(({ updateUserActivity }) => {
+        updateUserActivity(user.uid || auth.currentUser?.uid);
+      });
+    }
+  }, [isAuthenticated, user]);
+
+  // Keep user active with heartbeat
+  useUserHeartbeat();
 
   // ===== Home (Landing) from old App.tsx =====
   const features = [

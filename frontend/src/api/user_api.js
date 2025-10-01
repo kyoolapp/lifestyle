@@ -17,6 +17,16 @@ export async function addFriend(currentUserId, targetUserId) {
   });
   return res.ok;
 }
+
+// Update user activity (heartbeat)
+export async function updateUserActivity(userId) {
+  const res = await fetch(`${BASE_URL}/users/${userId}/activity`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return res.ok;
+}
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 export async function addWeightLog(userId, weight, date, bmi, bmr, tdee) {

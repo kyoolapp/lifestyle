@@ -3,13 +3,14 @@ from firebase_admin import credentials, firestore
 import os
 import json
 import re
+from datetime import datetime, timedelta
 
-#key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
+key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
 # Use environment variable for service account key path, default to Cloud Run secret mount path
-secret_keys = os.environ.get("FIREBASE_KEY_PATH")
-print(f"Using Firebase key path: {secret_keys}")
-key_path= json.loads(secret_keys) 
-print(f"Decoded Firebase key path: {key_path}")
+#secret_keys = os.environ.get("FIREBASE_KEY_PATH")
+#print(f"Using Firebase key path: {secret_keys}")
+#key_path= json.loads(secret_keys) 
+#print(f"Decoded Firebase key path: {key_path}")
 
 cred = credentials.Certificate(key_path)
 if not firebase_admin._apps:
@@ -97,3 +98,26 @@ class FirestoreUserService:
             return False
         users = db.collection('users').where('username', '==', username).stream()
         return any(users)
+    
+    def update_user_activity(self, user_id: str):
+        """Update user's last_active timestamp to track online status"""
+        try:
+            user_ref = db.collection('users').document(user_id)
+            user_ref.update({'last_active': datetime.utcnow().isoformat()})
+            return True
+        except Exception as e:
+            print(f"Error updating user activity: {e}")
+            return False
+    
+    def is_user_online(self, last_active_str: str) -> bool:
+        """Check if user is online based on last_active timestamp"""
+        if not last_active_str:
+            return False
+        try:
+            last_active = datetime.fromisoformat(last_active_str.replace('Z', '+00:00'))
+            now = datetime.utcnow()
+            # Consider user online if last active within 5 minutes
+            return (now - last_active.replace(tzinfo=None)) < timedelta(minutes=5)
+        except Exception as e:
+            print(f"Error checking online status: {e}")
+            return False

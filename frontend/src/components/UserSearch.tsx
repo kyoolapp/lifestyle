@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { searchUsers } from '../api/user_api';
+import { searchUsers, updateUserActivity } from '../api/user_api';
+import { auth } from '../firebase';
 
 export default function UserSearch() {
   const [query, setQuery] = useState('');
@@ -14,9 +15,12 @@ export default function UserSearch() {
     username: string;
     name?: string;
     avatar?: string;
+    online?: boolean;
   }
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+
 
   useEffect(() => {
     if (!query) {
@@ -79,12 +83,21 @@ export default function UserSearch() {
       <ul className="space-y-3">
         {results.map(user => (
           <li key={user.id} className="flex items-center gap-4 p-2 border rounded cursor-pointer hover:bg-accent" onClick={() => setSelectedUser(user)}>
-            <Avatar className="w-10 h-10">
-              <AvatarImage src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.username)}`} />
-              <AvatarFallback>{(user.name || user.username || '').slice(0,2).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.username)}`} />
+                <AvatarFallback>{(user.name || user.username || '').slice(0,2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              {/* Online status indicator */}
+              <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
+                user.online ? 'bg-green-500' : 'bg-gray-400'
+              }`} />
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium">{user.username}</div>
+              <div className="flex items-center gap-2">
+                <div className="font-medium">{user.username}</div>
+                {user.online && <span className="text-xs text-green-600 font-medium">Online</span>}
+              </div>
               <div className="text-slate-500 text-sm">{user.name}</div>
             </div>
           </li>

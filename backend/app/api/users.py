@@ -17,11 +17,14 @@ def search_users(q: str = Query(..., min_length=1)):
     users = []
     for user in results:
         data = user.to_dict()
+        last_active = data.get("last_active")
+        is_online = user_service.is_user_online(last_active) if last_active else False
         users.append({
             "id": user.id,
             "username": data.get("username"),
             "name": data.get("name"),
             "avatar": data.get("avatar"),
+            "online": is_online
         })
     return {"results": users}
 
@@ -94,4 +97,12 @@ def add_friend(user_id: str, body: dict = Body(...)):
     if target_user_id not in friends:
         friends.append(target_user_id)
         user_ref.update({'friends': friends})
+    return {"success": True}
+
+# Update user activity (heartbeat endpoint)
+@router.post("/{user_id}/activity")
+def update_user_activity(user_id: str):
+    success = user_service.update_user_activity(user_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update activity")
     return {"success": True}
