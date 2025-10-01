@@ -4,12 +4,12 @@ import os
 import json
 import re
 
-key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
+#key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
 # Use environment variable for service account key path, default to Cloud Run secret mount path
-#secret_keys = os.environ.get("FIREBASE_KEY_PATH")
-#print(f"Using Firebase key path: {secret_keys}")
-#key_path= json.loads(secret_keys) 
-#print(f"Decoded Firebase key path: {key_path}")
+secret_keys = os.environ.get("FIREBASE_KEY_PATH")
+print(f"Using Firebase key path: {secret_keys}")
+key_path= json.loads(secret_keys) 
+print(f"Decoded Firebase key path: {key_path}")
 
 cred = credentials.Certificate(key_path)
 if not firebase_admin._apps:
