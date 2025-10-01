@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { calculateBMI, calculateBMR, calculateTDEE } from "../utils/health";
 import { Checkbox } from "./ui/checkbox";
+import { isUsernameAvailable } from "../api/user_api";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import {
@@ -32,6 +33,10 @@ type ActivityLevel =
   | "athlete";
 
 export default function SignUpPage() {
+  // Username format validation (same as backend)
+  function validateUsernameFormat(username: string) {
+    return /^[a-zA-Z0-9_.]{6,20}$/.test(username);
+  }
   console.log("SignUpPage mounted/re-rendered");
   const navigate = useNavigate();
   const [googleUser, setGoogleUser] = useState<null | {
@@ -58,6 +63,10 @@ export default function SignUpPage() {
   const [created, setCreated] = useState(false);
   const signupCompleted = useRef(false);
   const signupStarted = useRef(false);
+
+  const [usernameAvailable, setUsernameAvailable] = useState(true);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
 
 
   useEffect(() => {
@@ -86,6 +95,33 @@ export default function SignUpPage() {
     return () => unsub();
   }, []);
 
+
+
+  useEffect(() => {
+  if (!username) {
+    setUsernameAvailable(true);
+    setUsernameError("");
+    return;
+  }
+  if (!validateUsernameFormat(username)) {
+    setUsernameAvailable(false);
+    setUsernameError("Username must be 6-20 characters, only letters, numbers, _ and . allowed.");
+    return;
+  }
+  setUsernameChecking(true);
+  isUsernameAvailable(username)
+    .then((available) => {
+      setUsernameAvailable(available);
+      setUsernameError(available ? "" : "Username is already taken");
+    })
+    .catch(() => {
+      setUsernameAvailable(false);
+      setUsernameError("Error checking username");
+    })
+    .finally(() => setUsernameChecking(false));
+}, [username]);
+
+
   const handleGoogle = async () => {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
@@ -110,7 +146,10 @@ export default function SignUpPage() {
   // ...existing code...
   //console.log("Before backend createOrUpdateUser");
   e.preventDefault();
-  if (!canSubmit) return;
+  if (!canSubmit || !usernameAvailable) {
+  setUsernameError('Username is already taken');
+  return;
+}
   signupStarted.current = true;
   setSubmitting(true);
   try {
@@ -129,7 +168,7 @@ export default function SignUpPage() {
     
 
     // Generate username from email or name
-    const username = googleUser?.email?.split("@")[0] || name.replace(/\s+/g, "_").toLowerCase();
+    //const username = googleUser?.email?.split("@")[0] || name.replace(/\s+/g, "_").toLowerCase();
     const userData = {
       username,
       bmi: calculateBMI(weightNum ?? 0, heightNum ?? 0),
@@ -265,6 +304,24 @@ export default function SignUpPage() {
                 disabled={!googleUser}
               />
               
+            </div>
+
+            <div>
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                placeholder="Choose a unique username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={!googleUser}
+                autoComplete="off"
+              />
+              {usernameChecking && <span style={{ color: 'gray' }}>Checking...</span>}
+              {!usernameAvailable && (
+                <React.Fragment>
+                  <span style={{ color: 'red' }}>{usernameError}</span>
+                </React.Fragment>
+              )}
             </div>
 
             {/* Gender + Goal */}

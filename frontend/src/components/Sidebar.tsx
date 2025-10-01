@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { 
@@ -28,6 +29,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
   
   const navItems = [
     { id: 'activity', label: 'Activity', icon: Home, path: '/dashboard' },
+    { id: 'search', label: 'Search Users', icon: Search, path: '/search' },
     { id: 'features', label: 'Features', icon: Sparkles, path: '/features' },
     { id: 'health', label: 'Health Metrics', icon: Heart, path: '/health' },
     { id: 'water', label: 'Water Tracker', icon: Droplets, path: '/water' },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 import { createOrUpdateUser } from '../api/user_api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -9,6 +9,7 @@ import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { isUsernameAvailable } from "../api/user_api";
 import { 
   User, 
   Settings, 
@@ -28,7 +29,14 @@ interface ProfileProps {
   setUser: (user: any) => void;
 }
 
+
 export function Profile({ user, setUser }: ProfileProps) {
+
+  function validateUsernameFormat(username: string) {
+    return /^[a-zA-Z0-9_.]{6,20}$/.test(username);
+  }
+
+
   // Calculate health metrics
   const gender = user.gender || 'male'; // Default to male if not set
   const bmi = calculateBMI(user.weight, user.height);
@@ -47,6 +55,11 @@ export function Profile({ user, setUser }: ProfileProps) {
     activityLevel: user.activityLevel,
     gender: user.gender || 'male',
   });
+  const [username, setUsername] = useState<string>("");
+  const [usernameAvailable, setUsernameAvailable] = useState(true);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
+  
 
   // Mock user stats
   const userStats = {
@@ -98,6 +111,32 @@ export function Profile({ user, setUser }: ProfileProps) {
       isPublic: false
     }
   ];
+
+  
+
+  useEffect(() => {
+    if (!username) {
+      setUsernameAvailable(true);
+      setUsernameError("");
+      return;
+    }
+    if (!validateUsernameFormat(username)) {
+      setUsernameAvailable(false);
+      setUsernameError("Username must be 6-20 characters, only letters, numbers, _ and . allowed.");
+      return;
+    }
+    setUsernameChecking(true);
+    isUsernameAvailable(username)
+      .then((available) => {
+        setUsernameAvailable(available);
+        setUsernameError(available ? "" : "Username is already taken");
+      })
+      .catch(() => {
+        setUsernameAvailable(false);
+        setUsernameError("Error checking username");
+      })
+      .finally(() => setUsernameChecking(false));
+  }, [username]);
 
   const handleSave = () => {
     // Calculate new metrics
@@ -396,13 +435,21 @@ export function Profile({ user, setUser }: ProfileProps) {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="edit-email">UserName</Label>
+                      <Label htmlFor="edit-username">UserName</Label>
                       <Input
-                        id="edit-email"
-                        type="email"
+                        id="edit-username"
+                        placeholder="Choose a unique username"
                         value={editForm.username}
                         onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    
+                        autoComplete="off"
                       />
+                      {usernameChecking && <span style={{ color: 'gray' }}>Checking...</span>}
+                      {!usernameAvailable && (
+                        <React.Fragment>
+                          <span style={{ color: 'red' }}>{usernameError}</span>
+                        </React.Fragment>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="edit-height">Height (cm)</Label>

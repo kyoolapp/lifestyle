@@ -1,3 +1,4 @@
+import UserSearch from "./components/UserSearch";
 // App.tsx
 import React, { useEffect, useState } from "react";
 import { getUserByEmail } from "./api/user_api";
@@ -705,7 +706,7 @@ function AppRoutes() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Routes>
+  <Routes>
         {/* Public routes — "/" now uses the imported Home from old App.tsx */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
@@ -765,6 +766,15 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <DeviceConnections />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/search"
+          element={
+            <PrivateRoute>
+              <UserSearch />
             </PrivateRoute>
           }
         />
