@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
-import { createOrUpdateUser } from '../api/user_api';
+import { createOrUpdateUser, getUserOnlineStatus } from '../api/user_api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -46,6 +46,7 @@ export function Profile({ user, setUser }: ProfileProps) {
   // Debug: log user object on every render
   //console.log('Profile user:', user);
   const [isEditing, setIsEditing] = useState(false);
+  const [isOnline, setIsOnline] = useState(true); // Default to true for current user
   const [editForm, setEditForm] = useState({
     name: user.name,
     username: user.username,
@@ -216,6 +217,7 @@ export function Profile({ user, setUser }: ProfileProps) {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-start gap-6">
+                <div className="relative">
                   <Avatar className="w-24 h-24">
                     <AvatarImage 
                       src={user.photoURL || user.avatar}
@@ -227,10 +229,18 @@ export function Profile({ user, setUser }: ProfileProps) {
                       {user.name.split(' ').map((n: string) => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
+                  {/* Online status indicator */}
+                  
+                </div>
                 
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h2 className="text-2xl font-semibold">{user.name}</h2>
+                    <span className={`text-sm font-medium ${
+                      isOnline ? 'text-green-500' : 'text-gray-400'
+                    }`}>
+                      {isOnline ? 'Online' : 'Offline'}
+                    </span>
                     {user.isPremium && (
                       <Badge className="bg-yellow-500 text-yellow-900">
                         <Crown className="w-3 h-3 mr-1" />

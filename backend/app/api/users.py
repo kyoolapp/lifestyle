@@ -31,11 +31,17 @@ def search_users(q: str = Query(..., min_length=1)):
 # --- DYNAMIC ROUTES AFTER ---
 
 # User profile endpoints
-@router.get("/{user_id}", response_model=UserProfile)
+@router.get("/{user_id}")
 def get_user(user_id: str):
     user = user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Add online status to user data
+    last_active = user.get("last_active")
+    is_online = user_service.is_user_online(last_active) if last_active else False
+    user["online"] = is_online
+    
     return user
 
 @router.post("/{user_id}", response_model=dict)

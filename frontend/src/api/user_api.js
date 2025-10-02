@@ -27,6 +27,14 @@ export async function updateUserActivity(userId) {
   return res.ok;
 }
 
+// Get user's online status
+export async function getUserOnlineStatus(userId) {
+  const res = await fetch(`${BASE_URL}/users/${userId}`);
+  if (!res.ok) return false;
+  const userData = await res.json();
+  return userData.online || false;
+}
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 export async function addWeightLog(userId, weight, date, bmi, bmr, tdee) {
