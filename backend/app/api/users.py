@@ -133,6 +133,18 @@ def reject_friend_request(user_id: str, request: dict):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/{user_id}/revoke-friend-request")
+def revoke_friend_request(user_id: str, request: dict):
+    try:
+        receiver_id = request.get('receiver_id')
+        if not receiver_id:
+            raise HTTPException(status_code=400, detail="receiver_id is required")
+        
+        success = user_service.revoke_friend_request(user_id, receiver_id)
+        return {"success": success, "message": "Friend request revoked"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/{user_id}/friend-requests/incoming")
 def get_incoming_friend_requests(user_id: str):
     requests = user_service.get_incoming_friend_requests(user_id)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getIncomingFriendRequests, getOutgoingFriendRequests, acceptFriendRequest, rejectFriendRequest } from '../api/user_api';
+import { getIncomingFriendRequests, getOutgoingFriendRequests, acceptFriendRequest, rejectFriendRequest, revokeFriendRequest } from '../api/user_api';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -72,6 +72,20 @@ export default function FriendRequests() {
     } catch (error) {
       console.error('Failed to reject friend request:', error);
       alert('Failed to reject friend request. Please try again.');
+    }
+    setActionLoading(prev => ({ ...prev, [requestId]: false }));
+  };
+
+  const handleRevokeRequest = async (receiverId: string, requestId: string) => {
+    if (!user?.uid) return;
+    
+    setActionLoading(prev => ({ ...prev, [requestId]: true }));
+    try {
+      await revokeFriendRequest(user.uid, receiverId);
+      setOutgoingRequests(prev => prev.filter(req => req.request_id !== requestId));
+    } catch (error) {
+      console.error('Failed to revoke friend request:', error);
+      alert('Failed to revoke friend request. Please try again.');
     }
     setActionLoading(prev => ({ ...prev, [requestId]: false }));
   };
@@ -209,6 +223,14 @@ export default function FriendRequests() {
                           </div>
                           
                           <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRevokeRequest(request.receiver_id!, request.request_id)}
+                              disabled={actionLoading[request.request_id]}
+                            >
+                              {actionLoading[request.request_id] ? 'Revoking...' : 'Revoke'}
+                            </Button>
                             <Badge variant="outline" className="text-yellow-600">
                               Pending
                             </Badge>

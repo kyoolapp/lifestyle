@@ -221,6 +221,24 @@ class FirestoreUserService:
         
         return True
 
+    def revoke_friend_request(self, sender_id: str, receiver_id: str):
+        """Revoke/cancel a pending friend request that was sent"""
+        # Find the pending request sent by sender to receiver
+        requests = db.collection('friend_requests').where('sender_id', '==', sender_id).where('receiver_id', '==', receiver_id).where('status', '==', 'pending').stream()
+        
+        request_doc = None
+        for req in requests:
+            request_doc = req
+            break
+        
+        if not request_doc:
+            raise ValueError("No pending friend request found to revoke")
+        
+        # Delete the request (completely remove it)
+        request_doc.reference.delete()
+        
+        return True
+
     def get_friend_request_status(self, sender_id: str, receiver_id: str):
         """Get the status of a friend request between two users"""
         # Check Direction 1: sender_id -> receiver_id

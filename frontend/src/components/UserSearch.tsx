@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { searchUsers, checkFriendshipStatus, sendFriendRequest, getFriendRequestStatus, removeFriend } from '../api/user_api';
+import { searchUsers, checkFriendshipStatus, sendFriendRequest, getFriendRequestStatus, removeFriend, revokeFriendRequest } from '../api/user_api';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
 import { Card, CardContent } from './ui/card';
@@ -41,7 +41,18 @@ export default function UserSearch() {
             const statusPromises = filteredUsers.map(async (u) => {
               try {
                 const areFriends = await checkFriendshipStatus(user.uid, u.id);
-                const requestStatus = await getFriendRequestStatus(user.uid, u.id);
+                // Check if I sent them a request (user.uid -> u.id)
+                const iSentRequest = await getFriendRequestStatus(user.uid, u.id);
+                // Check if they sent me a request (u.id -> user.uid)
+                const theySentRequest = await getFriendRequestStatus(u.id, user.uid);
+                
+                let requestStatus = null;
+                if (iSentRequest === 'pending') {
+                  requestStatus = 'sent_pending'; // I sent them a request
+                } else if (theySentRequest === 'pending') {
+                  requestStatus = 'received_pending'; // They sent me a request
+                }
+                
                 return { userId: u.id, areFriends, requestStatus };
               } catch {
                 return { userId: u.id, areFriends: false, requestStatus: null };
@@ -77,10 +88,24 @@ export default function UserSearch() {
     setFriendshipLoading(prev => ({ ...prev, [receiverId]: true }));
     try {
       await sendFriendRequest(user.uid, receiverId);
-      setRequestStatus(prev => ({ ...prev, [receiverId]: 'pending' }));
+      setRequestStatus(prev => ({ ...prev, [receiverId]: 'sent_pending' }));
     } catch (error) {
       console.error('Failed to send friend request:', error);
       alert('Failed to send friend request. Please try again.');
+    }
+    setFriendshipLoading(prev => ({ ...prev, [receiverId]: false }));
+  };
+
+  const handleRevokeFriendRequest = async (receiverId: string) => {
+    if (!user?.uid) return;
+    
+    setFriendshipLoading(prev => ({ ...prev, [receiverId]: true }));
+    try {
+      await revokeFriendRequest(user.uid, receiverId);
+      setRequestStatus(prev => ({ ...prev, [receiverId]: null }));
+    } catch (error) {
+      console.error('Failed to revoke friend request:', error);
+      alert('Failed to revoke friend request. Please try again.');
     }
     setFriendshipLoading(prev => ({ ...prev, [receiverId]: false }));
   };
@@ -132,12 +157,20 @@ export default function UserSearch() {
               >
                 {friendshipLoading[profileUser.id] ? 'Removing...' : 'Remove Friend'}
               </Button>
-            ) : requestStatus[profileUser.id] === 'pending' ? (
+            ) : requestStatus[profileUser.id] === 'sent_pending' ? (
+              <Button
+                variant="outline"
+                onClick={() => handleRevokeFriendRequest(profileUser.id)}
+                disabled={friendshipLoading[profileUser.id]}
+              >
+                {friendshipLoading[profileUser.id] ? 'Revoking...' : 'Revoke Request'}
+              </Button>
+            ) : requestStatus[profileUser.id] === 'received_pending' ? (
               <Button
                 variant="outline"
                 disabled={true}
               >
-                Request Sent
+                They Sent Request
               </Button>
             ) : (
               <Button
@@ -221,13 +254,25 @@ export default function UserSearch() {
                         >
                         {friendshipLoading[result.id] ? 'Removing...' : 'Friends'}
                         </Button>
-                    ) : requestStatus[result.id] === 'pending' ? (
+                    ) : requestStatus[result.id] === 'sent_pending' ? (
+                        <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                          e.stopPropagation();
+                          handleRevokeFriendRequest(result.id);
+                        }}
+                        disabled={friendshipLoading[result.id]}
+                        >
+                        {friendshipLoading[result.id] ? 'Revoking...' : 'Revoke'}
+                        </Button>
+                    ) : requestStatus[result.id] === 'received_pending' ? (
                         <Button
                         variant="outline"
                         size="sm"
                         disabled={true}
                         >
-                        Request Sent
+                        They Sent Request
                         </Button>
                     ) : (
                         <Button
