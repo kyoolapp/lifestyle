@@ -49,7 +49,8 @@ import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
 
 import { auth } from "./firebase";
-
+import ViewAllFriends from "./components/ViewAllFriends";
+import FriendRequests from "./components/FriendRequests";
 
 const BASE_URL= import.meta.env.VITE_API_URL;
 
@@ -797,6 +798,25 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <Profile user={user} setUser={setUser} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/friends"
+          element={
+            <PrivateRoute>
+              <ViewAllFriends
+                onBack={() => navigate(-1)} // Navigate back to the previous page
+                onAddFriends={() => console.log("Add friends clicked")} // Replace with actual logic
+              />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/friend-requests"
+          element={
+            <PrivateRoute>
+              <FriendRequests />
             </PrivateRoute>
           }
         />

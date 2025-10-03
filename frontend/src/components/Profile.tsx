@@ -230,7 +230,9 @@ export function Profile({ user, setUser }: ProfileProps) {
                     </AvatarFallback>
                   </Avatar>
                   {/* Online status indicator */}
-                  
+                  <div className={`absolute -bottom-1 -right-1 w-2 h-2 rounded-full border-4 border-white ${
+                    isOnline ? 'bg-green-500' : 'bg-gray-400'
+                  }`} />
                 </div>
                 
                 <div className="flex-1">

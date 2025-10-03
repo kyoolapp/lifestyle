@@ -15,7 +15,8 @@ import {
   Smartphone,
   Menu,
   X,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -26,6 +27,7 @@ interface SidebarProps {
 export function Sidebar({ user, onLogout }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const [activeItem, setActiveItem] = useState<string | null>(null);
   
   const navItems = [
     { id: 'activity', label: 'Activity', icon: Home, path: '/dashboard' },
@@ -69,6 +71,34 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
         </div>
       </Link>
 
+      <div className="px-3 py-2 space-y-1">
+        <Link 
+          to="/friends" 
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+            location.pathname === '/friends' 
+              ? 'bg-primary text-primary-foreground' 
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+          }`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <Users className="w-5 h-5" />
+          Friends
+        </Link>
+        
+        <Link 
+          to="/friend-requests" 
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+            location.pathname === '/friend-requests' 
+              ? 'bg-primary text-primary-foreground' 
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+          }`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <Users className="w-5 h-5" />
+          Friend Requests
+        </Link>
+      </div>
+
       {/* Nav items */}
       <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
         <ul className="space-y-1 sm:space-y-2">
@@ -94,6 +124,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
             );
           })}
         </ul>
+        
       </nav>
 
       {/* Footer actions */}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ActivityFeed } from './ActivityFeed';
-import { ViewAllFriends } from './ViewAllFriends';
+import ViewAllFriends from './ViewAllFriends';
 import { AddFriends } from './AddFriends';
 
 interface DashboardProps {
