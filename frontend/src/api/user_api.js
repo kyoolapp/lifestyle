@@ -187,3 +187,44 @@ export async function debugFriendshipData(userId, otherUserId) {
   if (!res.ok) throw new Error('Failed to get debug data');
   return res.json();
 }
+
+// Water intake API functions
+export async function logWaterIntake(userId, glasses) {
+  const res = await fetch(`${BASE_URL}/users/${userId}/water/log`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ glasses }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || 'Failed to log water intake');
+  }
+  return res.json();
+}
+
+export async function setWaterIntake(userId, glasses) {
+  const res = await fetch(`${BASE_URL}/users/${userId}/water/set`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ glasses }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || 'Failed to set water intake');
+  }
+  return res.json();
+}
+
+export async function getTodayWaterIntake(userId) {
+  const res = await fetch(`${BASE_URL}/users/${userId}/water/today`);
+  if (!res.ok) throw new Error('Failed to get today\'s water intake');
+  const data = await res.json();
+  return data.glasses;
+}
+
+export async function getWaterHistory(userId, days = 7) {
+  const res = await fetch(`${BASE_URL}/users/${userId}/water/history?days=${days}`);
+  if (!res.ok) throw new Error('Failed to get water history');
+  const data = await res.json();
+  return data.history;
+}

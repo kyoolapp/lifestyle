@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
@@ -11,22 +11,92 @@ import {
   Calendar,
   TrendingUp
 } from 'lucide-react';
+import * as userApi from '../api/user_api';
 
-export function WaterTracker() {
+interface WaterTrackerProps {
+  user: any;
+}
+
+export function WaterTracker({ user }: WaterTrackerProps) {
   const [dailyGoal] = useState(8); // glasses
-  const [todayIntake, setTodayIntake] = useState(5);
+  const [todayIntake, setTodayIntake] = useState(0);
   const [glassSize] = useState(250); // ml
+  const [loading, setLoading] = useState(false);
+  const [weeklyData, setWeeklyData] = useState([
+    { day: 'Mon', intake: 0, goal: 8, date: '' },
+    { day: 'Tue', intake: 0, goal: 8, date: '' },
+    { day: 'Wed', intake: 0, goal: 8, date: '' },
+    { day: 'Thu', intake: 0, goal: 8, date: '' },
+    { day: 'Fri', intake: 0, goal: 8, date: '' },
+    { day: 'Sat', intake: 0, goal: 8, date: '' },
+    { day: 'Sun', intake: 0, goal: 8, date: '' }, // today
+  ]);
 
-  // Mock weekly data
-  const weeklyData = [
-    { day: 'Mon', intake: 7, goal: 8 },
-    { day: 'Tue', intake: 8, goal: 8 },
-    { day: 'Wed', intake: 6, goal: 8 },
-    { day: 'Thu', intake: 9, goal: 8 },
-    { day: 'Fri', intake: 7, goal: 8 },
-    { day: 'Sat', intake: 5, goal: 8 },
-    { day: 'Sun', intake: 5, goal: 8 }, // today
-  ];
+  // Load water data on mount
+  useEffect(() => {
+    const loadWaterData = async () => {
+      if (user?.id) {
+        try {
+          // Load today's intake
+          const todayGlasses = await userApi.getTodayWaterIntake(user.id);
+          setTodayIntake(todayGlasses);
+          
+          // Load weekly history (last 7 days)
+          const history = await userApi.getWaterHistory(user.id, 7);
+          
+          // Create weekly data for the last 7 days
+          const today = new Date();
+          const weeklyData = [];
+          
+          for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayName = dayNames[date.getDay()];
+            const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            
+            // Find matching history entry for this date
+            const historyEntry = history.find((h: any) => h.date === dateString);
+            
+            weeklyData.push({
+              day: dayName,
+              intake: historyEntry ? historyEntry.glasses : 0,
+              goal: 8,
+              date: dateString
+            });
+          }
+          
+          setWeeklyData(weeklyData);
+        } catch (error) {
+          console.error('Failed to load water data:', error);
+        }
+      }
+    };
+    
+    loadWaterData();
+  }, [user?.id]);
+
+  // Listen for water intake updates from other components (like Header)
+  useEffect(() => {
+    const handleWaterUpdate = (event: CustomEvent) => {
+      if (event.detail.userId === user?.id) {
+        setTodayIntake(event.detail.glasses);
+        
+        // Update today in weekly data (find today's date)
+        const today = new Date().toISOString().split('T')[0];
+        setWeeklyData(prev => prev.map(day => 
+          day.date === today ? { ...day, intake: event.detail.glasses } : day
+        ));
+      }
+    };
+
+    window.addEventListener('waterIntakeUpdated', handleWaterUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('waterIntakeUpdated', handleWaterUpdate as EventListener);
+    };
+  }, [user?.id]);
 
   const reminders = [
     { time: '08:00', message: 'Start your day with a glass of water' },
@@ -36,24 +106,76 @@ export function WaterTracker() {
     { time: '21:00', message: 'Last glass before bed' },
   ];
 
-  const addWater = () => {
-    if (todayIntake < 15) { // max 15 glasses
-      setTodayIntake(todayIntake + 1);
+  const addWater = async () => {
+    if (loading || !user?.id || todayIntake >= 15) return;
+    
+    setLoading(true);
+    try {
+      const newTotal = Math.min(todayIntake + 1, 15);
+      await userApi.setWaterIntake(user.id, newTotal);
+      setTodayIntake(newTotal);
+      
+      // Update today in weekly data
+      const today = new Date().toISOString().split('T')[0];
+      setWeeklyData(prev => prev.map(day => 
+        day.date === today ? { ...day, intake: newTotal } : day
+      ));
+
+      // Notify other components about the water intake update
+      window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
+        detail: { userId: user.id, glasses: newTotal }
+      }));
+    } catch (error) {
+      console.error('Failed to add water:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const removeWater = () => {
-    if (todayIntake > 0) {
-      setTodayIntake(todayIntake - 1);
+  const removeWater = async () => {
+    if (loading || !user?.id || todayIntake <= 0) return;
+    
+    setLoading(true);
+    try {
+      const newTotal = Math.max(todayIntake - 1, 0);
+      await userApi.setWaterIntake(user.id, newTotal);
+      setTodayIntake(newTotal);
+      
+      // Update today in weekly data
+      const today = new Date().toISOString().split('T')[0];
+      setWeeklyData(prev => prev.map(day => 
+        day.date === today ? { ...day, intake: newTotal } : day
+      ));
+
+      // Notify other components about the water intake update
+      window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
+        detail: { userId: user.id, glasses: newTotal }
+      }));
+    } catch (error) {
+      console.error('Failed to remove water:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const getProgressColor = () => {
-    const percentage = (todayIntake / dailyGoal) * 100;
-    if (percentage >= 100) return 'bg-green-500';
-    if (percentage >= 75) return 'bg-blue-500';
-    if (percentage >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (todayIntake === 0) return 'bg-red-500';
+    if (todayIntake < 4) return 'bg-red-500';
+    if (todayIntake >= 4 && todayIntake <= 6) return 'bg-yellow-500';
+    return 'bg-green-500'; // 7+ glasses
+  };
+
+  const getCurrentStreak = () => {
+    let streak = 0;
+    // Count consecutive days from today backwards where goal was met
+    for (let i = weeklyData.length - 1; i >= 0; i--) {
+      if (weeklyData[i].intake >= weeklyData[i].goal) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
   };
 
   const getMotivationMessage = () => {
@@ -103,7 +225,7 @@ export function WaterTracker() {
                     variant="outline" 
                     size="icon"
                     onClick={removeWater}
-                    disabled={todayIntake === 0}
+                    disabled={loading || todayIntake === 0}
                     className="mb-2"
                   >
                     <Minus className="w-4 h-4" />
@@ -123,7 +245,7 @@ export function WaterTracker() {
                     variant="outline" 
                     size="icon"
                     onClick={addWater}
-                    disabled={todayIntake >= 15}
+                    disabled={loading || todayIntake >= 15}
                     className="mb-2"
                   >
                     <Plus className="w-4 h-4" />
@@ -174,7 +296,7 @@ export function WaterTracker() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Streak</span>
-                <span className="font-medium">3 days</span>
+                <span className="font-medium">{getCurrentStreak()} days</span>
               </div>
             </CardContent>
           </Card>
@@ -197,7 +319,10 @@ export function WaterTracker() {
                 <div className="relative h-20 bg-muted rounded-lg flex items-end justify-center p-1">
                   <div 
                     className={`w-full rounded transition-all ${
-                      day.intake >= day.goal ? 'bg-green-500' : 'bg-blue-400'
+                      day.intake === 0 ? 'bg-red-500' :
+                      day.intake < 4 ? 'bg-red-500' :
+                      day.intake >= 4 && day.intake <= 6 ? 'bg-yellow-500' :
+                      'bg-green-500'
                     }`}
                     style={{ 
                       height: `${Math.max(10, (day.intake / day.goal) * 100)}%`,

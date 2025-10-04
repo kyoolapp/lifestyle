@@ -37,6 +37,79 @@ class FirestoreUserService:
             return doc.to_dict().get('weight_logs', [])
         return []
     
+    #Adding Water log functionality
+    def log_water_intake(self, user_id: str, glasses: float):
+        """Log water intake for today, creating or updating the daily record"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        # Get or create water_logs subcollection for the user
+        water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
+        
+        doc = water_log_ref.get()
+        if doc.exists:
+            # Update existing daily record
+            current_data = doc.to_dict()
+            new_total = current_data.get('glasses', 0) + glasses
+            water_log_ref.update({
+                'glasses': new_total,
+                'last_updated': datetime.now().isoformat()
+            })
+            return new_total
+        else:
+            # Create new daily record
+            water_log_ref.set({
+                'glasses': glasses,
+                'date': today,
+                'created_at': datetime.now().isoformat(),
+                'last_updated': datetime.now().isoformat()
+            })
+            return glasses
+    
+    def set_water_intake(self, user_id: str, glasses: float):
+        """Set the total water intake for today (replace existing value)"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
+        
+        water_log_ref.set({
+            'glasses': glasses,
+            'date': today,
+            'created_at': datetime.now().isoformat(),
+            'last_updated': datetime.now().isoformat()
+        }, merge=True)
+        
+        return glasses
+    
+    def get_today_water_intake(self, user_id: str):
+        """Get today's water intake"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
+        doc = water_log_ref.get()
+        
+        if doc.exists:
+            return doc.to_dict().get('glasses', 0)
+        return 0
+    
+    def get_water_intake_history(self, user_id: str, days: int = 7):
+        """Get water intake history for the last N days"""
+        water_logs = []
+        
+        for i in range(days):
+            date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+            water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(date)
+            doc = water_log_ref.get()
+            
+            if doc.exists:
+                water_logs.append(doc.to_dict())
+            else:
+                water_logs.append({
+                    'date': date,
+                    'glasses': 0
+                })
+        
+        return sorted(water_logs, key=lambda x: x['date'])
+    
     #Getting user by ID
     def generate_avatar_url(self, name: str, username: str):
         """Generate a fallback avatar URL using ui-avatars.com"""

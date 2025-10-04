@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Progress } from './ui/progress';
+import * as userApi from '../api/user_api';
 import { 
   Plus, 
   Minus, 
@@ -32,9 +33,43 @@ interface HeaderProps {
 }
 
 export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) {
-  const [waterIntake, setWaterIntake] = useState(6);
+  const [waterIntake, setWaterIntake] = useState(0);
   const [dailyGoal] = useState(8);
+  const [loading, setLoading] = useState(false);
   const [lastReminder, setLastReminder] = useState<Date | null>(null);
+  
+  // Load today's water intake on mount
+  useEffect(() => {
+    const loadTodayWaterIntake = async () => {
+      if (user?.id) {
+        try {
+          const glasses = await userApi.getTodayWaterIntake(user.id);
+          setWaterIntake(glasses);
+        } catch (error) {
+          console.error('Failed to load water intake:', error);
+          setWaterIntake(0);
+        }
+      }
+    };
+    
+    loadTodayWaterIntake();
+  }, [user?.id]);
+
+  // Listen for water intake updates from other components
+  useEffect(() => {
+    const handleWaterUpdate = (event: CustomEvent) => {
+      if (event.detail.userId === user?.id) {
+        setWaterIntake(event.detail.glasses);
+      }
+    };
+
+    window.addEventListener('waterIntakeUpdated', handleWaterUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('waterIntakeUpdated', handleWaterUpdate as EventListener);
+    };
+  }, [user?.id]);
+  
   const [connectedDevices, setConnectedDevices] = useState([
     { name: 'Apple Watch Series 9', type: 'watch', connected: true, battery: 85 },
     { name: 'iPhone 15 Pro', type: 'phone', connected: true, battery: 73 },
@@ -94,19 +129,54 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
     return () => clearInterval(interval);
   }, []);
 
-  const addWater = () => {
-    if (waterIntake < 15) {
-      setWaterIntake(waterIntake + 1);
+  const addWater = async (glasses = 1) => {
+    if (loading || !user?.id || waterIntake >= 15) return;
+    
+    setLoading(true);
+    try {
+      const newTotal = Math.min(waterIntake + glasses, 15);
+      await userApi.setWaterIntake(user.id, newTotal);
+      setWaterIntake(newTotal);
+      
+      // Notify other components about the water intake update
+      window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
+        detail: { userId: user.id, glasses: newTotal }
+      }));
+    } catch (error) {
+      console.error('Failed to add water:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const removeWater = () => {
-    if (waterIntake > 0) {
-      setWaterIntake(Math.max(waterIntake - 1, 0));
+  const removeWater = async () => {
+    if (loading || !user?.id || waterIntake <= 0) return;
+    
+    setLoading(true);
+    try {
+      const newTotal = Math.max(waterIntake - 1, 0);
+      await userApi.setWaterIntake(user.id, newTotal);
+      setWaterIntake(newTotal);
+      
+      // Notify other components about the water intake update
+      window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
+        detail: { userId: user.id, glasses: newTotal }
+      }));
+    } catch (error) {
+      console.error('Failed to remove water:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const waterPercentage = (waterIntake / dailyGoal) * 100;
+
+  const getWaterColor = () => {
+    if (waterIntake === 0) return 'bg-red-500';
+    if (waterIntake < 4) return 'bg-red-500';
+    if (waterIntake >= 4 && waterIntake <= 6) return 'bg-yellow-500';
+    return 'bg-green-500'; // 7+ glasses
+  };
 
   const getTabTitle = () => {
     switch (activeTab) {
@@ -533,9 +603,9 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                              borderRadius: '0 0 8px 8px',
                              clipPath: 'polygon(10% 0%, 90% 0%, 100% 20%, 100% 100%, 0% 100%, 0% 20%)'
                            }}>
-                        {/* Blue water fill */}
+                        {/* Dynamic water fill - red/yellow/green based on progress */}
                         <motion.div
-                          className="absolute bottom-0 left-0 right-0 bg-blue-500"
+                          className={`absolute bottom-0 left-0 right-0 ${getWaterColor()}`}
                           style={{ 
                             height: `${Math.min(waterPercentage, 100)}%`,
                             borderRadius: '0 0 6px 6px'
@@ -546,9 +616,12 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                         />
                         
                         {/* Water surface ripple effect */}
-                        {waterPercentage > 0 && (
+                        {waterIntake > 0 && (
                           <motion.div
-                            className="absolute inset-x-0 bg-blue-300 h-0.5"
+                            className={`absolute inset-x-0 h-0.5 ${
+                              waterIntake < 4 ? 'bg-red-300' : 
+                              waterIntake >= 4 && waterIntake <= 6 ? 'bg-yellow-300' : 'bg-green-300'
+                            }`}
                             style={{ bottom: `${Math.min(waterPercentage, 100)}%` }}
                             animate={{ opacity: [0.6, 1, 0.6] }}
                             transition={{ duration: 2, repeat: Infinity }}
@@ -597,8 +670,8 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setWaterIntake(Math.min(waterIntake + 0.25, 15))}
-                      disabled={waterIntake >= 15}
+                      onClick={() => addWater(0.25)}
+                      disabled={loading || waterIntake >= 15}
                       className="flex flex-col h-12 p-1"
                     >
                       <div className="text-xs font-medium">1/4</div>
@@ -607,8 +680,8 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setWaterIntake(Math.min(waterIntake + 0.5, 15))}
-                      disabled={waterIntake >= 15}
+                      onClick={() => addWater(0.5)}
+                      disabled={loading || waterIntake >= 15}
                       className="flex flex-col h-12 p-1"
                     >
                       <div className="text-xs font-medium">1/2</div>
@@ -617,8 +690,8 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setWaterIntake(Math.min(waterIntake + 1, 15))}
-                      disabled={waterIntake >= 15}
+                      onClick={() => addWater(1)}
+                      disabled={loading || waterIntake >= 15}
                       className="flex flex-col h-12 p-1"
                     >
                       <div className="text-xs font-medium">Full</div>
@@ -633,7 +706,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                     variant="outline"
                     size="sm"
                     onClick={removeWater}
-                    disabled={waterIntake <= 0}
+                    disabled={loading || waterIntake <= 0}
                     className="flex-1"
                   >
                     <Minus className="w-3 h-3 mr-1" />
@@ -641,8 +714,8 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   </Button>
                   <Button
                     size="sm"
-                    onClick={addWater}
-                    disabled={waterIntake >= 15}
+                    onClick={() => addWater(1)}
+                    disabled={loading || waterIntake >= 15}
                     className="flex-1"
                   >
                     <Plus className="w-3 h-3 mr-1" />

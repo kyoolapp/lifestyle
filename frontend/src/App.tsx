@@ -756,7 +756,7 @@ function AppRoutes() {
           path="/water"
           element={
             <PrivateRoute>
-              <WaterTracker />
+              <WaterTracker user={user} />
             </PrivateRoute>
           }
         />

@@ -279,3 +279,51 @@ def check_friendship_status(user_id: str, other_user_id: str):
 def debug_friendship_data(user_id: str, other_user_id: str):
     debug_data = user_service.debug_friendship_data(user_id, other_user_id)
     return debug_data
+
+# Water intake logging endpoints
+@router.post("/{user_id}/water/log")
+def log_water_intake(user_id: str, request: dict):
+    """Add glasses to today's water intake"""
+    try:
+        glasses = request.get('glasses')
+        if glasses is None or glasses <= 0:
+            raise HTTPException(status_code=400, detail="glasses must be a positive number")
+        
+        new_total = user_service.log_water_intake(user_id, glasses)
+        return {"success": True, "new_total": new_total, "glasses_added": glasses}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{user_id}/water/set")
+def set_water_intake(user_id: str, request: dict):
+    """Set total water intake for today"""
+    try:
+        glasses = request.get('glasses')
+        if glasses is None or glasses < 0:
+            raise HTTPException(status_code=400, detail="glasses must be a non-negative number")
+        
+        total = user_service.set_water_intake(user_id, glasses)
+        return {"success": True, "total": total}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{user_id}/water/today")
+def get_today_water_intake(user_id: str):
+    """Get today's water intake"""
+    try:
+        glasses = user_service.get_today_water_intake(user_id)
+        return {"glasses": glasses}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{user_id}/water/history")
+def get_water_history(user_id: str, days: int = 7):
+    """Get water intake history for the last N days"""
+    try:
+        if days > 30:
+            days = 30  # Limit to 30 days max
+        
+        history = user_service.get_water_intake_history(user_id, days)
+        return {"history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
