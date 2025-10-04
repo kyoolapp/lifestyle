@@ -187,7 +187,7 @@ export default function FriendRequests() {
         <TabsContent value="outgoing" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Outgoing Friend Requests</CardTitle>
+              <CardTitle>Sent Friend Requests</CardTitle>
             </CardHeader>
             <CardContent>
               {outgoingRequests.length === 0 ? (
@@ -229,7 +229,7 @@ export default function FriendRequests() {
                               onClick={() => handleRevokeRequest(request.receiver_id!, request.request_id)}
                               disabled={actionLoading[request.request_id]}
                             >
-                              {actionLoading[request.request_id] ? 'Revoking...' : 'Revoke'}
+                              {actionLoading[request.request_id] ? 'Removing...' : 'Remove'}
                             </Button>
                             <Badge variant="outline" className="text-yellow-600">
                               Pending
