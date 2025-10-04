@@ -9,23 +9,116 @@ user_service = FirestoreUserService()
 
 # --- STATIC ROUTES FIRST ---
 
+
+
+@router.post("/fix-avatars")
+def fix_user_avatars():
+    """Fix missing avatars for all users - prioritize Google photos, then generate fallback"""
+    from firebase_admin import auth
+    
+    users_ref = db.collection('users')
+    all_users = users_ref.stream()
+    
+    fixed_count = 0
+    restored_google_photos = 0
+    
+    for user in all_users:
+        data = user.to_dict()
+        user_id = user.id
+        email = data.get('email')
+        
+        # Check if user needs avatar fix
+        current_avatar = data.get('avatar')
+        needs_fix = not current_avatar
+        
+        # Also check if current avatar is a generated one that could be replaced with Google photo
+        if current_avatar and 'ui-avatars.com' in current_avatar:
+            needs_fix = True
+        
+        if needs_fix and email:
+            try:
+                # Try to get the user's Firebase Auth record to get Google photo
+                auth_user = auth.get_user_by_email(email)
+                if auth_user.photo_url:
+                    # User has Google photo, use it
+                    db.collection('users').document(user_id).update({'avatar': auth_user.photo_url})
+                    restored_google_photos += 1
+                    fixed_count += 1
+                    print(f"Restored Google photo for user {user_id}: {data.get('name', email)}")
+                    continue
+            except Exception as e:
+                print(f"Could not get Firebase Auth data for {email}: {e}")
+        
+        # If no Google photo available and no avatar, generate fallback
+        if not current_avatar:
+            name = data.get('name', '')
+            username = data.get('username', '')
+            fallback_avatar = user_service.generate_avatar_url(name, username)
+            
+            try:
+                db.collection('users').document(user_id).update({'avatar': fallback_avatar})
+                fixed_count += 1
+                print(f"Generated fallback avatar for user {user_id}: {name or username}")
+            except Exception as e:
+                print(f"Failed to update avatar for user {user_id}: {e}")
+    
+    return {
+        "message": f"Fixed avatars for {fixed_count} users",
+        "google_photos_restored": restored_google_photos,
+        "fallback_avatars_generated": fixed_count - restored_google_photos
+    }
+
 @router.get("/search")
 def search_users(q: str = Query(..., min_length=1)):
     users_ref = db.collection('users')
-    # Simple search by username or name (case-insensitive)
-    results = users_ref.where('username', '>=', q).where('username', '<=', q + '\uf8ff').stream()
-    users = []
-    for user in results:
+    query_lower = q.lower()
+    
+    # Get all users and filter on the server side for better search capabilities
+    # Note: For production with large datasets, consider using dedicated search services
+    all_users = users_ref.stream()
+    
+    user_matches = []
+    for user in all_users:
         data = user.to_dict()
-        last_active = data.get("last_active")
-        is_online = user_service.is_user_online(last_active) if last_active else False
-        users.append({
-            "id": user.id,
-            "username": data.get("username"),
-            "name": data.get("name"),
-            "avatar": data.get("avatar"),
-            "online": is_online
-        })
+        username = data.get("username", "").lower()
+        name = data.get("name", "").lower()
+        
+        # Check if query matches username or name (case-insensitive, partial match)
+        if query_lower in username or query_lower in name:
+            last_active = data.get("last_active")
+            is_online = user_service.is_user_online(last_active) if last_active else False
+            
+            # Ensure user has an avatar
+            avatar = data.get("avatar")
+            if not avatar:
+                avatar = user_service.generate_avatar_url(data.get("name", ""), data.get("username", ""))
+                # Save the generated avatar back to the database
+                try:
+                    db.collection('users').document(user.id).update({'avatar': avatar})
+                except Exception as e:
+                    print(f"Failed to update avatar for user {user.id}: {e}")
+            # Keep existing avatar (including Google photos) as is
+            
+            user_matches.append({
+                "id": user.id,
+                "username": data.get("username"),
+                "name": data.get("name"),
+                "avatar": avatar,
+                "online": is_online,
+                # Add match score for sorting (exact matches first, then starts with, then contains)
+                "match_score": (
+                    0 if username == query_lower or name == query_lower else
+                    1 if username.startswith(query_lower) or name.startswith(query_lower) else
+                    2
+                )
+            })
+    
+    # Sort by match relevance and limit results
+    user_matches.sort(key=lambda x: (x['match_score'], x['username'] or ''))
+    
+    # Remove match_score from final results and limit to 50 results
+    users = [{k: v for k, v in user.items() if k != 'match_score'} for user in user_matches[:50]]
+    
     return {"results": users}
 
 # --- DYNAMIC ROUTES AFTER ---

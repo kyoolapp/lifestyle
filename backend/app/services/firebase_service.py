@@ -5,15 +5,16 @@ import json
 import re
 from datetime import datetime, timedelta
 
-#key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
+key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
 # Use environment variable for service account key path, default to Cloud Run secret mount path
-secret_keys = os.environ.get("FIREBASE_KEY_PATH")
+#secret_keys = os.environ.get("FIREBASE_KEY_PATH")
 #print(f"Using Firebase key path: {secret_keys}")
-key_path= json.loads(secret_keys) 
+#key_path= json.loads(secret_keys) 
 #print(f"Decoded Firebase key path: {key_path}")
 
 cred = credentials.Certificate(key_path)
 if not firebase_admin._apps:
+    # Initialize Firebase - let it auto-detect the storage bucket
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -37,9 +38,34 @@ class FirestoreUserService:
         return []
     
     #Getting user by ID
+    def generate_avatar_url(self, name: str, username: str):
+        """Generate a fallback avatar URL using ui-avatars.com"""
+        display_name = name or username or "User"
+        # Use the full name for better avatar generation - ui-avatars.com will extract initials
+        return f"https://ui-avatars.com/api/?name={display_name}&background=0d8488&color=fff&size=128"
+    
     def get_user(self, user_id: str):
         doc = db.collection('users').document(user_id).get()
-        return doc.to_dict() if doc.exists else None
+        if not doc.exists:
+            return None
+        
+        user_data = doc.to_dict()
+        
+        # Ensure user has an avatar - only generate fallback if no avatar exists
+        if not user_data.get('avatar'):
+            name = user_data.get('name', '')
+            username = user_data.get('username', '')
+            fallback_avatar = self.generate_avatar_url(name, username)
+            user_data['avatar'] = fallback_avatar
+            
+            # Update the user document with the fallback avatar only if none exists
+            try:
+                db.collection('users').document(user_id).update({'avatar': fallback_avatar})
+            except Exception as e:
+                print(f"Failed to update avatar for user {user_id}: {e}")
+        # If avatar already exists (including Google photos), keep it as is
+        
+        return user_data
     
     #Creating user with initial weight log
     def create_user(self, user_id: str, user_data: dict):
@@ -379,11 +405,23 @@ class FirestoreUserService:
             if friend_doc.exists:
                 friend_data = friend_doc.to_dict()
                 last_active = friend_data.get('last_active')
+                
+                # Ensure friend has an avatar - only generate if none exists
+                avatar = friend_data.get('avatar')
+                if not avatar:
+                    avatar = self.generate_avatar_url(friend_data.get('name', ''), friend_data.get('username', ''))
+                    # Save the generated avatar back to the database only if none exists
+                    try:
+                        db.collection('users').document(friend_id).update({'avatar': avatar})
+                    except Exception as e:
+                        print(f"Failed to update avatar for friend {friend_id}: {e}")
+                # If avatar already exists (including Google photos), keep it as is
+                
                 friends.append({
                     'id': friend_id,
                     'username': friend_data.get('username'),
                     'name': friend_data.get('name'),
-                    'avatar': friend_data.get('avatar'),
+                    'avatar': avatar,
                     'online': self.is_user_online(last_active),
                     'last_active': last_active
                 })

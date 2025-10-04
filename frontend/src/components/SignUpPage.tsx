@@ -142,51 +142,48 @@ export default function SignUpPage() {
   }, [googleUser, name, accepted, goal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-  //console.log("handleSubmit called");
-  // ...existing code...
-  //console.log("Before backend createOrUpdateUser");
-  e.preventDefault();
-  if (!canSubmit || !usernameAvailable) {
-  setUsernameError('Username is already taken');
-  return;
-}
-  signupStarted.current = true;
-  setSubmitting(true);
-  try {
-    const ageNum =
-      age.trim() === "" ? null : Math.max(0, Math.min(120, Number(age)));
-    const heightNum =
-      height.trim() === ""
-        ? null
-        : Math.max(50, Math.min(250, Number(height)));
-    const weightNum =
-      weight.trim() === ""
-        ? null
-        : Math.max(20, Math.min(400, Number(weight)));
-
-    const bmr = calculateBMR(weightNum ?? 0, heightNum ?? 0, ageNum ?? 0, gender);
+    e.preventDefault();
+    if (!canSubmit || !usernameAvailable) {
+      setUsernameError('Username is already taken');
+      return;
+    }
     
+    signupStarted.current = true;
+    setSubmitting(true);
+    
+    try {
+      const ageNum =
+        age.trim() === "" ? null : Math.max(0, Math.min(120, Number(age)));
+      const heightNum =
+        height.trim() === ""
+          ? null
+          : Math.max(50, Math.min(250, Number(height)));
+      const weightNum =
+        weight.trim() === ""
+          ? null
+          : Math.max(20, Math.min(400, Number(weight)));
 
-    // Generate username from email or name
-    //const username = googleUser?.email?.split("@")[0] || name.replace(/\s+/g, "_").toLowerCase();
-    const userData = {
-      username,
-      bmi: calculateBMI(weightNum ?? 0, heightNum ?? 0),
-      bmr,
-      tdee: calculateTDEE(bmr ?? 0, activity),
-      activity_level: activity || null,
-      name,
-      email: googleUser?.email,
-      gender: gender || null,
-      height: Number.isFinite(heightNum as number) ? heightNum : null,
-      weight: Number.isFinite(weightNum as number) ? weightNum : null,
-      age: Number.isFinite(ageNum as number) ? ageNum : null,
+      const bmr = calculateBMR(weightNum ?? 0, heightNum ?? 0, ageNum ?? 0, gender);
       
-      date_joined: new Date().toISOString(),
-      
+      // Generate avatar URL - use Google photo if available, otherwise generate one
+      const avatarUrl = googleUser?.photoURL || 
+        `https://ui-avatars.com/api/?background=E2E8F0&color=334155&name=${encodeURIComponent(name)}&size=128`;
 
-      // Optionally add phone_number, food_preferences, allergies, bmi, bmr, maintenance_calories if you collect them
-    };
+      const userData = {
+        username,
+        bmi: calculateBMI(weightNum ?? 0, heightNum ?? 0),
+        bmr,
+        tdee: calculateTDEE(bmr ?? 0, activity),
+        activity_level: activity || null,
+        name,
+        email: googleUser?.email,
+        avatar: avatarUrl,
+        gender: gender || null,
+        height: Number.isFinite(heightNum as number) ? heightNum : null,
+        weight: Number.isFinite(weightNum as number) ? weightNum : null,
+        age: Number.isFinite(ageNum as number) ? ageNum : null,
+        date_joined: new Date().toISOString(),
+      };
 
     //console.log("User data to submit:", userData);
 
@@ -303,8 +300,9 @@ export default function SignUpPage() {
                 onChange={(e) => setName(e.target.value)}
                 disabled={!googleUser}
               />
-              
             </div>
+
+
 
             <div>
               <Label htmlFor="username">Username</Label>

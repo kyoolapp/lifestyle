@@ -4,4 +4,3 @@ firebase-admin
 python-dotenv
 httpx
 pytest
-firebase-admin
