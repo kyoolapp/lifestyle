@@ -264,7 +264,7 @@ export default function UserSearch() {
                         }}
                         disabled={friendshipLoading[result.id]}
                         >
-                        {friendshipLoading[result.id] ? 'Revoking...' : 'Revoke'}
+                        {friendshipLoading[result.id] ? 'Removing...' : 'Remove Request'}
                         </Button>
                     ) : requestStatus[result.id] === 'received_pending' ? (
                         <Button
