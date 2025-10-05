@@ -92,6 +92,12 @@ export async function sendFriendRequest(userId, receiverId) {
     const error = await res.json();
     throw new Error(error.detail || 'Failed to send friend request');
   }
+  
+  // Trigger friend request received event for the receiver
+  window.dispatchEvent(new CustomEvent('friendRequestReceived', {
+    detail: { userId: receiverId }
+  }));
+  
   return res.json();
 }
 

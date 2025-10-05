@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -20,8 +21,10 @@ import {
   CheckCircle2,
   Users,
   Circle,
-  Scale
+  Scale,
+  RefreshCw
 } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Switch } from './ui/switch';
 import { motion } from 'motion/react';
 
@@ -33,10 +36,15 @@ interface HeaderProps {
 }
 
 export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) {
+  const navigate = useNavigate();
   const [waterIntake, setWaterIntake] = useState(0);
   const [dailyGoal] = useState(8);
   const [loading, setLoading] = useState(false);
   const [lastReminder, setLastReminder] = useState<Date | null>(null);
+  const [activeFriends, setActiveFriends] = useState<any[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
   
   // Load today's water intake on mount
   useEffect(() => {
@@ -67,6 +75,78 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
     
     return () => {
       window.removeEventListener('waterIntakeUpdated', handleWaterUpdate as EventListener);
+    };
+  }, [user?.id]);
+
+  // Load active friends when component mounts and refresh periodically
+  useEffect(() => {
+    if (user?.id) {
+      loadActiveFriends();
+      // Refresh active friends every 2 minutes to update online status
+      const interval = setInterval(loadActiveFriends, 120000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
+
+  // Load friend requests when component mounts and refresh periodically
+  useEffect(() => {
+    if (user?.id) {
+      // Initial load without notifications to avoid showing notifications for existing requests
+      loadFriendRequests(false);
+      // More frequent polling for real-time feel - every 10 seconds with notifications
+      const interval = setInterval(() => loadFriendRequests(true), 10000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
+
+  // Listen for friend request events from other components
+  useEffect(() => {
+    const handleFriendRequestEvent = (event: CustomEvent) => {
+      if (event.detail.userId === user?.id) {
+        // Immediately reload friend requests when a new one is detected
+        loadFriendRequests(true);
+      }
+    };
+
+    window.addEventListener('friendRequestReceived', handleFriendRequestEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('friendRequestReceived', handleFriendRequestEvent as EventListener);
+    };
+  }, [user?.id]);
+
+  // More aggressive polling when page is visible
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let fastInterval: NodeJS.Timeout;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // When user comes back to the page, immediately check for new requests
+        loadFriendRequests(true);
+        // Start fast polling (every 5 seconds) when page is visible
+        fastInterval = setInterval(() => loadFriendRequests(true), 5000);
+      } else {
+        // Clear fast polling when page is not visible
+        if (fastInterval) {
+          clearInterval(fastInterval);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Start fast polling if page is currently visible
+    if (document.visibilityState === 'visible') {
+      fastInterval = setInterval(() => loadFriendRequests(true), 5000);
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (fastInterval) {
+        clearInterval(fastInterval);
+      }
     };
   }, [user?.id]);
   
@@ -190,6 +270,96 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
     }
   };
 
+  const loadActiveFriends = async () => {
+    if (!user?.id) return;
+    
+    setFriendsLoading(true);
+    try {
+      const friends = await userApi.getUserFriends(user.id);
+      // Filter only online friends
+      const onlineFriends = friends.filter((friend: any) => friend.online);
+      setActiveFriends(onlineFriends);
+    } catch (error) {
+      console.error('Failed to load active friends:', error);
+      setActiveFriends([]);
+    } finally {
+      setFriendsLoading(false);
+    }
+  };
+
+  const loadFriendRequests = async (showNotifications = true) => {
+    if (!user?.id) return;
+    
+    setRequestsLoading(true);
+    try {
+      const requests = await userApi.getIncomingFriendRequests(user.id);
+      
+      // Check for new requests and show notifications (only if we have previous state)
+      if (showNotifications && friendRequests.length > 0) {
+        const newRequests = requests.filter((newReq: any) => 
+          !friendRequests.some((existingReq: any) => existingReq.request_id === newReq.request_id)
+        );
+        
+        newRequests.forEach((request: any) => {
+          showFriendRequestNotification(request);
+        });
+      }
+      
+      setFriendRequests(requests);
+    } catch (error) {
+      console.error('Failed to load friend requests:', error);
+      setFriendRequests([]);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  const handleAcceptFriendRequest = async (senderId: string, requestId: string) => {
+    if (!user?.id) return;
+    
+    try {
+      await userApi.acceptFriendRequest(user.id, senderId);
+      setFriendRequests(prev => prev.filter(req => req.request_id !== requestId));
+      // Reload active friends to show newly added friend
+      loadActiveFriends();
+    } catch (error) {
+      console.error('Failed to accept friend request:', error);
+    }
+  };
+
+  const handleRejectFriendRequest = async (senderId: string, requestId: string) => {
+    if (!user?.id) return;
+    
+    try {
+      await userApi.rejectFriendRequest(user.id, senderId);
+      setFriendRequests(prev => prev.filter(req => req.request_id !== requestId));
+    } catch (error) {
+      console.error('Failed to reject friend request:', error);
+    }
+  };
+
+  const showFriendRequestNotification = (request: any) => {
+    // Always show browser notification if permission is granted
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notification = new Notification('👥 New Friend Request', {
+        body: `${request.name} (@${request.username}) wants to be your friend`,
+        icon: request.avatar || '/default-avatar.png',
+        tag: `friend-request-${request.request_id}`, // Prevent duplicate notifications
+        requireInteraction: true // Keep notification visible until user interacts
+      });
+      
+      // Auto-close notification after 8 seconds
+      setTimeout(() => {
+        notification.close();
+      }, 8000);
+    }
+    
+    // Also dispatch a custom event for other potential listeners
+    window.dispatchEvent(new CustomEvent('newFriendRequestNotification', {
+      detail: { request }
+    }));
+  };
+
   // Today's goals data
   const todaysGoals = [
     { 
@@ -226,17 +396,8 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
 
   const completedGoals = todaysGoals.filter(goal => goal.completed).length;
 
-  // Mock active friends data
-  const activeFriends = [
-    { id: 1, name: 'Sarah J.', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face', isOnline: true, lastActive: 'now' },
-    { id: 2, name: 'Mike C.', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face', isOnline: true, lastActive: '2 min ago' },
-    { id: 3, name: 'Emma R.', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face', isOnline: true, lastActive: '5 min ago' },
-    { id: 4, name: 'Alex K.', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face', isOnline: false, lastActive: '1 hour ago' },
-    { id: 5, name: 'Lisa M.', avatar: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=40&h-40&fit=crop&crop=face', isOnline: true, lastActive: 'now' },
-    { id: 6, name: 'David L.', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face', isOnline: false, lastActive: '3 hours ago' }
-  ];
-
-  const onlineFriends = activeFriends.filter(friend => friend.isOnline);
+  // activeFriends state is already managed above
+  const onlineFriends = activeFriends.filter(friend => friend.online);
 
   return (
     <header className="bg-background/95 backdrop-blur-sm border-b border-border fixed top-0 left-0 right-0 z-50">
@@ -292,63 +453,95 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   <Button
                     variant="ghost"
                     className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-full border border-purple-200 hover:bg-purple-100 transition-colors h-auto"
+                    onClick={loadActiveFriends}
                   >
                     <Users className="w-4 h-4 text-purple-600" />
                     <span className="text-sm font-medium text-purple-700">
                       {onlineFriends.length} online
                     </span>
+                    
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80" align="end">
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                        <Users className="w-6 h-6 text-purple-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">Active Friends</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {onlineFriends.length} friends are online now
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="max-h-64 overflow-y-auto space-y-2">
-                      {activeFriends.map((friend) => (
-                        <div key={friend.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                          <div className="relative">
-                            <div className="w-8 h-8 rounded-full overflow-hidden">
-                              <img src={friend.avatar} alt={friend.name} className="w-full h-full object-cover" />
-                            </div>
-                            {friend.isOnline && (
-                              <Circle className="absolute -bottom-0.5 -right-0.5 w-3 h-3 text-green-500 fill-green-500 bg-white rounded-full" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{friend.name}</p>
-                            <div className="flex items-center gap-1">
-                              <div className={`w-2 h-2 rounded-full ${friend.isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
-                              <span className="text-xs text-muted-foreground">
-                                {friend.isOnline ? 'Online' : `Last seen ${friend.lastActive}`}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            {friend.isOnline && (
-                              <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
-                                Active
-                              </span>
-                            )}
-                          </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                          <Users className="w-6 h-6 text-purple-600" />
                         </div>
-                      ))}
+                        <div>
+                          <h4 className="font-medium">Active Friends</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {onlineFriends.length} friends are online now
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={loadActiveFriends}
+                        disabled={friendsLoading}
+                      >
+                        {friendsLoading ? (
+                          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                      </Button>
                     </div>
                     
-                    <div className="border-t pt-3 text-center">
-                      <button className="text-sm text-purple-600 hover:text-purple-700 transition-colors">
-                        View all friends
-                      </button>
-                    </div>
+                    {friendsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-center">
+                          <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-2" />
+                          <p className="text-sm text-gray-500">Loading friends...</p>
+                        </div>
+                      </div>
+                    ) : onlineFriends.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-sm text-gray-500 mb-2">No friends are currently online</p>
+                        <p className="text-xs text-gray-400">Check back later or invite more friends!</p>
+                      </div>
+                    ) : (
+                      <div className="max-h-64 overflow-y-auto space-y-2">
+                        {onlineFriends.map((friend: any) => (
+                          <div key={friend.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                            <div className="relative">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src={friend.avatar} />
+                                <AvatarFallback>
+                                  {friend.name?.charAt(0).toUpperCase() || friend.username?.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{friend.name}</p>
+                              <p className="text-xs text-muted-foreground">@{friend.username}</p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                                Online
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {onlineFriends.length > 0 && (
+                      <div className="border-t pt-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => navigate('/friends')}
+                        >
+                          View All Friends
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -547,17 +740,74 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="w-4 h-4" />
-                <motion.div
-                  className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
+                {friendRequests.length > 0 && (
+                  <motion.div
+                    className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <div className="space-y-3">
-                <h4 className="font-medium">Notifications</h4>
-                <div className="space-y-2">
+            <PopoverContent className="w-96" align="end">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Notifications</h4>
+                  {friendRequests.length > 0 && (
+                    <Badge variant="destructive" className="text-xs">
+                      {friendRequests.length} new
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="max-h-80 overflow-y-auto space-y-3">
+                  {/* Friend Requests */}
+                  {friendRequests.map((request) => (
+                    <div key={request.request_id} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="relative">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={request.avatar} />
+                          <AvatarFallback>
+                            {request.name?.charAt(0).toUpperCase() || request.username?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                          request.online ? 'bg-green-500' : 'bg-gray-400'
+                        }`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Users className="w-4 h-4 text-purple-600" />
+                          <p className="text-sm font-medium text-purple-900">Friend Request</p>
+                        </div>
+                        <p className="text-sm text-gray-900 mb-1">
+                          <span className="font-medium">{request.name}</span> (@{request.username}) wants to be your friend
+                        </p>
+                        <p className="text-xs text-gray-500 mb-3">
+                          {new Date(request.created_at).toLocaleDateString()} at {new Date(request.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="h-7 px-3 text-xs"
+                            onClick={() => handleAcceptFriendRequest(request.sender_id, request.request_id)}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-3 text-xs"
+                            onClick={() => handleRejectFriendRequest(request.sender_id, request.request_id)}
+                          >
+                            Decline
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Other Notifications */}
                   <div className="flex items-start gap-3 p-2 bg-blue-50 rounded-lg">
                     <div className="w-4 h-4 bg-blue-500 rounded-full mt-0.5" />
                     <div className="flex-1 text-sm">
@@ -574,6 +824,13 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                       <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
                     </div>
                   </div>
+                  
+                  {friendRequests.length === 0 && (
+                    <div className="text-center py-4">
+                      <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No new notifications</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </PopoverContent>

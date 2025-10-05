@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { searchUsers, checkFriendshipStatus, sendFriendRequest, getFriendRequestStatus, removeFriend, revokeFriendRequest } from '../api/user_api';
+import { searchUsers, checkFriendshipStatus, sendFriendRequest, getFriendRequestStatus, removeFriend, revokeFriendRequest, acceptFriendRequest, rejectFriendRequest, getIncomingFriendRequests, getOutgoingFriendRequests } from '../api/user_api';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
 import { Card, CardContent } from './ui/card';
@@ -41,16 +41,23 @@ export default function UserSearch() {
             const statusPromises = filteredUsers.map(async (u) => {
               try {
                 const areFriends = await checkFriendshipStatus(user.uid, u.id);
-                // Check if I sent them a request (user.uid -> u.id)
-                const iSentRequest = await getFriendRequestStatus(user.uid, u.id);
-                // Check if they sent me a request (u.id -> user.uid)
-                const theySentRequest = await getFriendRequestStatus(u.id, user.uid);
+                
+                // Get both incoming and outgoing requests to determine exact status
+                const [incomingRequests, outgoingRequests] = await Promise.all([
+                  getIncomingFriendRequests(user.uid),
+                  getOutgoingFriendRequests(user.uid)
+                ]);
+                
+                // Check if this user is in my incoming requests (they sent me a request)
+                const incomingFromThisUser = incomingRequests.find((req: any) => req.sender_id === u.id);
+                // Check if this user is in my outgoing requests (I sent them a request)
+                const outgoingToThisUser = outgoingRequests.find((req: any) => req.receiver_id === u.id);
                 
                 let requestStatus = null;
-                if (iSentRequest === 'pending') {
-                  requestStatus = 'sent_pending'; // I sent them a request
-                } else if (theySentRequest === 'pending') {
+                if (incomingFromThisUser) {
                   requestStatus = 'received_pending'; // They sent me a request
+                } else if (outgoingToThisUser) {
+                  requestStatus = 'sent_pending'; // I sent them a request
                 }
                 
                 return { userId: u.id, areFriends, requestStatus };
@@ -124,6 +131,35 @@ export default function UserSearch() {
     setFriendshipLoading(prev => ({ ...prev, [friendId]: false }));
   };
 
+  const handleAcceptFriendRequest = async (senderId: string) => {
+    if (!user?.uid) return;
+    
+    setFriendshipLoading(prev => ({ ...prev, [senderId]: true }));
+    try {
+      await acceptFriendRequest(user.uid, senderId);
+      setFriendshipStatus(prev => ({ ...prev, [senderId]: true }));
+      setRequestStatus(prev => ({ ...prev, [senderId]: null }));
+    } catch (error) {
+      console.error('Failed to accept friend request:', error);
+      alert('Failed to accept friend request. Please try again.');
+    }
+    setFriendshipLoading(prev => ({ ...prev, [senderId]: false }));
+  };
+
+  const handleRejectFriendRequest = async (senderId: string) => {
+    if (!user?.uid) return;
+    
+    setFriendshipLoading(prev => ({ ...prev, [senderId]: true }));
+    try {
+      await rejectFriendRequest(user.uid, senderId);
+      setRequestStatus(prev => ({ ...prev, [senderId]: null }));
+    } catch (error) {
+      console.error('Failed to reject friend request:', error);
+      alert('Failed to reject friend request. Please try again.');
+    }
+    setFriendshipLoading(prev => ({ ...prev, [senderId]: false }));
+  };
+
   const UserProfile = ({ user: profileUser }: { user: User }) => (
     <Card className="w-full max-w-md mx-auto">
       <CardContent className="p-6">
@@ -148,41 +184,70 @@ export default function UserSearch() {
             </Badge>
           </div>
           
-          <div className="flex space-x-2">
+          <div className="w-full space-y-3">
             {friendshipStatus[profileUser.id] ? (
-              <Button
-                variant="outline"
-                onClick={() => handleRemoveFriend(profileUser.id)}
-                disabled={friendshipLoading[profileUser.id]}
-              >
-                {friendshipLoading[profileUser.id] ? 'Removing...' : 'Remove Friend'}
-              </Button>
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => handleRemoveFriend(profileUser.id)}
+                  disabled={friendshipLoading[profileUser.id]}
+                >
+                  {friendshipLoading[profileUser.id] ? 'Removing...' : 'Remove Friend'}
+                </Button>
+              </div>
             ) : requestStatus[profileUser.id] === 'sent_pending' ? (
-              <Button
-                variant="outline"
-                onClick={() => handleRevokeFriendRequest(profileUser.id)}
-                disabled={friendshipLoading[profileUser.id]}
-              >
-                {friendshipLoading[profileUser.id] ? 'Revoking...' : 'Revoke Request'}
-              </Button>
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => handleRevokeFriendRequest(profileUser.id)}
+                  disabled={friendshipLoading[profileUser.id]}
+                >
+                  {friendshipLoading[profileUser.id] ? 'Removing...' : 'Remove Request'}
+                </Button>
+              </div>
             ) : requestStatus[profileUser.id] === 'received_pending' ? (
-              <Button
-                variant="outline"
-                disabled={true}
-              >
-                They Sent Request
-              </Button>
+              <div className="space-y-3">
+                <div className="text-center">
+                  <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-sm px-3 py-1">
+                    📨 Friend Request Received
+                  </Badge>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {profileUser.name} wants to be your friend
+                  </p>
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    onClick={() => handleAcceptFriendRequest(profileUser.id)}
+                    disabled={friendshipLoading[profileUser.id]}
+                    className="flex-1 max-w-32"
+                  >
+                    {friendshipLoading[profileUser.id] ? 'Accepting...' : 'Accept'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleRejectFriendRequest(profileUser.id)}
+                    disabled={friendshipLoading[profileUser.id]}
+                    className="flex-1 max-w-32"
+                  >
+                    {friendshipLoading[profileUser.id] ? 'Declining...' : 'Decline'}
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <Button
-                onClick={() => handleSendFriendRequest(profileUser.id)}
-                disabled={friendshipLoading[profileUser.id]}
-              >
-                {friendshipLoading[profileUser.id] ? 'Sending...' : 'Send Friend Request'}
-              </Button>
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => handleSendFriendRequest(profileUser.id)}
+                  disabled={friendshipLoading[profileUser.id]}
+                >
+                  {friendshipLoading[profileUser.id] ? 'Sending...' : 'Send Friend Request'}
+                </Button>
+              </div>
             )}
-            <Button variant="outline" onClick={() => setSelectedUser(null)}>
-              Back to Search
-            </Button>
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={() => setSelectedUser(null)}>
+                Back to Search
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -216,7 +281,14 @@ export default function UserSearch() {
       {results.length > 0 && (
         <div className="space-y-4">
           {results.map((result) => (
-            <Card key={result.id} className="cursor-pointer hover:shadow-md transition-shadow">
+            <Card 
+              key={result.id} 
+              className={`cursor-pointer hover:shadow-md transition-shadow ${
+                requestStatus[result.id] === 'received_pending' 
+                  ? 'border-purple-200 bg-purple-50/30' 
+                  : ''
+              }`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div 
@@ -230,14 +302,24 @@ export default function UserSearch() {
                           {result.name?.charAt(0).toUpperCase() || result.username?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
+                      {requestStatus[result.id] === 'received_pending' && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">!</span>
+                        </div>
+                      )}
                       <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
                         result.online ? 'bg-green-500' : 'bg-gray-400'
                       }`} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-semibold">{result.name}</h3>
                       <p className="text-sm text-gray-600">@{result.username}</p>
-                      {result.online && <span className="text-xs text-green-600">Online</span>}
+                      <div className="flex items-center gap-2 mt-1">
+                        {result.online && <span className="text-xs text-green-600">Online</span>}
+                        {requestStatus[result.id] === 'received_pending' && (
+                          <span className="text-xs text-purple-600 font-medium">📨 Sent you a friend request</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
@@ -267,13 +349,18 @@ export default function UserSearch() {
                         {friendshipLoading[result.id] ? 'Removing...' : 'Remove Request'}
                         </Button>
                     ) : requestStatus[result.id] === 'received_pending' ? (
-                        <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={true}
-                        >
-                        They Sent Request
-                        </Button>
+                        <div className="flex items-center gap-2">
+                                                    <Button
+                            size="sm"
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                              e.stopPropagation();
+                              setSelectedUser(result);
+                            }}
+                            className="text-xs px-2 py-1 h-7"
+                          >
+                            View Request
+                          </Button>
+                        </div>
                     ) : (
                         <Button
                         size="sm"
