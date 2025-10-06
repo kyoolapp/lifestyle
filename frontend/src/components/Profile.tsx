@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
-import { createOrUpdateUser, getUserOnlineStatus } from '../api/user_api';
+import { createOrUpdateUser, getUserOnlineStatus, getUserFriends } from '../api/user_api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { isUsernameAvailable } from "../api/user_api";
 import { 
   User, 
+  Users,
   Settings, 
   Share2, 
   Crown,
@@ -31,6 +33,7 @@ interface ProfileProps {
 
 
 export function Profile({ user, setUser }: ProfileProps) {
+  const navigate = useNavigate();
 
   function validateUsernameFormat(username: string) {
     return /^[a-zA-Z0-9_.]{6,20}$/.test(username);
@@ -47,6 +50,8 @@ export function Profile({ user, setUser }: ProfileProps) {
   //console.log('Profile user:', user);
   const [isEditing, setIsEditing] = useState(false);
   const [isOnline, setIsOnline] = useState(true); // Default to true for current user
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [friendsLoading, setFriendsLoading] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user.name,
     username: user.username,
@@ -138,6 +143,41 @@ export function Profile({ user, setUser }: ProfileProps) {
       })
       .finally(() => setUsernameChecking(false));
   }, [username]);
+
+  // Load friends count when component mounts
+  useEffect(() => {
+    const loadFriendsCount = async () => {
+      if (!user?.id && !user?.uid) return;
+      
+      setFriendsLoading(true);
+      try {
+        const friends = await getUserFriends(user.id || user.uid);
+        setFriendsCount(friends.length);
+      } catch (error) {
+        console.error('Failed to load friends count:', error);
+        setFriendsCount(0);
+      } finally {
+        setFriendsLoading(false);
+      }
+    };
+
+    loadFriendsCount();
+
+    // Listen for friend-related events to update count
+    const handleFriendUpdate = () => {
+      loadFriendsCount();
+    };
+
+    window.addEventListener('friendRequestAccepted', handleFriendUpdate);
+    window.addEventListener('friendRemoved', handleFriendUpdate);
+    window.addEventListener('friendAdded', handleFriendUpdate);
+
+    return () => {
+      window.removeEventListener('friendRequestAccepted', handleFriendUpdate);
+      window.removeEventListener('friendRemoved', handleFriendUpdate);
+      window.removeEventListener('friendAdded', handleFriendUpdate);
+    };
+  }, [user?.id, user?.uid]);
 
   const handleSave = () => {
     // Calculate new metrics
@@ -265,9 +305,17 @@ export function Profile({ user, setUser }: ProfileProps) {
                       <div className="text-xl font-semibold">{userStats.followers}</div>
                       <p className="text-sm text-muted-foreground">Followers</p>
                     </div>
-                    <div>
-                      <div className="text-xl font-semibold">{userStats.following}</div>
-                      <p className="text-sm text-muted-foreground">Following</p>
+                    <div 
+                      className="cursor-pointer hover:bg-blue-50 p-3 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 group"
+                      onClick={() => navigate('/friends')}
+                      title="View all friends"
+                    >
+                      <div className="text-xl font-semibold ">
+                        {friendsLoading ? '...' : friendsCount}
+                      </div>
+                      <div >
+                        <p className="text-sm text-muted-foreground">Friends</p>
+                      </div>
                     </div>
                   </div>
                 </div>

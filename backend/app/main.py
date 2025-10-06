@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import users, recipes, suggestions
+from app.api import users, recipes, suggestions, waitlist
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -16,6 +16,7 @@ app.add_middleware(
 app.include_router(users.router)
 app.include_router(recipes.router)
 app.include_router(suggestions.router)
+app.include_router(waitlist.router)
 
 @app.get('/')
 def root():

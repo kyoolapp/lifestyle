@@ -76,9 +76,22 @@ export async function getUser(userId) {
   return res.json();
 }
 
+export async function getUserByUserId(userId) {
+  const res = await fetch(`${BASE_URL}/users/${userId}`);
+  if (!res.ok) throw new Error('Failed to get user');
+  return res.json();
+}
+
 export async function getUserByEmail(email) {
   const res = await fetch(`${BASE_URL}/users/by-email/${email}`);
   return res.json();
+}
+
+export async function getFriendshipStatus(userId, otherUserId) {
+  const res = await fetch(`${BASE_URL}/users/${userId}/friendship-status/${otherUserId}`);
+  if (!res.ok) throw new Error('Failed to get friendship status');
+  const data = await res.json();
+  return data;
 }
 
 //Friend Request System
@@ -111,6 +124,15 @@ export async function acceptFriendRequest(userId, senderId) {
     const error = await res.json();
     throw new Error(error.detail || 'Failed to accept friend request');
   }
+  
+  // Trigger friend added events for both users
+  window.dispatchEvent(new CustomEvent('friendRequestAccepted', {
+    detail: { userId, friendId: senderId }
+  }));
+  window.dispatchEvent(new CustomEvent('friendAdded', {
+    detail: { userId, friendId: senderId }
+  }));
+  
   return res.json();
 }
 
@@ -171,6 +193,12 @@ export async function removeFriend(userId, friendId) {
     const error = await res.json();
     throw new Error(error.detail || 'Failed to remove friend');
   }
+  
+  // Trigger friend removed event
+  window.dispatchEvent(new CustomEvent('friendRemoved', {
+    detail: { userId, friendId }
+  }));
+  
   return res.json();
 }
 

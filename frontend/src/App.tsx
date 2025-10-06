@@ -51,6 +51,7 @@ import { FeaturesShowcase } from "./components/FeaturesShowcase";
 import { auth } from "./firebase";
 import ViewAllFriends from "./components/ViewAllFriends";
 import FriendRequests from "./components/FriendRequests";
+import { UserProfile } from "./components/UserProfile";
 
 const BASE_URL= import.meta.env.VITE_API_URL;
 
@@ -817,6 +818,14 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <FriendRequests />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/user/:userId"
+          element={
+            <PrivateRoute>
+              <UserProfile />
             </PrivateRoute>
           }
         />

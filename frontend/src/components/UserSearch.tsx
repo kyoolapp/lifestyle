@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { searchUsers, checkFriendshipStatus, sendFriendRequest, getFriendRequestStatus, removeFriend, revokeFriendRequest, acceptFriendRequest, rejectFriendRequest, getIncomingFriendRequests, getOutgoingFriendRequests } from '../api/user_api';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
@@ -18,6 +19,7 @@ interface User {
 
 export default function UserSearch() {
   const [user] = useAuthState(auth);
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -243,9 +245,15 @@ export default function UserSearch() {
                 </Button>
               </div>
             )}
-            <div className="flex justify-center">
+            <div className="flex gap-2 justify-center">
               <Button variant="outline" onClick={() => setSelectedUser(null)}>
                 Back to Search
+              </Button>
+              <Button 
+                variant="default"
+                onClick={() => navigate(`/user/${profileUser.id}`)}
+              >
+                View Full Profile
               </Button>
             </div>
           </div>
@@ -293,10 +301,10 @@ export default function UserSearch() {
                 <div className="flex items-center justify-between">
                   <div 
                     className="flex items-center space-x-3 flex-1"
-                    onClick={() => setSelectedUser(result)}
+                    onClick={() => navigate(`/user/${result.id}`)}
                   >
-                    <div className="relative">
-                      <Avatar>
+                    <div className="relative cursor-pointer">
+                      <Avatar className="hover:ring-2 hover:ring-blue-300 transition-all">
                         <AvatarImage src={result.avatar} />
                         <AvatarFallback>
                           {result.name?.charAt(0).toUpperCase() || result.username?.charAt(0).toUpperCase()}
@@ -312,7 +320,7 @@ export default function UserSearch() {
                       }`} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold">{result.name}</h3>
+                      <h3 className="font-semibold hover:text-blue-600 cursor-pointer transition-colors">{result.name}</h3>
                       <p className="text-sm text-gray-600">@{result.username}</p>
                       <div className="flex items-center gap-2 mt-1">
                         {result.online && <span className="text-xs text-green-600">Online</span>}
@@ -323,34 +331,62 @@ export default function UserSearch() {
                     </div>
                   </div>
                   
-                  <div className="ml-4">
+                  <div className="ml-4 flex flex-col gap-1">
                     {friendshipStatus[result.id] ? (
+                      <div className="flex items-center gap-2">
                         <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                          e.stopPropagation();
-                          handleRemoveFriend(result.id);
-                        }}
-                        disabled={friendshipLoading[result.id]}
+                          variant="outline"
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            handleRemoveFriend(result.id);
+                          }}
+                          disabled={friendshipLoading[result.id]}
+                          className="text-xs px-2 py-1 h-7"
                         >
-                        {friendshipLoading[result.id] ? 'Removing...' : 'Friends'}
+                          {friendshipLoading[result.id] ? 'Removing...' : 'Friends'}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            navigate(`/user/${result.id}`);
+                          }}
+                          className="text-xs px-2 py-1 h-7 text-blue-600 hover:text-blue-700"
+                        >
+                          Profile
+                        </Button>
+                      </div>
                     ) : requestStatus[result.id] === 'sent_pending' ? (
+                      <div className="flex items-center gap-2">
                         <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                          e.stopPropagation();
-                          handleRevokeFriendRequest(result.id);
-                        }}
-                        disabled={friendshipLoading[result.id]}
+                          variant="outline"
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            handleRevokeFriendRequest(result.id);
+                          }}
+                          disabled={friendshipLoading[result.id]}
+                          className="text-xs px-2 py-1 h-7"
                         >
-                        {friendshipLoading[result.id] ? 'Removing...' : 'Remove Request'}
+                          {friendshipLoading[result.id] ? 'Removing...' : 'Remove Request'}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            navigate(`/user/${result.id}`);
+                          }}
+                          className="text-xs px-2 py-1 h-7 text-blue-600 hover:text-blue-700"
+                        >
+                          Profile
+                        </Button>
+                      </div>
                     ) : requestStatus[result.id] === 'received_pending' ? (
                         <div className="flex items-center gap-2">
-                                                    <Button
+                          <Button
                             size="sm"
                             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                               e.stopPropagation();
@@ -360,18 +396,43 @@ export default function UserSearch() {
                           >
                             View Request
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                              e.stopPropagation();
+                              navigate(`/user/${result.id}`);
+                            }}
+                            className="text-xs px-2 py-1 h-7 text-blue-600 hover:text-blue-700"
+                          >
+                            Profile
+                          </Button>
                         </div>
                     ) : (
+                      <div className="flex items-center gap-2">
                         <Button
-                        size="sm"
-                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                          e.stopPropagation();
-                          handleSendFriendRequest(result.id);
-                        }}
-                        disabled={friendshipLoading[result.id]}
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            handleSendFriendRequest(result.id);
+                          }}
+                          disabled={friendshipLoading[result.id]}
+                          className="text-xs px-2 py-1 h-7"
                         >
-                        {friendshipLoading[result.id] ? 'Sending...' : 'Send Request'}
+                          {friendshipLoading[result.id] ? 'Sending...' : 'Send Request'}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            navigate(`/user/${result.id}`);
+                          }}
+                          className="text-xs px-2 py-1 h-7 text-blue-600 hover:text-blue-700"
+                        >
+                          Profile
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>

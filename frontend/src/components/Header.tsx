@@ -764,8 +764,8 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   {/* Friend Requests */}
                   {friendRequests.map((request) => (
                     <div key={request.request_id} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                      <div className="relative">
-                        <Avatar className="w-10 h-10">
+                      <div className="relative cursor-pointer" onClick={() => navigate(`/user/${request.sender_id}`)}>
+                        <Avatar className="w-10 h-10 hover:ring-2 hover:ring-purple-300 transition-all">
                           <AvatarImage src={request.avatar} />
                           <AvatarFallback>
                             {request.name?.charAt(0).toUpperCase() || request.username?.charAt(0).toUpperCase()}
@@ -781,7 +781,12 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                           <p className="text-sm font-medium text-purple-900">Friend Request</p>
                         </div>
                         <p className="text-sm text-gray-900 mb-1">
-                          <span className="font-medium">{request.name}</span> (@{request.username}) wants to be your friend
+                          <span 
+                            className="font-medium hover:text-purple-600 cursor-pointer transition-colors"
+                            onClick={() => navigate(`/user/${request.sender_id}`)}
+                          >
+                            {request.name}
+                          </span> (@{request.username}) wants to be your friend
                         </p>
                         <p className="text-xs text-gray-500 mb-3">
                           {new Date(request.created_at).toLocaleDateString()} at {new Date(request.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -801,6 +806,14 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                             onClick={() => handleRejectFriendRequest(request.sender_id, request.request_id)}
                           >
                             Decline
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-3 text-xs text-purple-600 hover:text-purple-700"
+                            onClick={() => navigate(`/user/${request.sender_id}`)}
+                          >
+                            View Profile
                           </Button>
                         </div>
                       </div>

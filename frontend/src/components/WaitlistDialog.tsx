@@ -29,6 +29,7 @@ import {
   Star,
 } from "lucide-react";
 import { toast } from "sonner";
+import { joinWaitlist } from "../api/waitlist_api";
 
 interface WaitlistDialogProps {
   open: boolean;
@@ -51,6 +52,8 @@ interface FormData {
 export function WaitlistDialog({ open, onOpenChange, isInline = false }: WaitlistDialogProps) {
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [waitlistPosition, setWaitlistPosition] = useState<number | null>(null);
   const [formData, setFormData] = useState<FormData>({
     personType: "",
     activityLevel: "",
@@ -85,15 +88,33 @@ export function WaitlistDialog({ open, onOpenChange, isInline = false }: Waitlis
   const nextStep = () => step < totalSteps && setStep((s) => s + 1);
   const prevStep = () => step > 1 && setStep((s) => s - 1);
 
-  const handleSubmit = () => {
-    console.log("Submitted data:", formData);
-    setIsSubmitted(true);
-    toast.success("Confirmation email sent! You will also receive a WhatsApp message shortly.");
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await joinWaitlist(formData);
+      setWaitlistPosition(response.position);
+      setIsSubmitted(true);
+      toast.success("Welcome to the KyoolApp waitlist! Confirmation email sent.");
+    } catch (error: any) {
+      console.error("Failed to join waitlist:", error);
+      if (error.message.includes("already registered")) {
+        toast.error("This email is already registered in our waitlist.");
+      } else {
+        toast.error("Failed to join waitlist. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
     setStep(1);
     setIsSubmitted(false);
+    setIsSubmitting(false);
+    setWaitlistPosition(null);
     setFormData({
       personType: "",
       activityLevel: "",
@@ -375,11 +396,20 @@ export function WaitlistDialog({ open, onOpenChange, isInline = false }: Waitlis
           ) : (
             <Button
               onClick={handleSubmit}
-              disabled={!formData.email}
+              disabled={!formData.email || isSubmitting}
               className="flex items-center px-8 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-black font-medium shadow-lg disabled:opacity-50"
             >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Join Waitlist
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Joining...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Join Waitlist
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -400,6 +430,11 @@ export function WaitlistDialog({ open, onOpenChange, isInline = false }: Waitlis
 
           <DialogDescription className="mb-6">
             You've successfully joined our exclusive waitlist for early access.
+            {waitlistPosition && (
+              <div className="mt-3 text-white/90">
+                You are #{waitlistPosition} on the waitlist!
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
         <Button
@@ -421,6 +456,11 @@ export function WaitlistDialog({ open, onOpenChange, isInline = false }: Waitlis
         <h3 className="mb-3 text-2xl font-bold text-gray-900">Welcome to the KA Waitlist!</h3>
         <p className="text-gray-700 mb-6 leading-relaxed">
           Thank you for joining. We'll be in touch soon with exclusive early access to KA and priority coaching opportunities.
+          {waitlistPosition && (
+            <div className="mt-2 text-green-600 font-medium">
+              You are #{waitlistPosition} on the waitlist!
+            </div>
+          )}
         </p>
         <div className="bg-green-50 rounded-xl p-4 border border-green-200 mb-6">
           <p className="text-sm text-green-700 font-medium">📧 Confirmation email sent • 📱 WhatsApp message incoming</p>

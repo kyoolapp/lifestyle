@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getIncomingFriendRequests, getOutgoingFriendRequests, acceptFriendRequest, rejectFriendRequest, revokeFriendRequest } from '../api/user_api';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
@@ -21,6 +22,7 @@ interface FriendRequest {
 
 export default function FriendRequests() {
   const [user] = useAuthState(auth);
+  const navigate = useNavigate();
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,19 +112,19 @@ export default function FriendRequests() {
       <h1 className="text-2xl font-bold mb-6">Friend Requests</h1>
       
       <Tabs defaultValue="incoming" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        {/*<TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="incoming">
             Incoming ({incomingRequests.length})
           </TabsTrigger>
           <TabsTrigger value="outgoing">
             Outgoing ({outgoingRequests.length})
           </TabsTrigger>
-        </TabsList>
+        </TabsList>*/}
         
         <TabsContent value="incoming" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Incoming Friend Requests</CardTitle>
+              <CardTitle>Active Friend Requests</CardTitle>
             </CardHeader>
             <CardContent>
               {incomingRequests.length === 0 ? (
@@ -136,8 +138,8 @@ export default function FriendRequests() {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className="relative">
-                              <Avatar className="w-12 h-12">
+                            <div className="relative cursor-pointer" onClick={() => navigate(`/user/${request.sender_id}`)}>
+                              <Avatar className="w-12 h-12 hover:ring-2 hover:ring-blue-300 transition-all">
                                 <AvatarImage src={request.avatar} />
                                 <AvatarFallback>
                                   {request.name?.charAt(0).toUpperCase() || request.username?.charAt(0).toUpperCase()}
@@ -148,7 +150,12 @@ export default function FriendRequests() {
                               }`} />
                             </div>
                             <div>
-                              <h4 className="font-semibold">{request.name}</h4>
+                              <h4 
+                                className="font-semibold hover:text-blue-600 cursor-pointer transition-colors"
+                                onClick={() => navigate(`/user/${request.sender_id}`)}
+                              >
+                                {request.name}
+                              </h4>
                               <p className="text-sm text-gray-600">@{request.username}</p>
                               <p className="text-xs text-gray-500">{formatDate(request.created_at)}</p>
                               <Badge variant={request.online ? "default" : "secondary"} className="text-xs mt-1">
@@ -157,21 +164,31 @@ export default function FriendRequests() {
                             </div>
                           </div>
                           
-                          <div className="flex space-x-2">
+                          <div className="flex flex-col space-y-2">
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleAcceptRequest(request.sender_id!, request.request_id)}
+                                disabled={actionLoading[request.request_id]}
+                              >
+                                {actionLoading[request.request_id] ? 'Accepting...' : 'Accept'}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRejectRequest(request.sender_id!, request.request_id)}
+                                disabled={actionLoading[request.request_id]}
+                              >
+                                {actionLoading[request.request_id] ? 'Rejecting...' : 'Reject'}
+                              </Button>
+                            </div>
                             <Button
+                              variant="ghost"
                               size="sm"
-                              onClick={() => handleAcceptRequest(request.sender_id!, request.request_id)}
-                              disabled={actionLoading[request.request_id]}
+                              className="text-blue-600 hover:text-blue-700 text-xs"
+                              onClick={() => navigate(`/user/${request.sender_id}`)}
                             >
-                              {actionLoading[request.request_id] ? 'Accepting...' : 'Accept'}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRejectRequest(request.sender_id!, request.request_id)}
-                              disabled={actionLoading[request.request_id]}
-                            >
-                              {actionLoading[request.request_id] ? 'Rejecting...' : 'Reject'}
+                              View Profile
                             </Button>
                           </div>
                         </div>
@@ -184,7 +201,7 @@ export default function FriendRequests() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="outgoing" className="mt-6">
+        {/*<TabsContent value="outgoing" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Sent Friend Requests</CardTitle>
@@ -243,7 +260,7 @@ export default function FriendRequests() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>*/}
       </Tabs>
     </div>
   );
