@@ -648,6 +648,11 @@
     right: calc(var(--spacing) * -1);
   }
 
+  .-right-001 {
+    right: calc(var(--spacing) * -0.01);
+  }
+
+
   .-right-6 {
     right: calc(var(--spacing) * -6);
   }
@@ -670,6 +675,10 @@
 
   .right-2 {
     right: calc(var(--spacing) * 2);
+  }
+
+  .right-2-5 {
+    right: calc(var(--spacing) * 2.5);
   }
 
   .right-3 {

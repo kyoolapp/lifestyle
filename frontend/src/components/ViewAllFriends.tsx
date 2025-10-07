@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getUserFriends, removeFriend } from '../api/user_api';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
+import { Users } from 'lucide-react';
 
 interface Friend {
   id: string;
@@ -25,9 +27,9 @@ interface ViewAllFriendsProps {
 
 export default function ViewAllFriends({ onBack, onAddFriends }: ViewAllFriendsProps) {
   const [user] = useAuthState(auth);
+  const navigate = useNavigate();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -44,69 +46,25 @@ export default function ViewAllFriends({ onBack, onAddFriends }: ViewAllFriendsP
     };
 
     fetchFriends();
+
+    // Listen for friend removal events
+    const handleFriendRemoved = (event: CustomEvent) => {
+      const { friendId } = event.detail;
+      setFriends(prevFriends => prevFriends.filter(friend => friend.id !== friendId));
+    };
+
+    window.addEventListener('friendRemoved', handleFriendRemoved as EventListener);
+
+    return () => {
+      window.removeEventListener('friendRemoved', handleFriendRemoved as EventListener);
+    };
   }, [user?.uid]);
 
-  const handleRemoveFriend = async (friendId: string) => {
-    if (!user?.uid) return;
-    
-    const confirmed = window.confirm('Are you sure you want to remove this friend?');
-    if (!confirmed) return;
-
-    try {
-      await removeFriend(user.uid, friendId);
-      setFriends(prev => prev.filter(f => f.id !== friendId));
-      if (selectedFriend?.id === friendId) {
-        setSelectedFriend(null);
-      }
-    } catch (error) {
-      console.error('Failed to remove friend:', error);
-      alert('Failed to remove friend. Please try again.');
-    }
+  const handleViewProfile = (friendId: string) => {
+    navigate(`/user/${friendId}`);
   };
 
-  const FriendProfile = ({ friend }: { friend: Friend }) => (
-    <Card className="w-full max-w-md mx-auto">
-      <CardContent className="p-6">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="relative">
-            <Avatar className="w-24 h-24">
-              <AvatarImage src={friend.avatar} />
-              <AvatarFallback>
-                {friend.name?.charAt(0).toUpperCase() || friend.username?.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className={`absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-white ${
-              friend.online ? 'bg-green-500' : 'bg-gray-400'
-            }`} />
-          </div>
-          
-          <div className="text-center">
-            <h3 className="text-xl font-semibold">{friend.name}</h3>
-            <p className="text-gray-600">@{friend.username}</p>
-            <Badge variant={friend.online ? "default" : "secondary"} className="mt-2">
-              {friend.online ? "Online" : "Offline"}
-            </Badge>
-          </div>
-          
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => handleRemoveFriend(friend.id)}
-            >
-              Remove Friend
-            </Button>
-            <Button variant="outline" onClick={() => setSelectedFriend(null)}>
-              Back to Friends
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
-  if (selectedFriend) {
-    return <FriendProfile friend={selectedFriend} />;
-  }
 
   if (loading) {
     return (
@@ -135,38 +93,59 @@ export default function ViewAllFriends({ onBack, onAddFriends }: ViewAllFriendsP
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-4">
               {friends.map((friend) => (
-                <Card key={friend.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div 
-                      className="flex flex-col items-center space-y-3"
-                      onClick={() => setSelectedFriend(friend)}
-                    >
-                      <div className="relative">
-                        <Avatar className="w-16 h-16">
-                          <AvatarImage src={friend.avatar} />
-                          <AvatarFallback>
-                            {friend.name?.charAt(0).toUpperCase() || friend.username?.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                          friend.online ? 'bg-green-500' : 'bg-gray-400'
-                        }`} />
-                      </div>
-                      <div className="text-center">
-                        <h4 className="font-medium">{friend.name}</h4>
-                        <p className="text-sm text-gray-600">@{friend.username}</p>
-                        <Badge 
-                          variant={friend.online ? "default" : "secondary"} 
-                          className="text-xs mt-1"
-                        >
-                          {friend.online ? "Online" : "Offline"}
-                        </Badge>
-                      </div>
+                <div
+                  key={friend.id}
+                  className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-md"
+                  onClick={() => handleViewProfile(friend.id)}
+                >
+                  <div className="relative">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={friend.avatar} />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                        {friend.name?.charAt(0).toUpperCase() || friend.username?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {friend.online && (
+                      <div className="absolute -bottom-1 -right-001 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex gap-2">
+                      <h3 className="text-sm font-semibold text-gray-900 truncate hover:text-purple-600 transition-colors">
+                      {friend.name}
+                    </h3>
+                      <Users className="w-4 h-4 text-gray-400" />
                     </div>
-                  </CardContent>
-                </Card>
+                    
+                    <p className="text-xs text-gray-500 truncate">
+                      @{friend.username}
+                    </p>
+                    
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    {/*<Badge 
+                      variant={friend.online ? "default" : "secondary"} 
+                      className={`text-xs ${friend.online ? 'bg-green-500' : 'bg-gray-400'}`}
+                    >
+                      {friend.online ? "Online" : "Offline"}
+                    </Badge>*/}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.stopPropagation();
+                        handleViewProfile(friend.id);
+                      }}
+                      className="hover:bg-purple-50 hover:border-purple-300"
+                    >
+                      View Profile
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
           )}

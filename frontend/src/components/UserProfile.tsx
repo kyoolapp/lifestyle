@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getUserByUserId, getUserOnlineStatus, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendshipStatus, checkFriendshipStatus, getIncomingFriendRequests, getOutgoingFriendRequests, revokeFriendRequest } from '../api/user_api';
+import { getUserByUserId, getUserOnlineStatus, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendshipStatus, checkFriendshipStatus, getIncomingFriendRequests, getOutgoingFriendRequests, revokeFriendRequest, removeFriend } from '../api/user_api';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -137,14 +137,37 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
     }
   };
 
+  const handleUnfriend = async () => {
+    if (!currentUser?.uid || !userId) return;
+    
+    setActionLoading(true);
+    try {
+      await removeFriend(currentUser.uid, userId);
+      setFriendshipStatus('none');
+    } catch (error) {
+      console.error('Failed to remove friend:', error);
+      alert('Failed to remove friend. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const renderActionButton = () => {
     switch (friendshipStatus) {
       case 'friends':
         return (
-          <Button disabled className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" />
-            Friends
-          </Button>
+          <div className="flex gap-12">
+            <Users className="w-4 h-4" />
+            <Button 
+              variant="outline"
+              onClick={handleUnfriend}
+              disabled={actionLoading}
+              className="flex items-center gap-2"
+            >
+              
+              {actionLoading ? 'Removing...' : 'Unfriend'}
+            </Button>
+          </div>
         );
       case 'sent':
         return (
@@ -253,7 +276,7 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
                   {user.name?.charAt(0).toUpperCase() || user.username?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white ${
+              <div className={`absolute bottom-1 right-2-5 w-3 h-3 rounded-full border-4 border-white ${
                 isOnline ? 'bg-green-500' : 'bg-gray-400'
               }`} />
             </div>
@@ -265,9 +288,10 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
                   <p className="text-gray-600">@{user.username}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge variant={isOnline ? "default" : "secondary"}>
+                  
+                  {/*<Badge variant={isOnline ? "default" : "secondary"}>
                     {isOnline ? "Online" : "Offline"}
-                  </Badge>
+                  </Badge>*/}
                   {friendshipStatus === 'received' && (
                     <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
                       📨 Friend Request Received
