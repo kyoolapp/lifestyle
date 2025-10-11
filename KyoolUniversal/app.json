@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "KyoolUniversal",
+    "slug": "kyoolapp",
+    "version": "1.0.0",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kyoolapp.kyooluniversal",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses camera for profile photos",
+        "NSPhotoLibraryUsageDescription": "This app accesses photo library for profile photos",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.kyoolapp.kyooluniversal",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "scheme": "kyoolapp",
+    "developmentClient": {
+      "silentLaunch": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "49a110d2-91a1-416a-8e6a-b8b7126d8c9a"
+      }
+    },
+    "owner": "vcky8702"
+  }
+}
