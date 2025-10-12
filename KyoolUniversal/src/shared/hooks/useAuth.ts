@@ -49,16 +49,35 @@ export function useAuthState() {
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    interface AuthStateChangeCallback {
+      (user: User | null): Promise<void>;
+    }
+
+    interface FirebaseUserInfo {
+      uid: string;
+      displayName: string | null;
+      email: string | null;
+      photoURL: string | null;
+    }
+
+    const unsubscribe: () => void = auth.onAuthStateChanged(async (user: User | null): Promise<void> => {
       setUser(user);
       setIsAuthenticated(!!user);
       
       if (user) {
-        // User is authenticated, fetch their profile
-        await fetchUserProfile(user.uid);
+      // User is authenticated, fetch their profile
+      const userInfo: FirebaseUserInfo = {
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL
+      };
+      console.log('Auth state changed - Firebase user:', userInfo);
+      await fetchUserProfile(user.uid);
       } else {
-        // User is not authenticated, clear profile
-        setUserProfile(null);
+      // User is not authenticated, clear profile
+      console.log('Auth state changed - No user, clearing profile');
+      setUserProfile(null);
       }
       
       setLoading(false);
@@ -67,12 +86,21 @@ export function useAuthState() {
     return unsubscribe;
   }, []);
 
+  const refreshProfile = async () => {
+    if (user) {
+      console.log('=== Manual Profile Refresh ===');
+      await fetchUserProfile(user.uid);
+    } else {
+      console.log('No user to refresh profile for');
+    }
+  };
+
   return { 
     user, 
     userProfile, 
     isAuthenticated, 
     loading, 
     profileLoading,
-    refreshProfile: user ? () => fetchUserProfile(user.uid) : () => {}
+    refreshProfile
   };
 }

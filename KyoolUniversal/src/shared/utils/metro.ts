@@ -22,8 +22,10 @@ export function getOAuthRedirectUri(scheme: string = 'kyoolapp'): string {
     return `${origin}/oauth`;
   }
 
-  // For mobile, use the app scheme
-  return `${scheme}://oauth`;
+  // For mobile development, we need to use Expo tunnel URL or localhost
+  // Custom schemes like 'kyoolapp://oauth' don't work with Google Web OAuth clients
+  // Instead, use AuthSession.makeRedirectUri() which handles tunnel URLs properly
+  return 'Use AuthSession.makeRedirectUri() for mobile OAuth';
 }
 
 /**

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, ScrollView, View, Text, StyleSheet, Alert } from 'react-native';
-import { signOut } from 'firebase/auth';
+import { signOut, User } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
@@ -9,18 +9,35 @@ import { Avatar } from '../../ui/Avatar';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 import { createOrUpdateUser, getUserFriends } from '../services/api';
 
-interface ProfileScreenProps {
-  user?: any;
-  setUser?: (user: any) => void;
+interface UserProfile {
+  displayName?: string;
+  name?: string;
+  username?: string;
+  height?: number;
+  weight?: number;
+  age?: number;
+  activityLevel?: string;
+  gender?: string;
+  email?: string;
+  photoURL?: string;
+  uid?: string;
 }
 
-export function ProfileScreen({ user, setUser }: ProfileScreenProps) {
+interface ProfileScreenProps {
+  user: User | null;
+  userProfile: UserProfile | null;
+  setUser: (user: any) => void;
+}
+
+
+export function ProfileScreen({ user, userProfile, setUser }: ProfileScreenProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(false);
   
-  const currentUser = user || auth.currentUser;
+  // Use userProfile first, then fallback to user, then Firebase auth
+  const currentUser = userProfile || user || auth.currentUser;
   
   const [editForm, setEditForm] = useState({
     name: currentUser?.displayName || currentUser?.name || '',

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DashboardScreen } from '../shared/screens/DashboardScreen';
@@ -7,6 +8,10 @@ import { WaterTrackerScreen } from '../shared/screens/WaterTrackerScreen';
 import { FriendsScreen } from '../shared/screens/FriendsScreen';
 import { FitnessTrackerScreen } from '../shared/screens/FitnessTrackerScreen';
 import { RecipeSearchScreen } from '../shared/screens/RecipeSearchScreen';
+import { HealthMetricsScreen } from '../shared/screens/HealthMetricsScreen';
+import { DeviceConnectionsScreen } from '../shared/screens/DeviceConnectionsScreen';
+import { FeaturesShowcaseScreen } from '../shared/screens/FeaturesShowcaseScreen';
+import { DebugScreen } from '../shared/screens/DebugScreen';
 import { UserSearch, ViewAllFriends, FriendRequests, UserProfile } from '../shared/components';
 import { useAuthState } from '../shared/hooks/useAuth';
 
@@ -32,34 +37,69 @@ function TabNavigator() {
       <Tab.Screen 
         name="Dashboard" 
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: 'Dashboard',
         }}
       >
         {() => <DashboardScreen user={user} userProfile={userProfile} />}
       </Tab.Screen>
       <Tab.Screen 
-        name="WaterTracker" 
+        name="Features" 
+        options={{
+          tabBarLabel: 'Features',
+        }}
+      >
+        {(props) => (
+          <FeaturesShowcaseScreen 
+            {...props} 
+            user={user} 
+            onFeatureSelect={(tab) => {
+              // Navigate to specific feature tab
+              if (props.navigation) {
+                props.navigation.navigate(tab as any);
+              }
+            }} 
+          />
+        )}
+      </Tab.Screen>
+      <Tab.Screen 
+        name="Health" 
+        options={{
+          tabBarLabel: 'Health',
+        }}
+      >
+        {() => <HealthMetricsScreen user={user} userProfile={userProfile} />}
+      </Tab.Screen>
+      <Tab.Screen 
+        name="Water" 
         options={{
           tabBarLabel: 'Water',
         }}
       >
-        {() => <WaterTrackerScreen user={user} userProfile={userProfile} />}
+        {() => <WaterTrackerScreen user={user} />}
       </Tab.Screen>
       <Tab.Screen 
-        name="FitnessTracker" 
+        name="Fitness" 
         options={{
           tabBarLabel: 'Fitness',
         }}
       >
-        {() => <FitnessTrackerScreen user={user} userProfile={userProfile} />}
+        {() => <FitnessTrackerScreen user={user} />}
       </Tab.Screen>
       <Tab.Screen 
-        name="RecipeSearch" 
+        name="Recipes" 
         options={{
           tabBarLabel: 'Recipes',
         }}
       >
-        {() => <RecipeSearchScreen user={user} userProfile={userProfile} />}
+        {() => <RecipeSearchScreen user={user} />}
+      </Tab.Screen>
+      <Tab.Screen 
+        name="Devices" 
+        options={{
+          tabBarLabel: 'Devices',
+        }}
+      >
+        {() => <DeviceConnectionsScreen user={user} />}
       </Tab.Screen>
       <Tab.Screen 
         name="Friends" 
@@ -67,7 +107,7 @@ function TabNavigator() {
           tabBarLabel: 'Friends',
         }}
       >
-        {() => <FriendsScreen user={user} userProfile={userProfile} />}
+        {() => <FriendsScreen user={user} />}
       </Tab.Screen>
       <Tab.Screen 
         name="Profile" 
@@ -75,7 +115,9 @@ function TabNavigator() {
           tabBarLabel: 'Profile',
         }}
       >
-        {() => <ProfileScreen user={user} userProfile={userProfile} />}
+        {() => <ProfileScreen user={user} userProfile={userProfile} setUser={(updatedUser) => {
+          console.log('User updated:', updatedUser);
+        }} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
@@ -84,14 +126,46 @@ function TabNavigator() {
 export function MainNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Main tab navigation */}
+      {/* Main tab navigation - matches all frontend routes in one place */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       
-      {/* Modal/Stack screens - these match the frontend routes */}
-      <Stack.Screen name="UserSearch" component={UserSearch} />
-      <Stack.Screen name="ViewAllFriends" component={ViewAllFriends} />
-      <Stack.Screen name="FriendRequests" component={FriendRequests} />
-      <Stack.Screen name="UserProfile" component={UserProfile} />
+      {/* Modal/Overlay screens for social features */}
+      <Stack.Screen 
+        name="UserSearch" 
+        component={UserSearch}
+        options={{
+          presentation: 'modal',
+          headerShown: true,
+          title: 'Search Users',
+        }}
+      />
+      <Stack.Screen 
+        name="ViewAllFriends" 
+        component={ViewAllFriends}
+        options={{
+          presentation: 'modal',
+          headerShown: true,
+          title: 'All Friends',
+        }}
+      />
+      <Stack.Screen 
+        name="FriendRequests" 
+        component={FriendRequests}
+        options={{
+          presentation: 'modal',
+          headerShown: true,
+          title: 'Friend Requests',
+        }}
+      />
+      <Stack.Screen 
+        name="UserProfile" 
+        component={UserProfile}
+        options={{
+          presentation: 'modal',
+          headerShown: true,
+          title: 'User Profile',
+        }}
+      />
     </Stack.Navigator>
   );
 }

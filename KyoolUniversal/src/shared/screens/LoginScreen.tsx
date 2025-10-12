@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { GoogleSignIn } from '../services/googleAuth';
 import { Button, Input, SafeAreaView } from '../../ui';
@@ -14,6 +14,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const googleProvider = new GoogleAuthProvider()
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -66,6 +67,8 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
+
+      //const result= await signInWithPopup(auth, googleProvider);
       const result = await GoogleSignIn.signIn();
       if (result) {
         // Check if user exists in DB (similar to frontend logic)

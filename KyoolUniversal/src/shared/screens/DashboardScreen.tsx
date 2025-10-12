@@ -54,17 +54,19 @@ export function DashboardScreen({ user, userProfile }: DashboardScreenProps) {
 
   useEffect(() => {
     loadDashboardData();
-  }, [user]);
+  }, [user, userProfile]);
 
   const loadDashboardData = async () => {
-    if (!user?.id) return;
+    const currentUser = userProfile || user;
+    if (!currentUser?.id && !currentUser?.uid) return;
     
     try {
       setLoading(true);
       
       // Load friends
       try {
-        const friendsData = await getUserFriends(user.id);
+        const userId = currentUser.id || currentUser.uid;
+        const friendsData = await getUserFriends(userId);
         setFriends(friendsData || []);
       } catch (error) {
         console.log('Failed to load friends:', error);
@@ -72,7 +74,8 @@ export function DashboardScreen({ user, userProfile }: DashboardScreenProps) {
       
       // Load water intake
       try {
-        const water = await getTodayWaterIntake(user.id);
+        const userId = currentUser.id || currentUser.uid;
+        const water = await getTodayWaterIntake(userId);
         setWaterIntake(water || 0);
       } catch (error) {
         console.log('Failed to load water intake:', error);
@@ -86,7 +89,11 @@ export function DashboardScreen({ user, userProfile }: DashboardScreenProps) {
           title: 'Morning Push Workout',
           description: 'Completed 45 min push day routine',
           time: '2 hours ago',
-          user: { name: user?.name || 'User', avatar: user?.avatar, username: user?.username || 'user' },
+          user: { 
+            name: userProfile?.name || user?.name || user?.displayName || 'User', 
+            avatar: userProfile?.avatar || user?.avatar || user?.photoURL, 
+            username: userProfile?.username || user?.username || 'user' 
+          },
         },
         {
           id: '2',
@@ -94,7 +101,11 @@ export function DashboardScreen({ user, userProfile }: DashboardScreenProps) {
           title: 'Hydration Milestone',
           description: 'Reached 6/8 glasses of water',
           time: '1 hour ago',
-          user: { name: user?.name || 'User', avatar: user?.avatar, username: user?.username || 'user' },
+          user: { 
+            name: userProfile?.name || user?.name || user?.displayName || 'User', 
+            avatar: userProfile?.avatar || user?.avatar || user?.photoURL, 
+            username: userProfile?.username || user?.username || 'user' 
+          },
         },
         {
           id: '3',
@@ -155,11 +166,11 @@ export function DashboardScreen({ user, userProfile }: DashboardScreenProps) {
         <View style={styles.header}>
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{user?.name || 'User'}!</Text>
+            <Text style={styles.userName}>{userProfile?.name || user?.name || user?.displayName || 'User'}!</Text>
           </View>
           <Avatar
-            source={user?.avatar ? { uri: user.avatar } : undefined}
-            fallback={user?.name?.[0] || 'U'}
+            source={(userProfile?.avatar || user?.avatar || user?.photoURL) ? { uri: userProfile?.avatar || user?.avatar || user?.photoURL } : undefined}
+            fallback={(userProfile?.name || user?.name || user?.displayName)?.[0] || 'U'}
             size={50}
           />
         </View>

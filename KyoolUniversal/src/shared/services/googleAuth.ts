@@ -17,6 +17,7 @@ if (Platform.OS === 'web') {
 import { auth } from './firebase';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { getOAuthRedirectUri, logMetroInfo } from '../utils/metro';
 
 // Complete the auth session for mobile
@@ -92,24 +93,13 @@ export class GoogleSignIn {
       console.log('Starting Mobile Google Sign In...');
       console.log('Platform:', Platform.OS);
       
-      // Log Metro server information for debugging
-      logMetroInfo();
-      
-      // Try multiple redirect URI strategies
-      const redirectUri1 = AuthSession.makeRedirectUri({
-        scheme: 'kyoolapp',
-        preferLocalhost: false, // Disable localhost to avoid tunnel URLs
-      });
-      
-      const redirectUri2 = getOAuthRedirectUri('kyoolapp');
-      
-      // Use the custom URI for better control
-      const redirectUri = redirectUri2;
-
-      console.log('OAuth Redirect URIs:', {
-        authSession: redirectUri1,
-        custom: redirectUri2,
-        selected: redirectUri
+      // Use Expo's AuthSession proxy for mobile OAuth
+      // Manually construct the Expo proxy URL since makeRedirectUri isn't working
+      const redirectUri = AuthSession.makeRedirectUri({ 
+          preferLocalhost: false,
+          scheme: 'https',
+          path:'auth.expo.io/@vcky8702/kyoolappuniversal'
+          //https://auth.expo.io/@vcky8702/kyoolapp
       });
 
       const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
@@ -118,46 +108,52 @@ export class GoogleSignIn {
         throw new Error('Google Web Client ID not configured');
       }
 
-      // Use implicit flow to get id_token directly
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${clientId}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-        `response_type=id_token&` +
-        `scope=openid%20profile%20email&` +
-        `nonce=${Math.random().toString(36).substring(2, 15)}&` +
-        `prompt=select_account`;
+      // Create the Google OAuth request
+      const request = new AuthSession.AuthRequest({
+        clientId: clientId,
+        scopes: ['openid', 'profile', 'email'],
+        redirectUri: redirectUri,
+        responseType: AuthSession.ResponseType.IdToken,
+        prompt: AuthSession.Prompt.SelectAccount,
+        extraParams: {
+          nonce: Math.random().toString(36).substring(2, 15),
+        },
+      });
 
-      console.log('Opening Mobile OAuth...');
+      console.log('Google OAuth request configured:', {
+        redirectUri: redirectUri,
+        clientId: 'Set',
+        note: 'Add this redirect URI to Google Console if not already added'
+      });
 
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      console.log('Opening Google OAuth...');
+      const result = await request.promptAsync({
+        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+      });
 
-      console.log('Mobile OAuth Result:', result);
+      console.log('Google OAuth Result:', result);
 
-      if (result.type === 'success' && result.url) {
-        // Parse the URL fragment to get the id_token
-        const fragment = result.url.split('#')[1];
-        if (fragment) {
-          const params = new URLSearchParams(fragment);
-          const idToken = params.get('id_token');
+      if (result.type === 'success') {
+        const { params } = result;
+        if (params.id_token) {
+          console.log('Got ID token from Google, signing in with Firebase...');
           
-          if (idToken) {
-            console.log('Got ID token, signing in with Firebase...');
-            
-            // Create credential and sign in with Firebase
-            const credential = GoogleAuthProvider.credential(idToken);
-            const userCredential = await signInWithCredential(auth, credential);
-            
-            console.log('Mobile sign in successful:', userCredential.user.email);
-            
-            return {
-              user: {
-                uid: userCredential.user.uid,
-                displayName: userCredential.user.displayName,
-                email: userCredential.user.email,
-                photoURL: userCredential.user.photoURL,
-              }
-            };
-          }
+          // Create credential and sign in with Firebase
+          const credential = GoogleAuthProvider.credential(params.id_token);
+          const userCredential = await signInWithCredential(auth, credential);
+          
+          console.log('Mobile sign in successful:', userCredential.user.email);
+          
+          return {
+            user: {
+              uid: userCredential.user.uid,
+              displayName: userCredential.user.displayName,
+              email: userCredential.user.email,
+              photoURL: userCredential.user.photoURL,
+            }
+          };
+        } else {
+          throw new Error('No ID token received from Google');
         }
       }
       
@@ -171,7 +167,7 @@ export class GoogleSignIn {
         return null;
       }
       
-      console.log('No valid OAuth result received');
+      console.log('OAuth failed or incomplete');
       return null;
     } catch (error) {
       console.error('Mobile Google Sign In error:', error);
