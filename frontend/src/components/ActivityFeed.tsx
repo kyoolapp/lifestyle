@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -23,6 +23,7 @@ import {
   Footprints,
   Zap
 } from 'lucide-react';
+import * as userApi from '../api/user_api';
 
 interface ActivityFeedProps {
   user: any;
@@ -176,11 +177,81 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
     }
   ];
 
+  // Live stats (replace previously hard-coded quickStats values)
+  const [todaySteps, setTodaySteps] = useState<number | null>(null); // left null if not available
+  const [todayCalories, setTodayCalories] = useState<number | null>(null); // left null if not available
+  const [waterIntake, setWaterIntake] = useState<number>(0);
+  const waterGoal = 8;
+  const [activeFriendsCount, setActiveFriendsCount] = useState<number>(0);
+
+  // Load water intake and friends (online) when user changes
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      if (!user?.id) return;
+      try {
+        const glasses = await userApi.getTodayWaterIntake(user.id);
+        if (mounted) setWaterIntake(Number(glasses || 0));
+      } catch (err) {
+        console.error('Failed to load today water intake:', err);
+      }
+
+      try {
+        const friends = await userApi.getUserFriends(user.id);
+        if (mounted) {
+          // friends may include `online` property from backend; fallback to false
+          const onlineCount = Array.isArray(friends) ? friends.filter((f: any) => !!f.online).length : 0;
+          setActiveFriendsCount(onlineCount);
+        }
+      } catch (err) {
+        console.error('Failed to load friends:', err);
+      }
+    };
+
+    load();
+
+    return () => { mounted = false; };
+  }, [user?.id]);
+
+  // Listen to global events that update these numbers in real-time
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const onWater = (e: any) => {
+      if (e?.detail?.userId === user.id) setWaterIntake(Number(e.detail.glasses || 0));
+    };
+
+    const refreshFriends = async () => {
+      try {
+        const friends = await userApi.getUserFriends(user.id);
+        const onlineCount = Array.isArray(friends) ? friends.filter((f: any) => !!f.online).length : 0;
+        setActiveFriendsCount(onlineCount);
+      } catch (err) {
+        console.error('Failed to refresh friends:', err);
+      }
+    };
+
+    const onFriendChange = () => { refreshFriends(); };
+
+    window.addEventListener('waterIntakeUpdated', onWater as EventListener);
+    window.addEventListener('friendAdded', onFriendChange as EventListener);
+    window.addEventListener('friendRemoved', onFriendChange as EventListener);
+    window.addEventListener('friendRequestAccepted', onFriendChange as EventListener);
+
+    return () => {
+      window.removeEventListener('waterIntakeUpdated', onWater as EventListener);
+      window.removeEventListener('friendAdded', onFriendChange as EventListener);
+      window.removeEventListener('friendRemoved', onFriendChange as EventListener);
+      window.removeEventListener('friendRequestAccepted', onFriendChange as EventListener);
+    };
+  }, [user?.id]);
+
   const quickStats = [
-    { label: 'Today\'s Steps', value: '8,547', change: '+12%', icon: Activity, color: 'text-blue-500' },
-    { label: 'Water Intake', value: '7/8', change: '87%', icon: Droplets, color: 'text-cyan-500' },
-    { label: 'Calories Left', value: '480', change: 'Good', icon: Target, color: 'text-green-500' },
-    { label: 'Active Friends', value: '23', change: '+3', icon: Users, color: 'text-purple-500' }
+    { label: "Today's Steps", value: todaySteps != null ? String(todaySteps) : '0', change: '+0%', icon: Activity, color: 'text-blue-500' },
+    { label: 'Water Intake', value: `${waterIntake}/${waterGoal}`, change: `${Math.round((waterIntake / waterGoal) * 100)}%`, icon: Droplets, color: 'text-cyan-500' },
+    { label: "Today's Calories", value: todayCalories != null ? String(todayCalories) : '0', change: '+0%', icon: Target, color: 'text-blue-500' },
+    { label: 'Active Friends', value: String(activeFriendsCount), change: activeFriendsCount > 0 ? `+${activeFriendsCount}` : '+0', icon: Users, color: 'text-purple-500' }
   ];
 
   const handleLoadMore = async () => {
@@ -265,9 +336,9 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
         onSetCurrentWorkout={handleSetCurrentWorkout}
       />
       {/* Header with Quick Stats */}
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Your Activity</h1>
+      <div className="space-y-6">
+        <div >
+          <h1 className="text-2xl sm:text-3xl  font-semibold">Your Activity</h1>
           <p className="text-muted-foreground">Your Fitness, Fully Personalized</p>
         </div>
 
@@ -302,9 +373,9 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
         </div>
       </div>
 
-      {/* Quick Workouts Section */}
+      {/* Quick Workouts Section  */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        {/*<div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <Dumbbell className="w-5 h-5" />
@@ -312,30 +383,30 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
             </h2>
             <p className="text-muted-foreground text-sm">Ready-to-go workout routines</p>
           </div>
-        </div>
+        </div> */}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left side - Push Day workout */}
-          <div className="w-full">
+          {/*<div className="w-full">
             {(() => {
               const displayWorkout = currentWorkout || workoutRoutines[0];
               return (
                 <Card className="hover:shadow-lg transition-all duration-200 border border-gray-200 rounded-2xl bg-white">
-                  <CardContent className="p-6">
+                  <CardContent className="p-6">*/}
                     {/* Header with title and action buttons */}
-                    <div className="flex items-start justify-between mb-4">
+                    {/*<div className="flex items-start justify-between mb-4">
                       <h3 className="text-lg font-semibold text-gray-900">{displayWorkout.name}</h3>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 hover:bg-gray-100"
-                        onClick={() => {/* More options would go here */}}
+                        onClick={() => /*}{/* More options would go here }
                       >
                         <MoreVertical className="w-4 h-4 text-gray-600" />
                       </Button>
-                    </div>
+                    </div>*/}
 
-                    {/* Badges */}
+                    {/* Badges 
                     <div className="flex gap-2 mb-4">
                       <Badge 
                         variant="secondary" 
@@ -349,26 +420,26 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                       >
                         {displayWorkout.duration}
                       </Badge>
-                    </div>
+                    </div>*/}
 
-                    {/* Target Muscles */}
+                    {/* Target Muscles 
                     <div className="mb-4">
                       <p className="text-sm text-gray-500 mb-2">Target Muscles:</p>
                       <p className="text-sm font-medium text-gray-900">
                         {displayWorkout.targetMuscles.join(', ')}
                       </p>
-                    </div>
+                    </div>*/}
 
-                    {/* Exercises */}
+                    {/* Exercises 
                     <div className="mb-6">
                       <p className="text-sm text-gray-500 mb-2">Exercises ({displayWorkout.exercises.length}):</p>
                       <p className="text-sm font-medium text-gray-900">
                         {displayWorkout.exercises.slice(0, 3).map((ex: { name: any; }) => ex.name).join(', ')}
                         {displayWorkout.exercises.length > 3 && '...'}
                       </p>
-                    </div>
+                    </div>*/}
 
-                    {/* Action Buttons */}
+                    {/* Action Buttons 
                     <div className="flex gap-3">
                       <Button
                         onClick={() => handleStartWorkout(displayWorkout)}
@@ -389,9 +460,9 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                 </Card>
               );
             })()}
-          </div>
+          </div>*/}
 
-          {/* Right side - Responsive Grid of Quick Workouts */}
+          {/* Right side - Responsive Grid of Quick Workouts 
           <div className="w-full">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
               {quickWorkouts.map((workout) => {
@@ -403,13 +474,13 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                       onClick={() => handleQuickWorkoutClick(workout)}
                     >
                       <CardContent className="p-4 text-center">
-                        <div className="space-y-3">
-                          {/* Icon */}
+                        <div className="space-y-3">*/}
+                          {/* Icon 
                           <div className="w-12 h-12 mx-auto rounded-full bg-white flex items-center justify-center group-hover:scale-105 transition-transform">
                             <Icon className={`w-6 h-6 ${workout.iconColor}`} />
-                          </div>
+                          </div>*/}
                           
-                          {/* Content */}
+                          {/* Content 
                           <div className="space-y-1">
                             <h3 className="font-semibold text-sm text-gray-900">{workout.name}</h3>
                             <p className="text-xs text-muted-foreground">{workout.duration}</p>
@@ -421,7 +492,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                 );
               })}
             </div>
-          </div>
+          </div>*/}
         </div>
       </div>
 

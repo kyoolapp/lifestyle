@@ -284,7 +284,7 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold">{user.username}</h1>
+                  <h3 className="text-2xl font-bold">@{user.username}</h3>
                   <p className="text-gray-600">{user.name}</p>
                 </div>
                 <div className="flex items-center gap-3">

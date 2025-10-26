@@ -191,7 +191,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   
                   return (
                     <div key={goal.id} className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full">
-                      {typeof Icon === 'function' ? <Icon /> : <Icon className={`w-4 h-4 ${goal.color}`} />}
+                      <Icon className={`w-4 h-4 ${goal.color}`} />
                       <span className="text-sm font-medium">
                         {goal.id === 'steps' ? goal.current.toLocaleString() : 
                          goal.id === 'water' ? (goal.current % 1 === 0 ? goal.current : goal.current.toFixed(1)) : 

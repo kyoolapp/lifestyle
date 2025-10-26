@@ -119,7 +119,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
   useEffect(() => {
     if (!user?.id) return;
 
-    let fastInterval: NodeJS.Timeout;
+    let fastInterval: number;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -158,9 +158,9 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
 
   // Mock real-time data from devices
   const [realtimeData, setRealtimeData] = useState({
-    steps: 8547,
+    steps: 0,
     heartRate: 72,
-    calories: 1650,
+    calories: 0,
     activeMinutes: 45
   });
 
@@ -200,9 +200,9 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
     const interval = setInterval(() => {
       setRealtimeData(prev => ({
         ...prev,
-        steps: prev.steps + Math.floor(Math.random() * 3),
+        steps: prev.steps + Math.floor(Math.random() * 0),
         heartRate: 70 + Math.floor(Math.random() * 10),
-        calories: prev.calories + Math.floor(Math.random() * 2)
+        calories: prev.calories + Math.floor(Math.random() * 0)
       }));
     }, 5000);
 
@@ -261,7 +261,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
   const getTabTitle = () => {
     switch (activeTab) {
       case 'activity': return 'Activity';
-      case 'health': return 'Health Metrics';
+      case 'health': return 'Health';
       case 'water': return 'Water Tracker';
       case 'recipes': return 'Recipes';
       case 'fitness': return 'Fitness';
@@ -413,10 +413,10 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
             <p className="text-sm text-muted-foreground">Stay Healthy</p>
           </div>
           </div>
-          
+         
           {/* Today's Goals - Friendly Design */}
           <div className="hidden lg:flex items-center gap-4">
-            <div className="flex items-center gap-2">
+            {/*<div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Today:</span>
               <div className="flex items-center gap-3">
                 {todaysGoals.map((goal) => {
@@ -437,17 +437,58 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   );
                 })}
               </div>
-            </div>
+            </div>*/}
             
             {/* Goals Summary & Active Friends */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-200">
+              {/*<div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-200">
                 <span className="text-sm font-medium text-green-700">
                   {completedGoals}/3 completed 🎉
                 </span>
-              </div>
+              </div>*/}
               
-              {/* Active Friends - Clickable */}
+              
+            </div>
+          </div>
+          
+          {/* Page Badge */}
+          {/*{activeTab !== 'activity' && activeTab && (
+            <Badge variant="secondary" className="text-xs">
+              {getTabTitle()}
+            </Badge>
+          )}*/}
+          
+          {/* Safe Zone Toggle - Only show on recipes page */}
+          {activeTab === 'recipes' && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg">
+              <motion.div
+                className={`flex items-center gap-2 transition-colors ${
+                  safeZone ? 'text-green-600' : 'text-muted-foreground'
+                }`}
+                animate={{ scale: safeZone ? 1.05 : 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                {safeZone ? <Shield className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+                <span className="text-sm font-medium hidden sm:inline">Safe Zone</span>
+              </motion.div>
+              <Switch
+                checked={safeZone}
+                onCheckedChange={setSafeZone}
+                className="data-[state=checked]:bg-green-500"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Right side - Quick stats and water widget */}
+        <div className="flex items-center gap-4">
+          {/* Current Weight - Mobile Only */}
+          <div className="xl:hidden flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg border border-purple-200">
+            <Scale className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-medium text-purple-700">{user.weight || '75'} kg</span>
+          </div>
+
+          {/* Active Friends - Clickable */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -545,48 +586,9 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   </div>
                 </PopoverContent>
               </Popover>
-            </div>
-          </div>
-          
-          {/* Page Badge */}
-          {activeTab !== 'activity' && activeTab && (
-            <Badge variant="secondary" className="text-xs">
-              {getTabTitle()}
-            </Badge>
-          )}
-          
-          {/* Safe Zone Toggle - Only show on recipes page */}
-          {activeTab === 'recipes' && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg">
-              <motion.div
-                className={`flex items-center gap-2 transition-colors ${
-                  safeZone ? 'text-green-600' : 'text-muted-foreground'
-                }`}
-                animate={{ scale: safeZone ? 1.05 : 1 }}
-                transition={{ duration: 0.2 }}
-              >
-                {safeZone ? <Shield className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
-                <span className="text-sm font-medium hidden sm:inline">Safe Zone</span>
-              </motion.div>
-              <Switch
-                checked={safeZone}
-                onCheckedChange={setSafeZone}
-                className="data-[state=checked]:bg-green-500"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Right side - Quick stats and water widget */}
-        <div className="flex items-center gap-4">
-          {/* Current Weight - Mobile Only */}
-          <div className="xl:hidden flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg border border-purple-200">
-            <Scale className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-medium text-purple-700">{user.weight || '75'} kg</span>
-          </div>
 
           {/* Connected Devices Status - Desktop Only */}
-          <div className="hidden xl:flex items-center gap-2">
+          {/*<div className="hidden xl:flex items-center gap-2">
             {connectedDevices.filter(d => d.connected).map((device, index) => (
               <Popover key={index}>
                 <PopoverTrigger asChild>
@@ -628,7 +630,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                 </PopoverContent>
               </Popover>
             ))}
-          </div>
+          </div>*/}
 
           {/* Quick Stats - Clickable */}
           <div className="hidden lg:flex items-center gap-4 text-sm text-muted-foreground">
@@ -640,7 +642,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   className="flex items-center gap-2 px-3 py-2 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors h-auto"
                 >
                   <Footprints className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">{realtimeData.steps.toLocaleString()}</span>
+                  <span className="font-medium">{realtimeData.steps}</span>
                   <span className="text-xs">steps</span>
                 </Button>
               </PopoverTrigger>
@@ -650,15 +652,15 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                     <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                       <Footprints className="w-6 h-6 text-green-500" />
                     </div>
-                    <div>
+                    {/*<div>
                       <h4 className="font-medium">Daily Steps</h4>
                       <p className="text-sm text-muted-foreground">
                         {realtimeData.steps.toLocaleString()} of 10,000 steps
                       </p>
-                    </div>
+                    </div>*/}
                   </div>
                   
-                  <Progress value={(realtimeData.steps / 10000) * 100} className="h-2" />
+                  {/*<Progress value={(realtimeData.steps / 10000) * 100} className="h-2" />*/}
                   
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
