@@ -33,7 +33,6 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
   
   const navItems = [
     { id: 'activity', label: 'Activity', icon: Home, path: '/dashboard' },
-    { id: 'search', label: 'Search Users', icon: Search, path: '/search' },
     { id: 'features', label: 'Features', icon: Sparkles, path: '/features' },
     { id: 'health', label: 'Health Metrics', icon: Heart, path: '/health' },
     { id: 'water', label: 'Water Tracker', icon: Droplets, path: '/water' },
@@ -134,7 +133,16 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                   title={item.label}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  {item.id === 'profile' ? (
+                    <Avatar className="w-6 h-6 flex-shrink-0">
+                      <AvatarImage src={user?.avatar} />
+                      <AvatarFallback className="text-xs font-medium">
+                        {user?.name?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                  )}
                   <span className="text-xs sm:text-sm hidden sm:inline truncate">{item.label}</span>
                 </Link>
               </li>

@@ -741,7 +741,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-4 h-4" />
+                <Bell className="w-5 h-5" />
                 {friendRequests.length > 0 && (
                   <motion.div
                     className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
