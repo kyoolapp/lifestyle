@@ -75,7 +75,7 @@ class FirestoreUserService:
         water_log_ref.set({
             'glasses': glasses,
             'date': today,
-            'created_at': datetime.now().isoformat(),
+            'created_at': datetime.now().astimezone(),
             'last_updated': datetime.now().isoformat()
         }, merge=True)
         
