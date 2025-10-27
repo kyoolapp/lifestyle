@@ -33,21 +33,22 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
   
   const navItems = [
     { id: 'activity', label: 'Activity', icon: Home, path: '/dashboard' },
+    { id: 'search', label: 'Search Users', icon: Search, path: '/search' },
     { id: 'features', label: 'Features', icon: Sparkles, path: '/features' },
     { id: 'health', label: 'Health Metrics', icon: Heart, path: '/health' },
     { id: 'water', label: 'Water Tracker', icon: Droplets, path: '/water' },
-    { id: 'recipes', label: 'Recipes', icon: ChefHat, path: '/recipes' },
-    { id: 'fitness', label: 'Fitness', icon: Dumbbell, path: '/fitness' },
-    { id: 'devices', label: 'Connected Devices', icon: Smartphone, path: '/devices' },
+    //{ id: 'recipes', label: 'Recipes', icon: ChefHat, path: '/recipes' },
+    //{ id: 'fitness', label: 'Fitness', icon: Dumbbell, path: '/fitness' },
+    //{ id: 'devices', label: 'Connected Devices', icon: Smartphone, path: '/devices' },
     { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
 
   const SidebarContent = () => (
     <>
-      <div className="p-4 sm:p-6 border-b border-border" />
+      <div className="p-4 sm:p-3 border-b border-border" />
 
       {/* User header wrapped in Link */}
-      <Link
+      {/*<Link
         to="/profile"
         title="Open profile"
         onClick={() => setIsMobileMenuOpen(false)}
@@ -70,7 +71,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
             </div>
           </div>
         </div>
-      </Link>
+      </Link>*/}
 
       
         {/*<Link 
