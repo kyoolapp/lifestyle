@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
+import { SearchPanel } from './SearchPanel';
 import { 
   Home, 
   Heart, 
@@ -26,12 +27,12 @@ interface SidebarProps {
 
 export function Sidebar({ user, onLogout }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(false);
   const location = useLocation();
   const [activeItem, setActiveItem] = useState<string | null>(null);
   
   const navItems = [
     { id: 'activity', label: 'Activity', icon: Home, path: '/dashboard' },
-    { id: 'search', label: 'Search Users', icon: Search, path: '/search' },
     { id: 'features', label: 'Features', icon: Sparkles, path: '/features' },
     { id: 'health', label: 'Health Metrics', icon: Heart, path: '/health' },
     { id: 'water', label: 'Water Tracker', icon: Droplets, path: '/water' },
@@ -102,6 +103,21 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
       {/* Nav items */}
       <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
         <ul className="space-y-1 sm:space-y-2">
+          {/* Search Users Button */}
+          <li>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsSearchPanelOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full justify-start gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground h-auto"
+            >
+              <Search className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm hidden sm:inline truncate">Search Users</span>
+            </Button>
+          </li>
+          
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -193,6 +209,12 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
           <SidebarContent />
         </div>
       </div>
+
+      {/* Search Panel */}
+      <SearchPanel 
+        isOpen={isSearchPanelOpen} 
+        onClose={() => setIsSearchPanelOpen(false)} 
+      />
     </>
   );
 }

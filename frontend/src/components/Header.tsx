@@ -849,59 +849,36 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
             </PopoverContent>
           </Popover>
 
-          {/* Realistic Water Bottle Widget - 64px height, 16px width */}
+          {/* Water Bottle Widget */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative cursor-pointer group p-0 h-auto hover:bg-transparent"
+                className="relative cursor-pointer group p-2 h-auto hover:bg-muted/30 rounded-lg transition-colors"
               >
-                <div className="relative flex items-center gap-2">
-                  {/* Realistic Water Bottle - 16px width, 64px height */}
-                  <div className="relative" style={{ width: '16px', height: '64px' }}>
-                    {/* Bottle outline with black border */}
-                    <div className="absolute inset-0">
-                      {/* Bottle cap */}
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-2 bg-gray-600 rounded-t border-2 border-black" />
-                      
-                      {/* Bottle neck */}
-                      <div className="absolute top-1.5 left-1/2 transform -translate-x-1/2 w-2 h-3 border-2 border-black bg-white" />
-                      
-                      {/* Main bottle body - realistic shape */}
-                      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-4 h-14 border-2 border-black bg-white overflow-hidden"
-                           style={{ 
-                             borderRadius: '0 0 8px 8px',
-                             clipPath: 'polygon(10% 0%, 90% 0%, 100% 20%, 100% 100%, 0% 100%, 0% 20%)'
-                           }}>
-                        {/* Dynamic water fill - red/yellow/green based on progress */}
-                        <motion.div
-                          className={`absolute bottom-0 left-0 right-0 ${getWaterColor()}`}
-                          style={{ 
-                            height: `${Math.min(waterPercentage, 100)}%`,
-                            borderRadius: '0 0 6px 6px'
-                          }}
-                          initial={{ height: 0 }}
-                          animate={{ height: `${Math.min(waterPercentage, 100)}%` }}
-                          transition={{ duration: 0.5 }}
-                        />
-                        
-                        {/* Water surface ripple effect */}
-                        {waterIntake > 0 && (
-                          <motion.div
-                            className={`absolute inset-x-0 h-0.5 ${
-                              waterIntake < 4 ? 'bg-red-300' : 
-                              waterIntake >= 4 && waterIntake <= 6 ? 'bg-yellow-300' : 'bg-green-300'
-                            }`}
-                            style={{ bottom: `${Math.min(waterPercentage, 100)}%` }}
-                            animate={{ opacity: [0.6, 1, 0.6] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                          />
-                        )}
-                      </div>
+                <div className="flex items-center gap-2">
+                  {/* Simple Water Bottle */}
+                  <div className="relative w-4 h-8">
+                    {/* Bottle cap */}
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-1 bg-gray-500 rounded-sm" />
+                    
+                    {/* Bottle neck */}
+                    <div className="absolute top-1 left-1/2 transform -translate-x-1/2 w-2 h-1 bg-gray-200 border-l border-r border-gray-400" />
+                    
+                    {/* Bottle body */}
+                    <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-4 h-6 bg-white border-2 border-gray-400 rounded-b-xl overflow-hidden">
+                      {/* Water fill */}
+                      <motion.div
+                        className={`absolute bottom-0 left-0 right-0 ${getWaterColor()} opacity-80`}
+                        style={{ height: `${Math.min(waterPercentage, 100)}%` }}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${Math.min(waterPercentage, 100)}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
                     </div>
                   </div>
                   
-                  {/* Water count without droplet icon */}
+                  {/* Water count */}
                   <div className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     {waterIntake % 1 === 0 ? waterIntake : waterIntake.toFixed(1)}/{dailyGoal}
                   </div>
