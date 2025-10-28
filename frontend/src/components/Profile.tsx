@@ -39,6 +39,44 @@ export function Profile({ user, setUser }: ProfileProps) {
     return /^[a-zA-Z0-9_.]{6,20}$/.test(username);
   }
 
+  const handleShareProfile = async () => {
+    const profileUrl = `${window.location.origin}/user/${user.id || user.uid}`;
+    const shareData = {
+      title: `${user.name}'s Health Profile`,
+      text: `Check out ${user.name}'s health and fitness journey on KyoolApp!`,
+      url: profileUrl
+    };
+
+    try {
+      // Try native Web Share API first (mobile/modern browsers)
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback to copying URL to clipboard
+        await navigator.clipboard.writeText(profileUrl);
+        
+        // Show success notification (you can replace this with a toast notification)
+        alert('Profile link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing profile:', error);
+      
+      // Fallback: try to copy to clipboard
+      try {
+        await navigator.clipboard.writeText(profileUrl);
+        alert('Profile link copied to clipboard!');
+      } catch (clipboardError) {
+        console.error('Error copying to clipboard:', clipboardError);
+        
+        // Final fallback: show URL in prompt
+        const userAction = prompt(
+          'Copy this link to share your profile:',
+          profileUrl
+        );
+      }
+    }
+  };
+
 
   // Calculate health metrics
   const gender = user.gender || 'male'; // Default to male if not set
@@ -320,7 +358,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                   </div>
                 </div>
 
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleShareProfile}>
                   <Share2 className="w-4 h-4 mr-2" />
                   Share Profile
                 </Button>
