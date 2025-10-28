@@ -124,12 +124,12 @@ export function WaterTracker({ user }: WaterTrackerProps) {
     { time: '21:00', message: 'Last glass before bed' },
   ];
 
-  const addWater = async () => {
+  const addWater = async (glasses = 1) => {
     if (loading || !user?.id || todayIntake >= 15) return;
     
     setLoading(true);
     try {
-      const newTotal = Math.min(todayIntake + 1, 15);
+      const newTotal = Math.min(todayIntake + glasses, 15);
       await userApi.setWaterIntake(user.id, newTotal);
       setTodayIntake(newTotal);
       
@@ -150,12 +150,12 @@ export function WaterTracker({ user }: WaterTrackerProps) {
     }
   };
 
-  const removeWater = async () => {
+  const removeWater = async (glasses = 1) => {
     if (loading || !user?.id || todayIntake <= 0) return;
     
     setLoading(true);
     try {
-      const newTotal = Math.max(todayIntake - 1, 0);
+      const newTotal = Math.max(todayIntake - glasses, 0);
       await userApi.setWaterIntake(user.id, newTotal);
       setTodayIntake(newTotal);
       
@@ -242,7 +242,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   <Button 
                     variant="outline" 
                     size="icon"
-                    onClick={removeWater}
+                    onClick={() => removeWater(1)}
                     disabled={loading || todayIntake === 0}
                     className="mb-2"
                   >
@@ -255,45 +255,47 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   {/* Large Water Bottle Visualization */}
                   <div className="relative flex flex-col items-center mb-2">
                     {/* Bottle Cap */}
-                    <div className="w-6 h-3 bg-blue-600 rounded-t-lg mb-1 shadow-md"></div>
+                    <div className="w-8 h-4 bg-blue-600 rounded-t-lg mb-1 shadow-md"></div>
                     
                     {/* Bottle Neck */}
-                    <div className="w-4 h-2 bg-gray-300 border border-gray-400"></div>
+                    <div className="w-5 h-3 bg-gray-300 border border-gray-400"></div>
                     
                     {/* Main Bottle */}
-                    <div className="relative w-12 h-12 bg-gradient-to-b from-gray-50 to-gray-200 rounded-b-2xl border-2 border-gray-400 flex items-end justify-center overflow-hidden shadow-lg">
-                      {/* Current Water Level */}
+                    <div className="relative w-16 h-24 bg-gradient-to-b from-gray-100 to-gray-300 rounded-b-3xl border-2 border-gray-500 overflow-hidden shadow-lg">
+                      
+                      {/* Always show water level with calculated height */}
                       <div 
-                        className={`w-full rounded-b-2xl transition-all duration-500 ${
-                          todayIntake === 0 ? 'bg-gradient-to-t from-red-400 to-red-200' :
-                          todayIntake < 4 ? 'bg-gradient-to-t from-red-400 to-red-200' :
-                          todayIntake >= 4 && todayIntake <= 6 ? 'bg-gradient-to-t from-yellow-400 to-yellow-200' :
-                          'bg-gradient-to-t from-blue-500 to-blue-300'
-                        } opacity-90`}
+                        className="absolute bottom-0 w-full rounded-b-3xl transition-all duration-500 bg-blue-400"
                         style={{ 
-                          height: `${Math.max(15, (todayIntake / dailyGoal) * 100)}%`,
-                          maxHeight: '100%'
+                          height: `${(todayIntake / dailyGoal) * 100}%`,
+                          backgroundColor: todayIntake === 0 ? 'transparent' :
+                            todayIntake < 4 ? '#f87171' : // red-400  
+                            todayIntake <= 6 ? '#facc15' : // yellow-400
+                            '#60a5fa' // blue-400
                         }}
                       />
                       
-                      {/* Water Surface Animation */}
-                      {todayIntake > 0 && (
-                        <div 
-                          className="absolute inset-x-0 w-full bg-white opacity-60 h-0.5 animate-pulse"
-                          style={{ 
-                            top: `${100 - Math.max(15, (todayIntake / dailyGoal) * 100)}%`
-                          }}
-                        />
-                      )}
+                      {/* Water Surface Animation - only show if water exists */}
+                      <div 
+                        className={`absolute inset-x-0 w-full bg-white h-0.5 animate-pulse ${todayIntake === 0 ? 'opacity-0' : 'opacity-80'}`}
+                        style={{ 
+                          bottom: `${(todayIntake / dailyGoal) * 100}%`
+                        }}
+                      />
                       
-                      {/* Water Level Indicators */}
-                      <div className="absolute inset-x-1 top-1 h-px bg-gray-500 opacity-40"></div>
-                      <div className="absolute inset-x-1 top-4 h-px bg-gray-500 opacity-40"></div>
-                      <div className="absolute inset-x-1 top-7 h-px bg-gray-500 opacity-40"></div>
-                      <div className="absolute inset-x-1 top-10 h-px bg-gray-500 opacity-40"></div>
+                      {/* Measurement lines */}
+                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '87.5%' }}></div>
+                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '75%' }}></div>
+                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '62.5%' }}></div>
+                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '50%' }}></div>
+                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '37.5%' }}></div>
+                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '25%' }}></div>
+                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '12.5%' }}></div>
                       
-                      {/* Droplet Icon in center */}
-                      <Droplets className="absolute w-4 h-4 text-white opacity-70 drop-shadow-sm" />
+                      {/* Droplet icon overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                        <Droplets className={`w-6 h-6 ${todayIntake === 0 ? 'text-gray-400 opacity-40' : 'text-white opacity-90'} drop-shadow-md`} />
+                      </div>
                     </div>
                     
                     {/* Bottle Brand Label */}
@@ -308,7 +310,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   <Button 
                     variant="outline" 
                     size="icon"
-                    onClick={addWater}
+                    onClick={() => addWater(1)}
                     disabled={loading || todayIntake >= 15}
                     className="mb-2"
                   >
