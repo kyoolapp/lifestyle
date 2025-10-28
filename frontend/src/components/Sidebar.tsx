@@ -33,7 +33,8 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
   
   const navItems = [
     { id: 'activity', label: 'Activity', icon: Home, path: '/dashboard' },
-    { id: 'features', label: 'Features', icon: Sparkles, path: '/features' },
+    //{ id: 'search', label: 'Search', icon: Search, path: '/search' },
+    //{ id: 'features', label: 'Features', icon: Sparkles, path: '/features' },
     { id: 'health', label: 'Health Metrics', icon: Heart, path: '/health' },
     { id: 'water', label: 'Water Tracker', icon: Droplets, path: '/water' },
     //{ id: 'recipes', label: 'Recipes', icon: ChefHat, path: '/recipes' },
