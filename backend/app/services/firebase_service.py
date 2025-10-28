@@ -4,6 +4,7 @@ import os
 import json
 import re
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 
 #key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
@@ -76,7 +77,7 @@ class FirestoreUserService:
             'glasses': glasses,
             'date': today,
             'created_at': datetime.now().astimezone(),
-            'last_updated': datetime.now().isoformat()
+            'last_updated': datetime.now()
         }, merge=True)
         
         return glasses
