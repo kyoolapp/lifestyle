@@ -376,59 +376,26 @@ export function WaterTracker({ user }: WaterTrackerProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-4">
             {weeklyData.map((day, index) => (
               <div key={index} className="text-center">
                 <p className="text-xs text-muted-foreground mb-2">{day.day}</p>
-                {/* Water Bottle Shape */}
-                <div className="relative h-24 flex flex-col items-center">
-                  {/* Bottle Cap */}
-                  <div className="w-3 h-2 bg-blue-600 rounded-t-md mb-0.5 shadow-sm"></div>
-                  
-                  {/* Bottle Neck */}
-                  <div className="w-2 h-1 bg-gray-300 border border-gray-400"></div>
-                  
-                  {/* Main Bottle Container */}
-                  <div className="relative w-8 h-18 bg-gradient-to-b from-gray-50 to-gray-200 rounded-b-2xl border-2 border-gray-400 flex items-end justify-center overflow-hidden shadow-md">
-                    {/* Water Level */}
-                    <div 
-                      className={`w-full rounded-b-2xl transition-all duration-300 ${
-                        day.intake === 0 ? 'bg-gradient-to-t from-red-400 to-red-200' :
-                        day.intake < 4 ? 'bg-gradient-to-t from-red-400 to-red-200' :
-                        day.intake >= 4 && day.intake <= 6 ? 'bg-gradient-to-t from-yellow-400 to-yellow-200' :
-                        'bg-gradient-to-t from-blue-500 to-blue-300'
-                      } opacity-90`}
-                      style={{ 
-                        height: `${Math.max(8, (day.intake / day.goal) * 100)}%`,
-                        maxHeight: '100%'
-                      }}
-                    />
-                    
-                    {/* Water Surface Shine */}
-                    {day.intake > 0 && (
-                      <div 
-                        className="absolute inset-x-0 w-full bg-white opacity-50 h-0.5 animate-pulse"
-                        style={{ 
-                          top: `${100 - Math.max(8, (day.intake / day.goal) * 100)}%`
-                        }}
-                      />
-                    )}
-                    
-                    {/* Volume Markers */}
-                    <div className="absolute inset-x-1 top-2 h-px bg-gray-500 opacity-30"></div>
-                    <div className="absolute inset-x-1 top-6 h-px bg-gray-500 opacity-30"></div>
-                    <div className="absolute inset-x-1 top-10 h-px bg-gray-500 opacity-30"></div>
-                    <div className="absolute inset-x-1 top-14 h-px bg-gray-500 opacity-30"></div>
-                    
-                    {/* Intake Number */}
-                    <span className="absolute bottom-0.5 text-[10px] font-bold text-white drop-shadow-md bg-black bg-opacity-40 px-1 rounded">
-                      {day.intake}
-                    </span>
-                  </div>
-                  
-                  {/* Bottle Label */}
-                  <div className="w-6 h-1 bg-blue-300 rounded-full mt-0.5 opacity-70 border border-blue-400"></div>
+                <div className="relative h-20 w-8 mx-auto bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className={`absolute bottom-0 w-full transition-all duration-300 rounded-full ${
+                      day.intake === 0 ? 'bg-red-500' :
+                      day.intake < 4 ? 'bg-red-500' :
+                      day.intake >= 4 && day.intake <= 6 ? 'bg-yellow-500' :
+                      'bg-blue-500'
+                    }`}
+                    style={{ 
+                      height: `${Math.max(5, (day.intake / day.goal) * 100)}%`
+                    }}
+                  />
                 </div>
+                <p className="text-xs font-medium mt-2">
+                  {day.intake}/{day.goal}
+                </p>
               </div>
             ))}
           </div>
