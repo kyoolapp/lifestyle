@@ -110,22 +110,22 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   const tdee = calculateTDEE(bmr ?? 0, user.activityLevel);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <div>
-        <h1 className="text-3xl font-semibold">Health Metrics</h1>
-        <p className="text-muted-foreground mt-1">Track and monitor your vital health indicators</p>
+        <h1 className="text-2xl md:text-3xl font-semibold">Health Metrics</h1>
+        <p className="text-muted-foreground mt-1 text-sm md:text-base">Track and monitor your vital health indicators</p>
       </div>
 
       {/* Input Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <Calculator className="w-4 h-4 md:w-5 md:h-5" />
             Update Your Metrics
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="p-4 md:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <div>
               <Label htmlFor="height">Height (cm)</Label>
               <Input
@@ -189,7 +189,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
           </ResponsiveContainer>
         </CardContent>
       </Card>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">BMI</CardTitle>
@@ -289,7 +289,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
           <CardTitle>Recommended Daily Intake</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <div className="text-center p-4 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-green-600">{tdee}</div>
               <p className="text-sm text-muted-foreground">Maintain Weight</p>

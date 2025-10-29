@@ -277,24 +277,24 @@ export function Profile({ user, setUser }: ProfileProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <div>
-        <h1 className="text-3xl font-semibold">Profile</h1>
-        <p className="text-muted-foreground mt-1">Manage your account and view your health journey</p>
+        <h1 className="text-2xl md:text-3xl font-semibold">Profile</h1>
+        <p className="text-muted-foreground mt-1 text-sm md:text-base">Manage your account and view your health journey</p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-4 md:space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="activity">Activity Feed</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="overview" className="text-xs md:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="activity" className="text-xs md:text-sm">Activity Feed</TabsTrigger>
+          <TabsTrigger value="settings" className="text-xs md:text-sm">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-4 md:space-y-6">
           {/* Profile Header */}
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start gap-6">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-col md:flex-row items-start gap-4 md:gap-6">
                 <div className="relative">
                   <Avatar className="w-24 h-24">
                     <AvatarImage 
@@ -314,34 +314,36 @@ export function Profile({ user, setUser }: ProfileProps) {
                 </div>
                 
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-semibold">{user.name}</h2>
-                    <span className={`text-sm font-medium ${
-                      isOnline ? 'text-green-500' : 'text-gray-400'
-                    }`}>
-                      {isOnline ? 'Online' : 'Offline'}
-                    </span>
-                    {user.isPremium && (
-                      <Badge className="bg-yellow-500 text-yellow-900">
-                        <Crown className="w-3 h-3 mr-1" />
-                        Premium
-                      </Badge>
-                    )}
+                  <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-2">
+                    <h2 className="text-xl md:text-2xl font-semibold">{user.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-medium ${
+                        isOnline ? 'text-green-500' : 'text-gray-400'
+                      }`}>
+                        {isOnline ? 'Online' : 'Offline'}
+                      </span>
+                      {user.isPremium && (
+                        <Badge className="bg-yellow-500 text-yellow-900">
+                          <Crown className="w-3 h-3 mr-1" />
+                          Premium
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <p className="text-muted-foreground mb-4">@{user.username}</p>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 text-center">
                     <div>
-                      <div className="text-xl font-semibold">{userStats.totalWorkouts}</div>
-                      <p className="text-sm text-muted-foreground">Workouts</p>
+                      <div className="text-lg md:text-xl font-semibold">{userStats.totalWorkouts}</div>
+                      <p className="text-xs md:text-sm text-muted-foreground">Workouts</p>
                     </div>
                     <div>
-                      <div className="text-xl font-semibold">{userStats.totalRecipes}</div>
-                      <p className="text-sm text-muted-foreground">Recipes</p>
+                      <div className="text-lg md:text-xl font-semibold">{userStats.totalRecipes}</div>
+                      <p className="text-xs md:text-sm text-muted-foreground">Recipes</p>
                     </div>
                     <div>
-                      <div className="text-xl font-semibold">{userStats.followers}</div>
-                      <p className="text-sm text-muted-foreground">Followers</p>
+                      <div className="text-lg md:text-xl font-semibold">{userStats.followers}</div>
+                      <p className="text-xs md:text-sm text-muted-foreground">Followers</p>
                     </div>
                     <div 
                       className="cursor-pointer hover:bg-blue-50 p-3 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 group"
@@ -367,7 +369,7 @@ export function Profile({ user, setUser }: ProfileProps) {
           </Card>
 
           {/* Health Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Weight / Height</CardTitle>

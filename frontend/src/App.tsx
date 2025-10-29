@@ -1,8 +1,6 @@
-import UserSearch from "./components/UserSearch";
 // App.tsx
 import React, { useEffect, useState } from "react";
 import { getUserByEmail } from "./api/user_api";
-import { useUserHeartbeat } from "./hooks/useUserHeartbeat";
 import {
   BrowserRouter,
   Routes,
@@ -49,9 +47,7 @@ import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
 
 import { auth } from "./firebase";
-import ViewAllFriends from "./components/ViewAllFriends";
-import FriendRequests from "./components/FriendRequests";
-import { UserProfile } from "./components/UserProfile";
+
 
 const BASE_URL= import.meta.env.VITE_API_URL;
 
@@ -72,19 +68,6 @@ function AppRoutes() {
   const [waitlistOpen, setWaitlistOpen] = useState(false); // needed by Home
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Keep user active with heartbeat (only when authenticated)
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      // Trigger immediate heartbeat when user becomes authenticated
-      import('./api/user_api').then(({ updateUserActivity }) => {
-        updateUserActivity(user.uid || auth.currentUser?.uid);
-      });
-    }
-  }, [isAuthenticated, user]);
-
-  // Keep user active with heartbeat
-  useUserHeartbeat();
 
   // ===== Home (Landing) from old App.tsx =====
   const features = [
@@ -710,8 +693,8 @@ function AppRoutes() {
         />
         <div className="flex h-screen pt-16">
           <Sidebar user={user} onLogout={handleLogout} />
-          <main className="flex-1 overflow-auto">
-            <div className="p-3 sm:p-4 lg:p-6 h-full">
+          <main className="flex-1 overflow-auto sm:ml-0">
+            <div className="p-2 sm:p-4 lg:p-6 h-full">
               <div className="max-w-7xl mx-auto w-full">{children}</div>
             </div>
           </main>
@@ -722,7 +705,7 @@ function AppRoutes() {
 
   return (
     <div className="min-h-screen bg-background">
-  <Routes>
+      <Routes>
         {/* Public routes — "/" now uses the imported Home from old App.tsx */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
@@ -757,7 +740,7 @@ function AppRoutes() {
           path="/water"
           element={
             <PrivateRoute>
-              <WaterTracker user={user} />
+              <WaterTracker />
             </PrivateRoute>
           }
         />
@@ -785,47 +768,11 @@ function AppRoutes() {
             </PrivateRoute>
           }
         />
-
-        <Route
-          path="/search"
-          element={
-            <PrivateRoute>
-              <UserSearch />
-            </PrivateRoute>
-          }
-        />
         <Route
           path="/profile"
           element={
             <PrivateRoute>
               <Profile user={user} setUser={setUser} />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/friends"
-          element={
-            <PrivateRoute>
-              <ViewAllFriends
-                onBack={() => navigate(-1)} // Navigate back to the previous page
-                onAddFriends={() => console.log("Add friends clicked")} // Replace with actual logic
-              />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/friend-requests"
-          element={
-            <PrivateRoute>
-              <FriendRequests />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/user/:userId"
-          element={
-            <PrivateRoute>
-              <UserProfile />
             </PrivateRoute>
           }
         />

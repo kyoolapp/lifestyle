@@ -205,14 +205,14 @@ export function WaterTracker({ user }: WaterTrackerProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 px-2 md:px-0">
       <div>
-        <h1 className="text-3xl font-semibold">Water Tracker</h1>
-        <p className="text-muted-foreground mt-1">Stay hydrated and track your daily water intake</p>
+        <h1 className="text-2xl md:text-3xl font-semibold">Water Tracker</h1>
+        <p className="text-muted-foreground mt-1 text-sm md:text-base">Stay hydrated and track your daily water intake</p>
       </div>
 
       {/* Today's Progress */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -222,31 +222,31 @@ export function WaterTracker({ user }: WaterTrackerProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center mb-6">
-                <div className="text-6xl font-bold text-blue-500 mb-2">
+              <div className="text-center mb-4 md:mb-6">
+                <div className="text-4xl md:text-6xl font-bold text-blue-500 mb-2">
                   {todayIntake}
                 </div>
-                <p className="text-muted-foreground">of {dailyGoal} glasses</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm md:text-base">of {dailyGoal} glasses</p>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {todayIntake * glassSize}ml of {dailyGoal * glassSize}ml
                 </p>
               </div>
 
               <Progress 
                 value={(todayIntake / dailyGoal) * 100} 
-                className="h-3 mb-4"
+                className="h-2 md:h-3 mb-3 md:mb-4"
               />
 
-              <div className="flex items-center justify-center gap-4 mb-4">
+              <div className="flex items-center justify-center gap-3 md:gap-4 mb-3 md:mb-4">
                 <div className="text-center">
                   <Button 
                     variant="outline" 
-                    size="icon"
+                    size="sm"
                     onClick={() => removeWater(1)}
                     disabled={loading || todayIntake === 0}
-                    className="mb-2"
+                    className="mb-1 md:mb-2 w-10 h-10 md:w-12 md:h-12"
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3 h-3 md:w-4 md:h-4" />
                   </Button>
                   <p className="text-xs text-muted-foreground">-{glassSize}ml</p>
                 </div>
@@ -309,12 +309,12 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                 <div className="text-center">
                   <Button 
                     variant="outline" 
-                    size="icon"
+                    size="sm"
                     onClick={() => addWater(1)}
                     disabled={loading || todayIntake >= 15}
-                    className="mb-2"
+                    className="mb-1 md:mb-2 w-10 h-10 md:w-12 md:h-12"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3 h-3 md:w-4 md:h-4" />
                   </Button>
                   <p className="text-xs text-muted-foreground">+{glassSize}ml</p>
                 </div>
@@ -330,6 +330,31 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                 <p className="text-sm text-muted-foreground">
                   {getMotivationMessage()}
                 </p>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-sm font-medium mb-2">Quick Actions</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => addWater(2)}
+                    disabled={loading || todayIntake >= 15}
+                    className="text-xs"
+                  >
+                    +2 Glasses
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => addWater(4)}
+                    disabled={loading || todayIntake >= 15}
+                    className="text-xs"
+                  >
+                    +4 Glasses
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -378,11 +403,11 @@ export function WaterTracker({ user }: WaterTrackerProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-7 gap-4">
+          <div className="grid grid-cols-7 gap-1 md:gap-4">
             {weeklyData.map((day, index) => (
               <div key={index} className="text-center">
-                <p className="text-xs text-muted-foreground mb-2">{day.day}</p>
-                <div className="relative h-20 w-8 mx-auto bg-gray-200 rounded-full overflow-hidden">
+                <p className="text-[10px] md:text-xs text-muted-foreground mb-1 md:mb-2">{day.day}</p>
+                <div className="relative h-16 md:h-20 w-6 md:w-8 mx-auto bg-gray-200 rounded-full overflow-hidden">
                   <div 
                     className={`absolute bottom-0 w-full transition-all duration-300 rounded-full ${
                       day.intake === 0 ? 'bg-red-500' :
@@ -395,7 +420,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                     }}
                   />
                 </div>
-                <p className="text-xs font-medium mt-2">
+                <p className="text-[10px] md:text-xs font-medium mt-1 md:mt-2">
                   {day.intake}/{day.goal}
                 </p>
               </div>

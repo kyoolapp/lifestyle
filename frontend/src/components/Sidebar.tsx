@@ -112,10 +112,10 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                 setIsSearchPanelOpen(true);
                 setIsMobileMenuOpen(false);
               }}
-              className="w-full justify-start gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground h-auto"
+              className="w-full justify-start gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg text-foreground/80 hover:bg-accent hover:text-accent-foreground h-auto"
             >
               <Search className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs sm:text-sm hidden sm:inline truncate">Search Users</span>
+              <span className="text-sm truncate">Search Users</span>
             </Button>
           </li>
           
@@ -129,7 +129,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                   className={`w-full flex items-center gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-colors ${
                     isActive
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      : 'text-foreground/80 hover:bg-accent hover:text-accent-foreground'
                   }`}
                   title={item.label}
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -144,7 +144,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                   ) : (
                     <Icon className="w-4 h-4 flex-shrink-0" />
                   )}
-                  <span className="text-xs sm:text-sm hidden sm:inline truncate">{item.label}</span>
+                  <span className="text-sm truncate">{item.label}</span>
                 </Link>
               </li>
             );
@@ -174,11 +174,11 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
         {onLogout && (
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-2 sm:px-3 py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                        className="w-full flex items-center gap-3 px-2 sm:px-3 py-2 rounded-lg text-foreground/80 hover:bg-accent hover:text-accent-foreground transition-colors"
             title="Sign Out"
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
-            <span className="text-xs sm:text-sm hidden sm:inline">Sign Out</span>
+            <span className="text-sm">Sign Out</span>
           </button>
         )}
       </div>
@@ -206,7 +206,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden sm:flex w-16 lg:w-64 bg-card border-r border-border flex-col">
+      <div className="hidden sm:flex w-64 bg-card border-r border-border flex-col">
         <SidebarContent />
       </div>
 

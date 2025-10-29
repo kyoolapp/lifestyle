@@ -327,7 +327,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <WorkoutListDialog
         open={isWorkoutListOpen}
         onOpenChange={setIsWorkoutListOpen}
@@ -336,14 +336,14 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
         onSetCurrentWorkout={handleSetCurrentWorkout}
       />
       {/* Header with Quick Stats */}
-      <div className="space-y-6">
-        <div >
-          <h1 className="text-2xl sm:text-3xl  font-semibold">Your Activity</h1>
-          <p className="text-muted-foreground">Your Fitness, Fully Personalized</p>
+      <div className="space-y-4 md:space-y-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold">Your Activity</h1>
+          <p className="text-muted-foreground text-sm md:text-base">Your Fitness, Fully Personalized</p>
         </div>
 
         {/* Quick Stats Cards - No animations for better performance */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
           {quickStats.map((stat, index) => {
             const Icon = stat.icon;
             const isActiveFriends = stat.label === 'Active Friends';
@@ -356,14 +356,14 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                   }`}
                   onClick={isActiveFriends ? onViewAllFriends : undefined}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <Icon className={`w-4 h-4 ${stat.color}`} />
-                      <span className="text-xs text-green-600 font-medium">{stat.change}</span>
+                  <CardContent className="p-2 md:p-4">
+                    <div className="flex items-center justify-between mb-1 md:mb-2">
+                      <Icon className={`w-3 h-3 md:w-4 md:h-4 ${stat.color}`} />
+                      <span className="text-[10px] md:text-xs text-green-600 font-medium">{stat.change}</span>
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-xl font-bold">{stat.value}</div>
-                      <div className="text-xs text-muted-foreground">{stat.label}</div>
+                    <div className="space-y-0.5 md:space-y-1">
+                      <div className="text-lg md:text-xl font-bold">{stat.value}</div>
+                      <div className="text-[10px] md:text-xs text-muted-foreground leading-tight">{stat.label}</div>
                     </div>
                   </CardContent>
                 </Card>
@@ -385,7 +385,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
           </div>
         </div> */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
           {/* Left side - Push Day workout */}
           {/*<div className="w-full">
             {(() => {
@@ -464,7 +464,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
 
           {/* Right side - Responsive Grid of Quick Workouts 
           <div className="w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2 md:gap-3">
               {quickWorkouts.map((workout) => {
                 const Icon = workout.icon;
                 return (
@@ -497,12 +497,12 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
       </div>
 
       {/* Social Health Community Section */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-3 md:gap-6">
         <Card className="lg:col-span-1">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-semibold mb-2">Social Health Community</h2>
+                <h2 className="text-lg md:text-xl font-semibold mb-2">Social Health Community</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   Connect with like-minded individuals, share your journey, and get inspired by others who understand your health goals.
                 </p>
