@@ -401,16 +401,16 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
 
   return (
     <header className="bg-background/95 backdrop-blur-sm border-b border-border fixed top-0 left-0 right-0 z-50">
-      <div className="flex items-center justify-between px-6 py-3">
+      <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-2 md:py-3">
         {/* Left side - Today's Goals (where eyes go first) */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">H</span>
+        <div className="flex items-center gap-2 md:gap-6">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-7 h-7 md:w-8 md:h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-xs md:text-sm">H</span>
             </div>
             <div className="hidden sm:block">
-            <h1 className="text-lg font-semibold">Health Hub</h1>
-            <p className="text-sm text-muted-foreground">Stay Healthy</p>
+            <h1 className="text-base md:text-lg font-semibold">Health Hub</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">Stay Healthy</p>
           </div>
           </div>
          
@@ -481,11 +481,11 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
         </div>
 
         {/* Right side - Quick stats and water widget */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {/* Current Weight - Mobile Only */}
-          <div className="xl:hidden flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg border border-purple-200">
-            <Scale className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-medium text-purple-700">{user.weight || '75'} kg</span>
+          <div className="hidden sm:flex xl:hidden items-center gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-purple-50 rounded-lg border border-purple-200">
+            <Scale className="w-3 h-3 md:w-4 md:h-4 text-purple-600" />
+            <span className="text-xs md:text-sm font-medium text-purple-700">{user.weight || '75'} kg</span>
           </div>
 
           {/* Active Friends - Clickable */}
@@ -493,12 +493,15 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-full border border-purple-200 hover:bg-purple-100 transition-colors h-auto"
+                    className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-purple-50 rounded-full border border-purple-200 hover:bg-purple-100 transition-colors h-auto text-xs md:text-sm"
                     onClick={loadActiveFriends}
                   >
-                    <Users className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-medium text-purple-700">
+                    <Users className="w-3 h-3 md:w-4 md:h-4 text-purple-600" />
+                    <span className="hidden sm:inline font-medium text-purple-700">
                       {onlineFriends.length} online
+                    </span>
+                    <span className="sm:hidden font-medium text-purple-700">
+                      {onlineFriends.length}
                     </span>
                     
                   </Button>
@@ -740,11 +743,11 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
           {/* Notifications */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5" />
+              <Button variant="ghost" size="sm" className="relative p-1 md:p-2">
+                <Bell className="w-4 h-4 md:w-5 md:h-5" />
                 {friendRequests.length > 0 && (
                   <motion.div
-                    className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
+                    className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full"
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
@@ -856,19 +859,19 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative cursor-pointer group p-2 h-auto hover:bg-muted/30 rounded-lg transition-colors"
+                className="relative cursor-pointer group p-1 md:p-2 h-auto hover:bg-muted/30 rounded-lg transition-colors"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 md:gap-2">
                   {/* Simple Water Bottle */}
-                  <div className="relative w-4 h-8">
+                  <div className="relative w-3 h-6 md:w-4 md:h-8">
                     {/* Bottle cap */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-1 bg-gray-500 rounded-sm" />
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-2 md:w-3 h-0.5 md:h-1 bg-gray-500 rounded-sm" />
                     
                     {/* Bottle neck */}
-                    <div className="absolute top-1 left-1/2 transform -translate-x-1/2 w-2 h-1 bg-gray-200 border-l border-r border-gray-400" />
+                    <div className="absolute top-0.5 md:top-1 left-1/2 transform -translate-x-1/2 w-1.5 md:w-2 h-0.5 md:h-1 bg-gray-200 border-l border-r border-gray-400" />
                     
                     {/* Bottle body */}
-                    <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-4 h-6 bg-white border-2 border-gray-400 rounded-b-xl overflow-hidden">
+                    <div className="absolute top-1 md:top-2 left-1/2 transform -translate-x-1/2 w-3 h-5 md:w-4 md:h-6 bg-white border-2 border-gray-400 rounded-b-xl overflow-hidden">
                       {/* Water fill */}
                       <motion.div
                         className={`absolute bottom-0 left-0 right-0 ${getWaterColor()} opacity-80`}
@@ -881,7 +884,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                   </div>
                   
                   {/* Water count */}
-                  <div className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                  <div className="hidden sm:block text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     {waterIntake % 1 === 0 ? waterIntake : waterIntake.toFixed(1)}/{dailyGoal}
                   </div>
                 </div>

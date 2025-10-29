@@ -104,49 +104,53 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
       {/* Nav items */}
       <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
         <ul className="space-y-1 sm:space-y-2">
-          {/* Search Users Button */}
-          <li>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setIsSearchPanelOpen(true);
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full justify-start gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg text-foreground/80 hover:bg-accent hover:text-accent-foreground h-auto"
-            >
-              <Search className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm truncate">Search Users</span>
-            </Button>
-          </li>
-          
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (
-              <li key={item.id}>
-                <Link
-                  to={item.path}
-                  className={`w-full flex items-center gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground/80 hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                  title={item.label}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.id === 'profile' ? (
-                    <Avatar className="w-6 h-6 flex-shrink-0">
-                      <AvatarImage src={user?.avatar} />
-                      <AvatarFallback className="text-xs font-medium">
-                        {user?.name?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                  )}
-                  <span className="text-sm truncate">{item.label}</span>
-                </Link>
-              </li>
+              <React.Fragment key={item.id}>
+                <li>
+                  <Link
+                    to={item.path}
+                    className={`w-full flex items-center gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-foreground/80 hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                    title={item.label}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.id === 'profile' ? (
+                      <Avatar className="w-6 h-6 flex-shrink-0">
+                        <AvatarImage src={user?.avatar} />
+                        <AvatarFallback className="text-xs font-medium">
+                          {user?.name?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                    )}
+                    <span className="text-sm truncate">{item.label}</span>
+                  </Link>
+                </li>
+                
+                {/* Show Search Users Button after Activity item */}
+                {item.id === 'activity' && (
+                  <li>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setIsSearchPanelOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-3 px-2 sm:px-3 py-2 sm:py-2 rounded-lg text-foreground/80 hover:bg-accent hover:text-accent-foreground h-auto"
+                    >
+                      <Search className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-sm truncate">Search Users</span>
+                    </Button>
+                  </li>
+                )}
+              </React.Fragment>
             );
           })}
         </ul>
