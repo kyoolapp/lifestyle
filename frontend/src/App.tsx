@@ -45,6 +45,7 @@ import { Profile } from "./components/Profile";
 import { FitnessTracker } from "./components/FitnessTracker";
 import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
+import { UserProfile } from "./components/UserProfile";
 
 import { auth } from "./firebase";
 
@@ -740,7 +741,7 @@ function AppRoutes() {
           path="/water"
           element={
             <PrivateRoute>
-              <WaterTracker />
+              <WaterTracker user={user} />
             </PrivateRoute>
           }
         />
@@ -773,6 +774,14 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <Profile user={user} setUser={setUser} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/user/:userId"
+          element={
+            <PrivateRoute>
+              <UserProfile />
             </PrivateRoute>
           }
         />

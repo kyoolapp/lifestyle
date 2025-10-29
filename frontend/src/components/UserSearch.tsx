@@ -268,7 +268,10 @@ export default function UserSearch() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Search Users</h1>
+      <h1 className="text-2xl font-bold mb-2">Search Users</h1>
+      <p className="text-sm text-muted-foreground mb-6">
+        Click on any user card to view their profile and manage friend requests
+      </p>
       
       <div className="mb-6">
         <Input
@@ -291,18 +294,16 @@ export default function UserSearch() {
           {results.map((result) => (
             <Card 
               key={result.id} 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${
+              className={`cursor-pointer hover:shadow-lg hover:border-blue-200 transition-all duration-200 ${
                 requestStatus[result.id] === 'received_pending' 
                   ? 'border-purple-200 bg-purple-50/30' 
-                  : ''
+                  : 'hover:bg-gray-50/50'
               }`}
+              onClick={() => navigate(`/user/${result.id}`)}
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div 
-                    className="flex items-center space-x-3 flex-1"
-                    onClick={() => navigate(`/user/${result.id}`)}
-                  >
+                  <div className="flex items-center space-x-3 flex-1">
                     <div className="relative cursor-pointer">
                       <Avatar className="hover:ring-2 hover:ring-blue-300 transition-all">
                         <AvatarImage src={result.avatar} />
