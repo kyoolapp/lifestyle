@@ -42,7 +42,7 @@ class FirestoreUserService:
     #Adding Water log functionality
     def log_water_intake(self, user_id: str, glasses: float):
         """Log water intake for today, creating or updating the daily record"""
-        today = datetime.now().strftime('%Y-%m-%d')
+        today = datetime.now().strftime('%Y-%m-%d').astimezone()
         
         # Get or create water_logs subcollection for the user
         water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
@@ -62,7 +62,7 @@ class FirestoreUserService:
             water_log_ref.set({
                 'glasses': glasses,
                 'date': today,
-                'created_at': datetime.now().isoformat(),
+                'created_at': datetime.now().astimezone(),
                 'last_updated': datetime.now().isoformat()
             })
             return glasses
