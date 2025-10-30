@@ -13,6 +13,134 @@ import {
 } from 'lucide-react';
 import * as userApi from '../api/user_api';
 
+// CSS animations for liquid sloshing effects
+const waveStyles = `
+  @keyframes waterSlosh {
+    0% {
+      clip-path: polygon(0% 0%, 12% 8%, 25% 3%, 37% 12%, 50% 5%, 62% 15%, 75% 7%, 87% 18%, 100% 10%, 100% 100%, 0% 100%);
+      transform: translateX(0) scale(1) rotateZ(0deg);
+    }
+    12.5% {
+      clip-path: polygon(0% 15%, 12% 2%, 25% 20%, 37% 6%, 50% 22%, 62% 8%, 75% 25%, 87% 4%, 100% 18%, 100% 100%, 0% 100%);
+      transform: translateX(-2px) scale(1.03) rotateZ(0.5deg);
+    }
+    25% {
+      clip-path: polygon(0% 8%, 12% 18%, 25% 5%, 37% 25%, 50% 12%, 62% 28%, 75% 15%, 87% 30%, 100% 20%, 100% 100%, 0% 100%);
+      transform: translateX(-3px) scale(1.05) rotateZ(1deg);
+    }
+    37.5% {
+      clip-path: polygon(0% 25%, 12% 10%, 25% 30%, 37% 15%, 50% 35%, 62% 18%, 75% 32%, 87% 12%, 100% 28%, 100% 100%, 0% 100%);
+      transform: translateX(-2px) scale(1.02) rotateZ(0.5deg);
+    }
+    50% {
+      clip-path: polygon(0% 18%, 12% 35%, 25% 20%, 37% 40%, 50% 25%, 62% 45%, 75% 30%, 87% 42%, 100% 35%, 100% 100%, 0% 100%);
+      transform: translateX(0) scale(0.97) rotateZ(0deg);
+    }
+    62.5% {
+      clip-path: polygon(0% 40%, 12% 25%, 25% 45%, 37% 28%, 50% 48%, 62% 32%, 75% 50%, 87% 35%, 100% 45%, 100% 100%, 0% 100%);
+      transform: translateX(2px) scale(1.02) rotateZ(-0.5deg);
+    }
+    75% {
+      clip-path: polygon(0% 30%, 12% 50%, 25% 35%, 37% 55%, 50% 38%, 62% 58%, 75% 42%, 87% 60%, 100% 48%, 100% 100%, 0% 100%);
+      transform: translateX(3px) scale(1.05) rotateZ(-1deg);
+    }
+    87.5% {
+      clip-path: polygon(0% 55%, 12% 40%, 25% 60%, 37% 45%, 50% 65%, 62% 48%, 75% 62%, 87% 50%, 100% 58%, 100% 100%, 0% 100%);
+      transform: translateX(2px) scale(1.03) rotateZ(-0.5deg);
+    }
+    100% {
+      clip-path: polygon(0% 45%, 12% 65%, 25% 48%, 37% 68%, 50% 52%, 62% 70%, 75% 55%, 87% 72%, 100% 60%, 100% 100%, 0% 100%);
+      transform: translateX(0) scale(1) rotateZ(0deg);
+    }
+  }
+  
+  @keyframes surfaceSlosh {
+    0% {
+      clip-path: polygon(0% 50%, 16% 30%, 33% 60%, 50% 25%, 66% 65%, 83% 20%, 100% 55%, 100% 100%, 0% 100%);
+      transform: translateX(0) scaleY(1);
+    }
+    16.6% {
+      clip-path: polygon(0% 20%, 16% 70%, 33% 35%, 50% 80%, 66% 40%, 83% 75%, 100% 30%, 100% 100%, 0% 100%);
+      transform: translateX(-3px) scaleY(1.1);
+    }
+    33.3% {
+      clip-path: polygon(0% 75%, 16% 45%, 33% 85%, 50% 50%, 66% 90%, 83% 55%, 100% 80%, 100% 100%, 0% 100%);
+      transform: translateX(-4px) scaleY(1.15);
+    }
+    50% {
+      clip-path: polygon(0% 60%, 16% 90%, 33% 55%, 50% 95%, 66% 60%, 83% 100%, 100% 65%, 100% 100%, 0% 100%);
+      transform: translateX(0) scaleY(1.2);
+    }
+    66.6% {
+      clip-path: polygon(0% 95%, 16% 65%, 33% 100%, 50% 70%, 66% 95%, 83% 75%, 100% 90%, 100% 100%, 0% 100%);
+      transform: translateX(4px) scaleY(1.15);
+    }
+    83.3% {
+      clip-path: polygon(0% 80%, 16% 100%, 33% 75%, 50% 95%, 66% 80%, 83% 90%, 100% 75%, 100% 100%, 0% 100%);
+      transform: translateX(3px) scaleY(1.1);
+    }
+    100% {
+      clip-path: polygon(0% 50%, 16% 30%, 33% 60%, 50% 25%, 66% 65%, 83% 20%, 100% 55%, 100% 100%, 0% 100%);
+      transform: translateX(0) scaleY(1);
+    }
+  }
+  
+  @keyframes wave {
+    0%, 100% {
+      transform: translateX(0) scaleX(1);
+      opacity: 0.3;
+    }
+    25% {
+      transform: translateX(-2px) scaleX(1.1);
+      opacity: 0.6;
+    }
+    50% {
+      transform: translateX(0) scaleX(0.9);
+      opacity: 0.4;
+    }
+    75% {
+      transform: translateX(2px) scaleX(1.1);
+      opacity: 0.7;
+    }
+  }
+
+  /* Custom slider styles */
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+  }
+
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = waveStyles;
+  if (!document.head.querySelector('style[data-water-animations]')) {
+    styleElement.setAttribute('data-water-animations', 'true');
+    document.head.appendChild(styleElement);
+  }
+}
+
 interface WaterTrackerProps {
   user: any;
 }
@@ -22,6 +150,9 @@ export function WaterTracker({ user }: WaterTrackerProps) {
   const [todayIntake, setTodayIntake] = useState(0);
   const [glassSize] = useState(250); // ml
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartValue, setDragStartValue] = useState(0);
   const [weeklyData, setWeeklyData] = useState([
     { day: 'Mon', intake: 0, goal: 8, date: '' },
     { day: 'Tue', intake: 0, goal: 8, date: '' },
@@ -183,6 +314,106 @@ export function WaterTracker({ user }: WaterTrackerProps) {
     return 'bg-green-500'; // 7+ glasses
   };
 
+  // Interactive bottle sliding handlers
+  const handleBottleMouseDown = (e: React.MouseEvent) => {
+    if (loading) return;
+    setIsDragging(true);
+    setDragStartY(e.clientY);
+    setDragStartValue(todayIntake);
+    e.preventDefault();
+  };
+
+  const handleBottleTouchStart = (e: React.TouchEvent) => {
+    if (loading) return;
+    setIsDragging(true);
+    setDragStartY(e.touches[0].clientY);
+    setDragStartValue(todayIntake);
+    e.preventDefault();
+  };
+
+  // Enhanced mouse and touch move handlers for bottle
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const deltaY = dragStartY - e.clientY; // Inverted for intuitive dragging
+      const sensitivity = 8; // More sensitive for better control (8px = 1 glass)
+      const change = deltaY / sensitivity;
+      const newValue = Math.max(0, Math.min(15, dragStartValue + change));
+      
+      // Allow fractional values for smoother dragging, round to nearest 0.25
+      const roundedValue = Math.round(newValue * 4) / 4;
+      
+      if (Math.abs(roundedValue - todayIntake) >= 0.25) {
+        setWaterIntakeDirectly(roundedValue);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging) return;
+      const deltaY = dragStartY - e.touches[0].clientY;
+      const sensitivity = 8; // More sensitive for touch
+      const change = deltaY / sensitivity;
+      const newValue = Math.max(0, Math.min(15, dragStartValue + change));
+      
+      // Allow fractional values for smoother dragging
+      const roundedValue = Math.round(newValue * 4) / 4;
+      
+      if (Math.abs(roundedValue - todayIntake) >= 0.25) {
+        setWaterIntakeDirectly(roundedValue);
+      }
+      e.preventDefault();
+    };
+
+    const handleEnd = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        // Save the final value to backend
+        saveWaterIntake(todayIntake);
+      }
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleEnd);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleEnd);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging, dragStartY, dragStartValue, todayIntake]);
+
+  // Direct water intake setter for smooth dragging
+  const setWaterIntakeDirectly = (newValue: number) => {
+    setTodayIntake(newValue);
+    
+    // Update today in weekly data
+    const today = new Date().toISOString().split('T')[0];
+    setWeeklyData(prev => prev.map(day => 
+      day.date === today ? { ...day, intake: newValue } : day
+    ));
+  };
+
+  // Save water intake to backend (called after dragging ends)
+  const saveWaterIntake = async (value: number) => {
+    if (!user?.id) return;
+    
+    try {
+      await userApi.setWaterIntake(user.id, value);
+      
+      // Notify other components about the water intake update
+      window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
+        detail: { userId: user.id, glasses: value }
+      }));
+    } catch (error) {
+      console.error('Failed to save water intake:', error);
+    }
+  };
+
   const getCurrentStreak = () => {
     let streak = 0;
     // Count consecutive days from today backwards where goal was met
@@ -251,59 +482,154 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   <p className="text-xs text-muted-foreground">-{glassSize}ml</p>
                 </div>
                 
-                <div className="text-center">
-                  {/* Large Water Bottle Visualization */}
-                  <div className="relative flex flex-col items-center mb-2">
+                <div className="text-center relative">
+                  {/* Interactive Water Bottle with Slider */}
+                  <div className="relative flex flex-col items-center mb-2 group">
                     {/* Bottle Cap */}
                     <div className="w-8 h-4 bg-blue-600 rounded-t-lg mb-1 shadow-md"></div>
                     
                     {/* Bottle Neck */}
                     <div className="w-5 h-3 bg-gray-300 border border-gray-400"></div>
                     
-                    {/* Main Bottle */}
-                    <div className="relative w-16 h-24 bg-gradient-to-b from-gray-100 to-gray-300 rounded-b-3xl border-2 border-gray-500 overflow-hidden shadow-lg">
+                    {/* Main Bottle with Interactive Slider */}
+                    <div 
+                      className={`relative w-16 h-24 bg-gradient-to-b from-gray-100 to-gray-300 rounded-b-3xl border-2 overflow-hidden shadow-lg select-none transition-all duration-150 ${
+                        isDragging 
+                          ? 'border-blue-500 shadow-xl cursor-grabbing scale-105' 
+                          : 'border-gray-500 cursor-grab hover:border-blue-400 hover:shadow-xl'
+                      }`}
+                      onMouseDown={(e) => handleBottleMouseDown(e)}
+                      onTouchStart={(e) => handleBottleTouchStart(e)}
+                    >
                       
-                      {/* Always show water level with calculated height */}
+                      {/* Animated water level with full sloshing effect */}
                       <div 
-                        className="absolute bottom-0 w-full rounded-b-3xl transition-all duration-500 bg-blue-400"
+                        className="absolute bottom-0 w-full rounded-b-3xl transition-all duration-700 ease-out overflow-hidden"
                         style={{ 
                           height: `${(todayIntake / dailyGoal) * 100}%`,
-                          backgroundColor: todayIntake === 0 ? 'transparent' :
-                            todayIntake < 4 ? '#f87171' : // red-400  
-                            todayIntake <= 6 ? '#facc15' : // yellow-400
-                            '#60a5fa' // blue-400
                         }}
-                      />
-                      
-                      {/* Water Surface Animation - only show if water exists */}
-                      <div 
-                        className={`absolute inset-x-0 w-full bg-white h-0.5 animate-pulse ${todayIntake === 0 ? 'opacity-0' : 'opacity-80'}`}
-                        style={{ 
-                          bottom: `${(todayIntake / dailyGoal) * 100}%`
-                        }}
-                      />
-                      
-                      {/* Measurement lines */}
-                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '87.5%' }}></div>
-                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '75%' }}></div>
-                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '62.5%' }}></div>
-                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '50%' }}></div>
-                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '37.5%' }}></div>
-                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '25%' }}></div>
-                      <div className="absolute inset-x-2 h-0.5 bg-gray-600 opacity-50" style={{ bottom: '12.5%' }}></div>
-                      
-                      {/* Droplet icon overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                        <Droplets className={`w-6 h-6 ${todayIntake === 0 ? 'text-gray-400 opacity-40' : 'text-white opacity-90'} drop-shadow-md`} />
+                      >
+                        {/* Main water body with sloshing animation */}
+                        {todayIntake > 0 && (
+                          <>
+                            {/* Primary sloshing water layer */}
+                            <div 
+                              className="absolute inset-0 w-full h-full rounded-b-3xl"
+                              style={{
+                                background: `linear-gradient(180deg, ${
+                                  todayIntake < 4 ? '#f87171, #dc2626' : 
+                                  todayIntake <= 6 ? '#facc15, #eab308' : 
+                                  '#60a5fa, #3b82f6'
+                                })`,
+                                clipPath: 'polygon(0% 0%, 15% 5%, 30% 0%, 45% 8%, 60% 2%, 75% 6%, 90% 1%, 100% 4%, 100% 100%, 0% 100%)',
+                                animation: 'waterSlosh 2.8s ease-in-out infinite'
+                              }}
+                            />
+                            
+                            {/* Secondary sloshing layer for depth */}
+                            <div 
+                              className="absolute inset-0 w-full h-full rounded-b-3xl"
+                              style={{
+                                background: `linear-gradient(180deg, ${
+                                  todayIntake < 4 ? '#fca5a5, #f87171' : 
+                                  todayIntake <= 6 ? '#fde047, #facc15' : 
+                                  '#93c5fd, #60a5fa'
+                                })`,
+                                clipPath: 'polygon(0% 3%, 20% 0%, 40% 6%, 60% 1%, 80% 4%, 100% 0%, 100% 100%, 0% 100%)',
+                                animation: 'waterSlosh 2.1s ease-in-out infinite reverse',
+                                opacity: 0.7
+                              }}
+                            />
+                            
+                            {/* Multi-layer wave effects */}
+                            
+                            {/* Primary surface wave */}
+                            <div 
+                              className="absolute top-0 left-0 w-full h-6"
+                              style={{
+                                background: `linear-gradient(180deg, 
+                                  ${todayIntake < 4 ? 'rgba(248, 113, 113, 0.9)' : 
+                                    todayIntake <= 6 ? 'rgba(250, 204, 21, 0.9)' : 
+                                    'rgba(96, 165, 250, 0.9)'} 0%, 
+                                  transparent 100%)`,
+                                clipPath: 'polygon(0% 50%, 16% 30%, 33% 60%, 50% 25%, 66% 65%, 83% 20%, 100% 55%, 100% 100%, 0% 100%)',
+                                animation: 'surfaceSlosh 3s ease-in-out infinite'
+                              }}
+                            />
+                            
+                            {/* Secondary wave layer */}
+                            <div 
+                              className="absolute top-1 left-0 w-full h-4"
+                              style={{
+                                background: `linear-gradient(180deg, 
+                                  ${todayIntake < 4 ? 'rgba(220, 38, 38, 0.6)' : 
+                                    todayIntake <= 6 ? 'rgba(234, 179, 8, 0.6)' : 
+                                    'rgba(59, 130, 246, 0.6)'} 0%, 
+                                  transparent 100%)`,
+                                clipPath: 'polygon(0% 70%, 20% 45%, 40% 75%, 60% 40%, 80% 80%, 100% 50%, 100% 100%, 0% 100%)',
+                                animation: 'surfaceSlosh 2.2s ease-in-out infinite reverse'
+                              }}
+                            />
+                            
+                            {/* Tertiary ripple layer */}
+                            <div 
+                              className="absolute top-2 left-0 w-full h-3"
+                              style={{
+                                background: `linear-gradient(180deg, 
+                                  ${todayIntake < 4 ? 'rgba(185, 28, 28, 0.4)' : 
+                                    todayIntake <= 6 ? 'rgba(202, 138, 4, 0.4)' : 
+                                    'rgba(37, 99, 235, 0.4)'} 0%, 
+                                  transparent 100%)`,
+                                clipPath: 'polygon(0% 60%, 25% 80%, 50% 55%, 75% 85%, 100% 65%, 100% 100%, 0% 100%)',
+                                animation: 'surfaceSlosh 1.8s ease-in-out infinite'
+                              }}
+                            />
+                            
+
+                          </>
+                        )}
                       </div>
+                      
+
                     </div>
                     
                     {/* Bottle Brand Label */}
                     <div className="w-8 h-2 bg-blue-300 rounded-full mt-1 opacity-80 border border-blue-400 flex items-center justify-center">
                       <div className="text-[8px] font-bold text-blue-700">H₂O</div>
                     </div>
+                    
+                    {/* Enhanced drag indicator */}
+                    {isDragging && (
+                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap z-30 shadow-lg border-2 border-white">
+                        <div className="text-center">
+                          <div className="font-bold">{todayIntake % 1 === 0 ? todayIntake : todayIntake.toFixed(1)} / {dailyGoal}</div>
+                          <div className="text-xs opacity-90">{(todayIntake * glassSize).toFixed(0)}ml</div>
+                        </div>
+                        {/* Arrow pointing to bottle */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-blue-600"></div>
+                      </div>
+                    )}
+                    
+                    {/* Hover indicator when not dragging */}
+                    {!isDragging && (
+                      <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                        Drag to adjust water level
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">{glassSize}ml glass</p>
+                  
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">{glassSize}ml per glass</p>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                      <span className="text-xs text-blue-500">↕️</span>
+                      <p className="text-xs text-blue-500">Drag bottle up/down</p>
+                    </div>
+                    {isDragging && (
+                      <p className="text-xs text-green-500 font-medium mt-1 animate-pulse">
+                        Keep dragging...
+                      </p>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="text-center">
@@ -319,6 +645,8 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   <p className="text-xs text-muted-foreground">+{glassSize}ml</p>
                 </div>
               </div>
+
+
 
               <div className="text-center">
                 <Badge 

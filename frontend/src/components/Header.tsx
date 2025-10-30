@@ -22,7 +22,8 @@ import {
   Users,
   Circle,
   Scale,
-  RefreshCw
+  RefreshCw,
+  Droplets
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Switch } from './ui/switch';
@@ -862,24 +863,44 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                 className="relative cursor-pointer group p-1 md:p-2 h-auto hover:bg-muted/30 rounded-lg transition-colors"
               >
                 <div className="flex items-center gap-1 md:gap-2">
-                  {/* Simple Water Bottle */}
-                  <div className="relative w-3 h-6 md:w-4 md:h-8">
-                    {/* Bottle cap */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-2 md:w-3 h-0.5 md:h-1 bg-gray-500 rounded-sm" />
+                  {/* Water Bottle - Same as WaterTracker */}
+                  <div className="relative flex flex-col items-center">
+                    {/* Bottle Cap */}
+                    <div className="w-2 h-1 md:w-3 md:h-1.5 bg-blue-600 rounded-t-lg mb-0.5 shadow-md"></div>
                     
-                    {/* Bottle neck */}
-                    <div className="absolute top-0.5 md:top-1 left-1/2 transform -translate-x-1/2 w-1.5 md:w-2 h-0.5 md:h-1 bg-gray-200 border-l border-r border-gray-400" />
+                    {/* Bottle Neck */}
+                    <div className="w-1.5 h-1 md:w-2 md:h-1 bg-gray-300 border border-gray-400"></div>
                     
-                    {/* Bottle body */}
-                    <div className="absolute top-1 md:top-2 left-1/2 transform -translate-x-1/2 w-3 h-5 md:w-4 md:h-6 bg-white border-2 border-gray-400 rounded-b-xl overflow-hidden">
-                      {/* Water fill */}
-                      <motion.div
-                        className={`absolute bottom-0 left-0 right-0 ${getWaterColor()} opacity-80`}
-                        style={{ height: `${Math.min(waterPercentage, 100)}%` }}
+                    {/* Main Bottle */}
+                    <div className="relative w-4 h-6 md:w-5 md:h-7 bg-gradient-to-b from-gray-100 to-gray-300 rounded-b-3xl border-2 border-gray-500 overflow-hidden shadow-lg">
+                      
+                      {/* Water fill with same logic as WaterTracker */}
+                      <motion.div 
+                        className="absolute bottom-0 w-full rounded-b-3xl transition-all duration-500"
+                        style={{ 
+                          height: `${Math.min(waterPercentage, 100)}%`,
+                          backgroundColor: waterIntake === 0 ? 'transparent' :
+                            waterIntake < 4 ? '#f87171' : // red-400  
+                            waterIntake <= 6 ? '#facc15' : // yellow-400
+                            '#60a5fa' // blue-400
+                        }}
                         initial={{ height: 0 }}
                         animate={{ height: `${Math.min(waterPercentage, 100)}%` }}
                         transition={{ duration: 0.3 }}
                       />
+                      
+                      {/* Water Surface Animation */}
+                      <div 
+                        className={`absolute inset-x-0 w-full bg-white h-px animate-pulse ${waterIntake === 0 ? 'opacity-0' : 'opacity-80'}`}
+                        style={{ 
+                          bottom: `${Math.min(waterPercentage, 100)}%`
+                        }}
+                      />
+                      
+                      {/* Measurement lines - fewer for smaller size */}
+                      <div className="absolute inset-x-0.5 h-px bg-gray-600 opacity-30" style={{ bottom: '75%' }}></div>
+                      <div className="absolute inset-x-0.5 h-px bg-gray-600 opacity-30" style={{ bottom: '50%' }}></div>
+                      <div className="absolute inset-x-0.5 h-px bg-gray-600 opacity-30" style={{ bottom: '25%' }}></div>
                     </div>
                   </div>
                   
