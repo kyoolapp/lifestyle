@@ -406,13 +406,25 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
         {/* Left side - Today's Goals (where eyes go first) */}
         <div className="flex items-center gap-2 md:gap-6">
           <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-7 h-7 md:w-8 md:h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xs md:text-sm">H</span>
+            {/* Enhanced Logo */}
+            <div className="relative w-8 h-8 md:w-10 md:h-10">
+              <div className="w-full h-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-5 h-5 md:w-6 md:h-6 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-blue-600 font-bold text-xs md:text-sm">💚</span>
+                </div>
+              </div>
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-400 rounded-xl opacity-20 blur-sm -z-10"></div>
             </div>
+            
             <div className="hidden sm:block">
-            <h1 className="text-base md:text-lg font-semibold">Health Hub</h1>
-            <p className="text-xs md:text-sm text-muted-foreground">Stay Healthy</p>
-          </div>
+              <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Kyool Health
+              </h1>
+              <p className="text-xs md:text-sm text-muted-foreground font-medium">
+                Your Wellness Companion
+              </p>
+            </div>
           </div>
          
           {/* Today's Goals - Friendly Design */}
