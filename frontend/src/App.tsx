@@ -46,6 +46,7 @@ import { FitnessTracker } from "./components/FitnessTracker";
 import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
 import { UserProfile } from "./components/UserProfile";
+import { Explore } from "./components/Explore";
 
 import { auth } from "./firebase";
 
@@ -758,6 +759,14 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <FitnessTracker />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/explore"
+          element={
+            <PrivateRoute>
+              <Explore />
             </PrivateRoute>
           }
         />

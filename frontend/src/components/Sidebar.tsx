@@ -17,7 +17,8 @@ import {
   Menu,
   X,
   Sparkles,
-  Users
+  Users,
+  Compass
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,8 +38,9 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
     //{ id: 'features', label: 'Features', icon: Sparkles, path: '/features' },
     { id: 'health', label: 'Health Metrics', icon: Heart, path: '/health' },
     { id: 'water', label: 'Water Tracker', icon: Droplets, path: '/water' },
+    { id: 'explore', label: 'Explore Workouts', icon: Compass, path: '/explore' },
+    { id: 'fitness', label: 'Fitness', icon: Dumbbell, path: '/fitness' },
     //{ id: 'recipes', label: 'Recipes', icon: ChefHat, path: '/recipes' },
-    //{ id: 'fitness', label: 'Fitness', icon: Dumbbell, path: '/fitness' },
     //{ id: 'devices', label: 'Connected Devices', icon: Smartphone, path: '/devices' },
     { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
