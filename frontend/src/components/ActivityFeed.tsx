@@ -24,6 +24,7 @@ import {
   Zap
 } from 'lucide-react';
 import * as userApi from '../api/user_api';
+import { GoalsWidget } from './GoalsWidget';
 
 interface ActivityFeedProps {
   user: any;
@@ -496,9 +497,17 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
         </div>
       </div>
 
-      {/* Social Health Community Section */}
-      <div className="grid lg:grid-cols-2 gap-3 md:gap-6">
-        <Card className="lg:col-span-1">
+      {/* Goals and Social Health Community Section */}
+      <div className="grid lg:grid-cols-3 gap-3 md:gap-6">
+        {/* Goals Widget */}
+        <div className="lg:col-span-1">
+          <GoalsWidget />
+        </div>
+        
+        {/* Social Health Community Section */}
+        <div className="lg:col-span-2">
+          <div className="grid lg:grid-cols-2 gap-3 md:gap-6">
+            <Card className="lg:col-span-1">
           <CardContent className="p-4 md:p-6">
             <div className="space-y-4">
               <div>
@@ -550,6 +559,8 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
             </div>
           </CardContent>
         </Card>
+          </div>
+        </div>
       </div>
 
       {/* Activity Feed - Simplified without heavy animations */}

@@ -18,7 +18,8 @@ import {
   X,
   Sparkles,
   Users,
-  Compass
+  Compass,
+  Target
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -39,6 +40,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
     { id: 'health', label: 'Health Metrics', icon: Heart, path: '/health' },
     { id: 'water', label: 'Water Tracker', icon: Droplets, path: '/water' },
     { id: 'explore', label: 'Explore Workouts', icon: Compass, path: '/explore' },
+    { id: 'goals', label: 'Goal Setting', icon: Target, path: '/goals' },
     { id: 'fitness', label: 'Fitness', icon: Dumbbell, path: '/fitness' },
     //{ id: 'recipes', label: 'Recipes', icon: ChefHat, path: '/recipes' },
     //{ id: 'devices', label: 'Connected Devices', icon: Smartphone, path: '/devices' },

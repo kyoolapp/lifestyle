@@ -47,6 +47,7 @@ import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
 import { UserProfile } from "./components/UserProfile";
 import { Explore } from "./components/Explore";
+import { GoalSetting } from "./components/GoalSetting";
 
 import { auth } from "./firebase";
 
@@ -767,6 +768,14 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <Explore />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/goals"
+          element={
+            <PrivateRoute>
+              <GoalSetting />
             </PrivateRoute>
           }
         />
