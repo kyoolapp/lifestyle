@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { Users } from 'lucide-react';
+import { Users, ArrowLeft, UserPlus } from 'lucide-react';
 
 interface Friend {
   id: string;
@@ -19,24 +19,28 @@ interface Friend {
 }
 
 interface ViewAllFriendsProps {
-  onBack: () => void;
-  onAddFriends: () => void;
-  // existing props
+  onBack?: () => void;
+  onAddFriends?: () => void;
+  user?: any; // Allow passing user from route
 }
 
 
-export default function ViewAllFriends({ onBack, onAddFriends }: ViewAllFriendsProps) {
-  const [user] = useAuthState(auth);
+export default function ViewAllFriends({ onBack, onAddFriends, user: propUser }: ViewAllFriendsProps) {
+  const [authUser] = useAuthState(auth);
   const navigate = useNavigate();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Use either the passed user or the authenticated user
+  const user = propUser || authUser;
 
   useEffect(() => {
     const fetchFriends = async () => {
-      if (!user?.uid) return;
+      if (!user?.uid && !user?.id) return;
       
       try {
-        const friendsList = await getUserFriends(user.uid);
+        const userId = user.uid || user.id;
+        const friendsList = await getUserFriends(userId);
         setFriends(friendsList);
       } catch (error) {
         console.error('Failed to fetch friends:', error);
@@ -78,10 +82,41 @@ export default function ViewAllFriends({ onBack, onAddFriends }: ViewAllFriendsP
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      {/* Header for standalone usage */}
+      {!onBack && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/profile')}
+              className="mr-2"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">My Friends</h1>
+          </div>
+          <Button onClick={() => navigate('/search')}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add Friends
+          </Button>
+        </div>
+      )}
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>My Friends ({friends.length})</span>
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              <span>Friends ({friends.length})</span>
+            </div>
+            {onBack && (
+              <Button variant="outline" onClick={onBack}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>

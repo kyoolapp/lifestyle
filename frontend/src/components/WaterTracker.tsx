@@ -178,39 +178,26 @@ export function WaterTracker({ user }: WaterTrackerProps) {
           // Create weekly data for the last 7 days
           const today = new Date();
           const weeklyData = [];
-          const options: Intl.DateTimeFormatOptions = {
-                            year: 'numeric',
-                            month: 'numeric',
-                            day: 'numeric',
-                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                            //hour: 'numeric',
-                            //minute: 'numeric',
-                            //second: 'numeric',
-                            //timeZoneName: 'short', // Optional: to display the time zone abbreviation
-                          };
 
 
           for (let i = 6; i >= 0; i--) {
             const date = new Date(today);
             date.setDate(today.getDate() - i);
-            const formatter = new Intl.DateTimeFormat('en-CA', options);
-            const formattedDate = formatter.format(date);
-            //console.log(formattedDate);
-
-            console.log('Processing date1:', formattedDate);
+            const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            console.log('Processing date:', dateString);
+            
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const dayName = dayNames[date.getDay()];
             console.log('DAYNAME:', dayName.toString());
-            //const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-            //console.log('Processing date:', dateString);
+            
             // Find matching history entry for this date
-            const historyEntry = history.find((h: any) => h.date === formattedDate);
+            const historyEntry = history.find((h: any) => h.date === dateString);
             
             weeklyData.push({
               day: dayName,
               intake: historyEntry ? historyEntry.glasses : 0,
               goal: 8,
-              date: formattedDate
+              date: dateString
             });
             console.log('Weekly data entry:', weeklyData[weeklyData.length - 1]);
             console.log('END OF LOOP');

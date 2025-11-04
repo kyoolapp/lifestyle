@@ -48,6 +48,8 @@ import { FeaturesShowcase } from "./components/FeaturesShowcase";
 import { UserProfile } from "./components/UserProfile";
 import { Explore } from "./components/Explore";
 import { GoalSetting } from "./components/GoalSetting";
+import ViewAllFriends from "./components/ViewAllFriends";
+import UserSearch from "./components/UserSearch";
 
 import { auth } from "./firebase";
 
@@ -792,6 +794,22 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <Profile user={user} setUser={setUser} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/friends"
+          element={
+            <PrivateRoute>
+              <ViewAllFriends user={user} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <PrivateRoute>
+              <UserSearch />
             </PrivateRoute>
           }
         />
