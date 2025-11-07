@@ -215,7 +215,7 @@ const workoutMethodologies: WorkoutMethodology[] = [
     ],
     principles: [
       'Maintain 60-80% max heart rate',
-      'Focus on breathing rhythm',
+      'Focus on breathing rhythm',                                     
       'Gradually increase duration',
       'Include variety to prevent boredom'
     ],

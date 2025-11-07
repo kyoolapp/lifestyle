@@ -10,6 +10,7 @@ import { Checkbox } from "./ui/checkbox";
 import { isUsernameAvailable } from "../api/user_api";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
+import { getBrowserTimezone } from "../utils/timezone";
 import {
   Select,
   SelectContent,
@@ -67,6 +68,7 @@ export default function SignUpPage() {
   const [usernameAvailable, setUsernameAvailable] = useState(true);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameError, setUsernameError] = useState("");
+  const [timezone, setTimezone] = useState<string>("");
 
 
   useEffect(() => {
@@ -95,6 +97,12 @@ export default function SignUpPage() {
     return () => unsub();
   }, []);
 
+  // Capture browser timezone on component mount
+  useEffect(() => {
+    const browserTz = getBrowserTimezone();
+    setTimezone(browserTz);
+    console.log("Detected browser timezone:", browserTz);
+  }, []);
 
 
   useEffect(() => {
@@ -183,13 +191,15 @@ export default function SignUpPage() {
         weight: Number.isFinite(weightNum as number) ? weightNum : null,
         age: Number.isFinite(ageNum as number) ? ageNum : null,
         date_joined: new Date().toISOString(),
+        timezone,
       };
 
-    //console.log("User data to submit:", userData);
+    console.log("DEBUG: User data to submit:", userData);
+    console.log("DEBUG: Timezone being sent:", userData.timezone);
 
     // Call backend to create user in Firestore
   await createOrUpdateUser(googleUser?.uid, userData);
-  //console.log("After backend createOrUpdateUser");
+  console.log("DEBUG: After backend createOrUpdateUser");
 
     localStorage.setItem("kyool_profile", JSON.stringify(userData));
 

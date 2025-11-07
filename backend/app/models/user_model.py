@@ -18,3 +18,4 @@ class UserProfile(BaseModel):
     gender: Optional[str] = None
     date_joined: Optional[str] = None
     tdee: Optional[float] = None
+    timezone: Optional[str] = 'UTC'  # IANA timezone name (e.g., 'Asia/Kolkata')

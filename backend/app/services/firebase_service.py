@@ -5,13 +5,24 @@ import json
 import re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from .timezone_utils import (
+    get_utc_now,
+    get_utc_now_iso,
+    iso_to_utc_datetime,
+    get_user_local_date,
+    get_user_local_datetime,
+    convert_utc_to_user_local,
+    should_reset_daily_metrics,
+    get_local_date_range,
+    is_valid_timezone
+)
 
 
-#key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
+key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
 # Use environment variable for service account key path, default to Cloud Run secret mount path
-secret_keys = os.environ.get("FIREBASE_KEY_PATH")
+#secret_keys = os.environ.get("FIREBASE_KEY_PATH")
 #print(f"Using Firebase key path: {secret_keys}")
-key_path= json.loads(secret_keys) 
+#key_path= json.loads(secret_keys) 
 #print(f"Decoded Firebase key path: {key_path}")
 
 cred = credentials.Certificate(key_path)
@@ -41,51 +52,88 @@ class FirestoreUserService:
     
     #Adding Water log functionality
     def log_water_intake(self, user_id: str, glasses: float):
-        """Log water intake for today, creating or updating the daily record"""
-        today = datetime.now().strftime('%Y-%m-%d').astimezone()
+        """
+        Log water intake for today (in user's local timezone), creating or updating the daily record.
+        Uses atomic increment to avoid race conditions with concurrent requests.
         
-        # Get or create water_logs subcollection for the user
+        Args:
+            user_id: The user's Firebase ID.
+            glasses: Amount of water in glasses to add to today's total.
+            
+        Returns:
+            float: Updated total glasses for today.
+        """
+        # Get user's local date based on stored timezone
+        today = get_user_local_date(self._get_user_timezone(user_id))
         water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
         
-        doc = water_log_ref.get()
-        if doc.exists:
-            # Update existing daily record
-            current_data = doc.to_dict()
-            new_total = current_data.get('glasses', 0) + glasses
+        now_utc_iso = get_utc_now_iso()
+        
+        try:
+            # Try to atomically increment existing record
             water_log_ref.update({
-                'glasses': new_total,
-                'last_updated': datetime.now().isoformat()
+                'glasses': firestore.Increment(glasses),
+                'last_updated': now_utc_iso
             })
-            return new_total
-        else:
-            # Create new daily record
+        except Exception:
+            # Document doesn't exist, create it
             water_log_ref.set({
                 'glasses': glasses,
                 'date': today,
-                'created_at': datetime.now().astimezone(),
-                'last_updated': datetime.now().isoformat()
+                'created_at': now_utc_iso,
+                'last_updated': now_utc_iso
             })
-            return glasses
+        
+        # Fetch and return updated value
+        doc = water_log_ref.get()
+        return doc.to_dict().get('glasses', glasses) if doc.exists else glasses
     
     def set_water_intake(self, user_id: str, glasses: float):
-        """Set the total water intake for today (replace existing value)"""
-        today = datetime.now().strftime('%Y-%m-%d')
+        """
+        Set the total water intake for today (in user's local timezone).
+        Replaces the existing value instead of incrementing.
         
+        Args:
+            user_id: The user's Firebase ID.
+            glasses: Exact amount of water in glasses to set for today.
+            
+        Returns:
+            float: The set value.
+        """
+        today = get_user_local_date(self._get_user_timezone(user_id))
         water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
+        now_utc_iso = get_utc_now_iso()
         
-        water_log_ref.set({
-            'glasses': glasses,
-            'date': today,
-            'created_at': datetime.now().astimezone(),
-            'last_updated': datetime.now()
-        }, merge=True)
+        # Check if doc exists to preserve created_at
+        doc = water_log_ref.get()
+        if doc.exists:
+            # Update existing record, preserving created_at
+            water_log_ref.update({
+                'glasses': glasses,
+                'last_updated': now_utc_iso
+            })
+        else:
+            # Create new record
+            water_log_ref.set({
+                'glasses': glasses,
+                'date': today,
+                'created_at': now_utc_iso,
+                'last_updated': now_utc_iso
+            })
         
         return glasses
     
     def get_today_water_intake(self, user_id: str):
-        """Get today's water intake"""
-        today = datetime.now().strftime('%Y-%m-%d')
+        """
+        Get today's water intake (in user's local timezone).
         
+        Args:
+            user_id: The user's Firebase ID.
+            
+        Returns:
+            float: Today's total water intake in glasses.
+        """
+        today = get_user_local_date(self._get_user_timezone(user_id))
         water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
         doc = water_log_ref.get()
         
@@ -94,23 +142,37 @@ class FirestoreUserService:
         return 0
     
     def get_water_intake_history(self, user_id: str, days: int = 7):
-        """Get water intake history for the last N days"""
-        water_logs = []
+        """
+        Get water intake history for the last N days (in user's local timezone).
         
-        for i in range(days):
-            date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+        Args:
+            user_id: The user's Firebase ID.
+            days: Number of past days to retrieve (default 7).
+            
+        Returns:
+            list: List of dictionaries with 'date' and 'glasses' keys, sorted by date.
+        """
+        user_tz = self._get_user_timezone(user_id)
+        date_range = get_local_date_range(user_tz, days)
+        
+        water_logs = []
+        for date in date_range:
             water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(date)
             doc = water_log_ref.get()
             
             if doc.exists:
-                water_logs.append(doc.to_dict())
+                water_logs.append({
+                    'date': date,
+                    'glasses': doc.to_dict().get('glasses', 0)
+                })
             else:
                 water_logs.append({
                     'date': date,
                     'glasses': 0
                 })
         
-        return sorted(water_logs, key=lambda x: x['date'])
+        # Already sorted in descending order from get_local_date_range, so reverse for ascending
+        return list(reversed(water_logs))
     
     #Getting user by ID
     def generate_avatar_url(self, name: str, username: str):
@@ -144,14 +206,45 @@ class FirestoreUserService:
     
     #Creating user with initial weight log
     def create_user(self, user_id: str, user_data: dict):
-        from datetime import datetime
-
+        """
+        Create a new user with initial data.
+        
+        Args:
+            user_id: The user's Firebase ID.
+            user_data: Dictionary with user fields. Should include 'timezone' if available.
+            
+        Returns:
+            str: The created user's ID.
+        """
         username = user_data.get('username')
         if self.is_username_taken(username):
             raise ValueError("Username already taken")
 
         if not self.is_valid_username(username):
             raise ValueError("Invalid username format")
+        
+        # DEBUG: Log what timezone was received
+        print(f"DEBUG: user_data received: {user_data}")
+        print(f"DEBUG: timezone in user_data: {user_data.get('timezone')}")
+        
+        # Capture timezone from request (default to UTC if not provided)
+        user_tz = user_data.get('timezone')
+        print(f"DEBUG: user_tz after get: {user_tz}")
+        print(f"DEBUG: type of user_tz: {type(user_tz)}")
+        print(f"DEBUG: repr of user_tz: {repr(user_tz)}")
+        
+        is_valid = is_valid_timezone(user_tz)
+        print(f"DEBUG: is_valid_timezone('{user_tz}') returned: {is_valid}")
+        
+        if not is_valid:
+            print(f"DEBUG: timezone '{user_tz}' is invalid, setting to UTC")
+            user_tz = 'UTC'
+        print(f"DEBUG: final user_tz: {user_tz}")
+        user_data['timezone'] = user_tz
+        
+        # Set initial last_activity timestamp
+        user_data['last_activity'] = get_utc_now_iso()
+        
         # Store initial weight log using values from frontend
         weight = user_data.get('weight')
         bmi = user_data.get('bmi')
@@ -159,12 +252,13 @@ class FirestoreUserService:
         tdee = user_data.get('tdee')
         initial_log = {
             'weight': weight,
-            'date': datetime.utcnow().isoformat(),
+            'date': get_utc_now_iso(),
             'bmi': bmi,
             'bmr': bmr,
             'tdee': tdee
         } if weight else None
         user_data['weight_logs'] = [initial_log] if initial_log else []
+        
         db.collection('users').document(user_id).set(user_data)
         return user_id
 
@@ -201,24 +295,44 @@ class FirestoreUserService:
         return any(users)
     
     def update_user_activity(self, user_id: str):
-        """Update user's last_active timestamp to track online status"""
+        """
+        Update user's last_activity timestamp to track online status.
+        
+        Args:
+            user_id: The user's Firebase ID.
+            
+        Returns:
+            bool: True if successful, False otherwise.
+        """
         try:
             user_ref = db.collection('users').document(user_id)
-            user_ref.update({'last_active': datetime.utcnow().isoformat()})
+            user_ref.update({'last_activity': get_utc_now_iso()})
             return True
         except Exception as e:
             print(f"Error updating user activity: {e}")
             return False
     
     def is_user_online(self, last_active_str: str) -> bool:
-        """Check if user is online based on last_active timestamp"""
+        """
+        Check if user is online based on last_active timestamp.
+        A user is considered online if their last activity was within 5 minutes.
+        
+        Args:
+            last_active_str: ISO format UTC timestamp string.
+            
+        Returns:
+            bool: True if user is online, False otherwise.
+        """
         if not last_active_str:
             return False
         try:
-            last_active = datetime.fromisoformat(last_active_str.replace('Z', '+00:00'))
-            now = datetime.utcnow()
+            last_active_utc = iso_to_utc_datetime(last_active_str)
+            if not last_active_utc:
+                return False
+            
+            now_utc = get_utc_now()
             # Consider user online if last active within 5 minutes
-            return (now - last_active.replace(tzinfo=None)) < timedelta(minutes=5)
+            return (now_utc - last_active_utc) < timedelta(minutes=5)
         except Exception as e:
             print(f"Error checking online status: {e}")
             return False
@@ -250,8 +364,8 @@ class FirestoreUserService:
             'sender_id': sender_id,
             'receiver_id': receiver_id,
             'status': 'pending',
-            'created_at': datetime.utcnow().isoformat(),
-            'updated_at': datetime.utcnow().isoformat()
+            'created_at': get_utc_now_iso(),
+            'updated_at': get_utc_now_iso()
         }
         
         # Add to friend_requests collection
@@ -274,7 +388,7 @@ class FirestoreUserService:
         # Update request status to accepted
         request_doc.reference.update({
             'status': 'accepted',
-            'updated_at': datetime.utcnow().isoformat()
+            'updated_at': get_utc_now_iso()
         })
         
         # Add each user to the other's friends list
@@ -317,7 +431,7 @@ class FirestoreUserService:
         # Update request status to rejected
         request_doc.reference.update({
             'status': 'rejected',
-            'updated_at': datetime.utcnow().isoformat()
+            'updated_at': get_utc_now_iso()
         })
         
         return True
@@ -502,6 +616,76 @@ class FirestoreUserService:
                 })
         
         return friends
+
+    # ===== Timezone & Daily Reset Helper Methods =====
+    
+    def _get_user_timezone(self, user_id: str) -> str:
+        """
+        Helper method to retrieve user's stored timezone.
+        
+        Args:
+            user_id: The user's Firebase ID.
+            
+        Returns:
+            str: IANA timezone name (e.g., 'Asia/Kolkata'), or 'UTC' if not set.
+        """
+        try:
+            user_doc = db.collection('users').document(user_id).get()
+            if user_doc.exists:
+                user_tz = user_doc.to_dict().get('timezone')
+                if user_tz and is_valid_timezone(user_tz):
+                    return user_tz
+        except Exception as e:
+            print(f"Error retrieving user timezone: {e}")
+        
+        return 'UTC'
+    
+    def check_and_reset_daily_metrics(self, user_id: str) -> bool:
+        """
+        Check if a new day has started for the user and reset daily metrics if needed.
+        
+        This method:
+        1. Fetches the user's last_activity timestamp and timezone.
+        2. Converts both UTC timestamps to the user's local timezone.
+        3. Compares local dates—if different, a new day has started.
+        4. Resets daily metrics (e.g., water intake) to 0 and updates last_activity.
+        
+        Args:
+            user_id: The user's Firebase ID.
+            
+        Returns:
+            bool: True if metrics were reset, False otherwise.
+        """
+        user_doc = db.collection('users').document(user_id).get()
+        if not user_doc.exists:
+            return False
+        
+        user_data = user_doc.to_dict()
+        last_activity_utc_iso = user_data.get('last_activity')
+        user_tz = user_data.get('timezone', 'UTC')
+        
+        # Check if new day has started
+        if not should_reset_daily_metrics(last_activity_utc_iso, user_tz):
+            return False
+        
+        # Get today's date in user's local timezone
+        today_local = get_user_local_date(user_tz)
+        
+        # Reset water intake for today
+        water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today_local)
+        water_log_ref.set({
+            'glasses': 0,
+            'date': today_local,
+            'created_at': get_utc_now_iso(),
+            'last_updated': get_utc_now_iso()
+        })
+        
+        # Update last_activity to mark that we've reset for this day
+        user_ref = db.collection('users').document(user_id)
+        user_ref.update({'last_activity': get_utc_now_iso()})
+        
+        print(f"Reset daily metrics for user {user_id} on {today_local}")
+        return True
 
     def are_friends(self, user_id: str, other_user_id: str):
         """Check if two users are friends"""
