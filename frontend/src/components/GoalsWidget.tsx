@@ -5,22 +5,46 @@ import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Link } from 'react-router-dom';
 import { Target, Plus, ChevronRight, Trophy } from 'lucide-react';
+import * as goalsApi from '../api/goals_api';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../firebase';
 
 export function GoalsWidget() {
-  // Load goals from localStorage
+  const [user] = useAuthState(auth);
+  // Load goals from backend
   const [goals, setGoals] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const savedGoals = localStorage.getItem('lifestyle_goals');
-    if (savedGoals) {
-      const parsedGoals = JSON.parse(savedGoals).map((goal: any) => ({
-        ...goal,
-        deadline: new Date(goal.deadline),
-        createdDate: new Date(goal.createdDate)
-      }));
-      setGoals(parsedGoals.filter((g: any) => g.status === 'active').slice(0, 3)); // Show only first 3 active goals
-    }
-  }, []);
+    const loadGoals = async () => {
+      if (!user?.uid) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const backendGoals = await goalsApi.getUserGoals(user.uid, 'active');
+        setGoals(backendGoals.slice(0, 3)); // Show only first 3 active goals
+      } catch (error) {
+        console.error('Failed to load goals for widget:', error);
+        // Fallback to localStorage
+        const savedGoals = localStorage.getItem('lifestyle_goals');
+        if (savedGoals) {
+          const parsedGoals = JSON.parse(savedGoals).map((goal: any) => ({
+            ...goal,
+            deadline: new Date(goal.deadline),
+            createdDate: new Date(goal.createdDate)
+          }));
+          setGoals(parsedGoals.filter((g: any) => g.status === 'active').slice(0, 3));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGoals();
+  }, [user?.uid]);
 
   const calculateProgress = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100);
@@ -37,6 +61,23 @@ export function GoalsWidget() {
     };
     return colors[category as keyof typeof colors] || 'bg-gray-500';
   };
+
+  if (loading) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Target className="w-5 h-5 text-blue-500" />
+            Goals
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-sm text-muted-foreground mt-2">Loading goals...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (goals.length === 0) {
     return (

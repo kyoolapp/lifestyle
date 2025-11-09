@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import users, recipes, suggestions, waitlist
+from app.api import users, recipes, suggestions, waitlist, goals
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -17,6 +17,7 @@ app.include_router(users.router)
 app.include_router(recipes.router)
 app.include_router(suggestions.router)
 app.include_router(waitlist.router)
+app.include_router(goals.router)
 
 @app.get('/')
 def root():

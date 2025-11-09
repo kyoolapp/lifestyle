@@ -21,9 +21,9 @@ export async function createGoal(userId, goal) {
 
   const data = await response.json();
   return {
-    ...data,
-    deadline: new Date(data.deadline),
-    createdDate: new Date(data.createdDate),
+    ...data.goal,
+    deadline: new Date(data.goal.deadline),
+    createdDate: new Date(data.goal.createdDate),
   };
 }
 
@@ -88,42 +88,4 @@ export async function getGoalStats(userId) {
   }
 
   return response.json();
-}
-
-// Sync goals from localStorage to backend (migration helper)
-export async function syncGoalsToBackend(userId) {
-  const localGoals = localStorage.getItem('lifestyle_goals');
-  if (!localGoals) return;
-
-  const goals = JSON.parse(localGoals).map((goal) => ({
-    ...goal,
-    deadline: new Date(goal.deadline),
-    createdDate: new Date(goal.createdDate),
-  }));
-
-  for (const goal of goals) {
-    try {
-      await createGoal(userId, goal);
-    } catch (error) {
-      console.error('Failed to sync goal:', goal.title, error);
-    }
-  }
-
-  // Clear localStorage after successful sync
-  localStorage.removeItem('lifestyle_goals');
-}
-
-// Check if goals are synced (helper for migration)
-export async function areGoalsSynced(userId) {
-  try {
-    const backendGoals = await getUserGoals(userId);
-    const localGoals = localStorage.getItem('lifestyle_goals');
-    
-    if (!localGoals) return backendGoals.length > 0;
-    
-    const parsedLocalGoals = JSON.parse(localGoals);
-    return backendGoals.length >= parsedLocalGoals.length;
-  } catch (error) {
-    return false;
-  }
 }

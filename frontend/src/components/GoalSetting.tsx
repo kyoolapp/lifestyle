@@ -23,6 +23,9 @@ import {
   BarChart3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import * as goalsApi from '../api/goals_api';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../firebase';
 
 interface Goal {
   id: string;
@@ -108,7 +111,9 @@ const goalTemplates: GoalTemplate[] = [
 ];
 
 export function GoalSetting() {
+  const [user] = useAuthState(auth);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<GoalTemplate | null>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
@@ -126,23 +131,61 @@ export function GoalSetting() {
     priority: 'medium' as Goal['priority']
   });
 
-  // Load goals from localStorage on component mount
+  // Load goals from backend on component mount
   useEffect(() => {
-    const savedGoals = localStorage.getItem('lifestyle_goals');
-    if (savedGoals) {
-      const parsedGoals = JSON.parse(savedGoals).map((goal: any) => ({
-        ...goal,
-        deadline: new Date(goal.deadline),
-        createdDate: new Date(goal.createdDate)
-      }));
-      setGoals(parsedGoals);
-    }
-  }, []);
+    const loadGoals = async () => {
+      if (!user?.uid) {
+        setLoading(false);
+        return;
+      }
 
-  // Save goals to localStorage whenever goals change
-  useEffect(() => {
-    localStorage.setItem('lifestyle_goals', JSON.stringify(goals));
-  }, [goals]);
+      try {
+        setLoading(true);
+        
+        // Check if there are localStorage goals to migrate
+        const localGoals = localStorage.getItem('lifestyle_goals');
+        if (localGoals) {
+          // Migrate localStorage goals to backend
+          const parsedGoals = JSON.parse(localGoals);
+          for (const goal of parsedGoals) {
+            try {
+              await goalsApi.createGoal(user.uid, {
+                ...goal,
+                deadline: new Date(goal.deadline),
+                createdDate: new Date(goal.createdDate)
+              });
+            } catch (error) {
+              console.error('Failed to migrate goal:', goal.title, error);
+            }
+          }
+          // Clear localStorage after migration
+          localStorage.removeItem('lifestyle_goals');
+        }
+        
+        // Load goals from backend
+        const backendGoals = await goalsApi.getUserGoals(user.uid);
+        setGoals(backendGoals);
+      } catch (error) {
+        console.error('Failed to load goals:', error);
+        // Fallback to localStorage if backend fails
+        const savedGoals = localStorage.getItem('lifestyle_goals');
+        if (savedGoals) {
+          const parsedGoals = JSON.parse(savedGoals).map((goal: any) => ({
+            ...goal,
+            deadline: new Date(goal.deadline),
+            createdDate: new Date(goal.createdDate)
+          }));
+          setGoals(parsedGoals);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGoals();
+  }, [user?.uid]);
+
+  // No longer need to save to localStorage - backend handles persistence
 
   const getCategoryIcon = (category: Goal['category']) => {
     const icons = {
@@ -203,8 +246,8 @@ export function GoalSetting() {
     setShowCreateForm(true);
   };
 
-  const handleCreateGoal = () => {
-    if (!formData.title || !formData.deadline) return;
+  const handleCreateGoal = async () => {
+    if (!formData.title || !formData.deadline || !user?.uid) return;
 
     const newGoal: Goal = {
       id: Date.now().toString(),
@@ -221,20 +264,45 @@ export function GoalSetting() {
       milestones: []
     };
 
-    setGoals([...goals, newGoal]);
-    setShowCreateForm(false);
-    setSelectedTemplate(null);
-    resetForm();
+    try {
+      const createdGoal = await goalsApi.createGoal(user.uid, newGoal);
+      setGoals([...goals, createdGoal]);
+      setShowCreateForm(false);
+      setSelectedTemplate(null);
+      resetForm();
+    } catch (error) {
+      console.error('Failed to create goal:', error);
+      alert('Failed to create goal. Please try again.');
+    }
   };
 
-  const handleUpdateGoal = (goalId: string, updates: Partial<Goal>) => {
-    setGoals(goals.map(goal => 
-      goal.id === goalId ? { ...goal, ...updates } : goal
-    ));
+  const handleUpdateGoal = async (goalId: string, updates: Partial<Goal>) => {
+    if (!user?.uid) return;
+
+    try {
+      if (updates.currentValue !== undefined || updates.status !== undefined) {
+        await goalsApi.updateGoalProgress(user.uid, goalId, updates.currentValue, updates.status);
+      }
+      
+      setGoals(goals.map(goal => 
+        goal.id === goalId ? { ...goal, ...updates } : goal
+      ));
+    } catch (error) {
+      console.error('Failed to update goal:', error);
+      alert('Failed to update goal. Please try again.');
+    }
   };
 
-  const handleDeleteGoal = (goalId: string) => {
-    setGoals(goals.filter(goal => goal.id !== goalId));
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!user?.uid) return;
+
+    try {
+      await goalsApi.deleteGoal(user.uid, goalId);
+      setGoals(goals.filter(goal => goal.id !== goalId));
+    } catch (error) {
+      console.error('Failed to delete goal:', error);
+      alert('Failed to delete goal. Please try again.');
+    }
   };
 
   const handleProgressUpdate = (goalId: string, newValue: number) => {
