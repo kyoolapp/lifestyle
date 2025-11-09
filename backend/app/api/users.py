@@ -140,7 +140,11 @@ def get_user(user_id: str):
 @router.post("/{user_id}", response_model=dict)
 def create_user(user_id: str, user: UserProfile):
     try:
-        user_service.create_user(user_id, user.dict())
+        user_dict = user.dict()
+        print(f"DEBUG API: user_id = {user_id}")
+        print(f"DEBUG API: user.dict() = {user_dict}")
+        print(f"DEBUG API: timezone field = {user_dict.get('timezone')}")
+        user_service.create_user(user_id, user_dict)
         return {"id": user_id}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -183,6 +187,7 @@ def check_username(username: str):
 # Update user activity (heartbeat endpoint)
 @router.post("/{user_id}/activity")
 def update_user_activity(user_id: str):
+    print(f"DEBUG API: /activity endpoint called for user {user_id}")
     success = user_service.update_user_activity(user_id)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update activity")

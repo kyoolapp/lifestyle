@@ -12,6 +12,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import * as userApi from '../api/user_api';
+import { getBrowserTimezone } from '../utils/timezone';
 
 // CSS animations for liquid sloshing effects
 const waveStyles = `
@@ -175,32 +176,44 @@ export function WaterTracker({ user }: WaterTrackerProps) {
           // Load weekly history (last 7 days)
           const history = await userApi.getWaterHistory(user.id, 7);
           
-          // Create weekly data for the last 7 days
-          const today = new Date();
+          // Use user's stored timezone to compute dates (same as backend)
+          // This ensures frontend dates match backend dates exactly
+          const userTimezone = user?.timezone || getBrowserTimezone() || 'UTC';
+          
+          // Backend returns dates in user's timezone (YYYY-MM-DD format)
+          // Frontend must compute dates using SAME timezone
           const weeklyData = [];
-
-
+          
+          // Generate 7 days backwards to match backend date range
           for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(today.getDate() - i);
-            const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-            console.log('Processing date:', dateString);
+            // Format date using Intl API with user's stored timezone
+            const date = new Date();
+            date.setDate(date.getDate() - i);
             
+            // Format as YYYY-MM-DD using user's timezone
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              timeZone: userTimezone
+            });
+            const formattedDate = formatter.format(date);
+            
+            // Extract day name (Sunday=0, Monday=1, etc.)
+            const dateObj = new Date(date);
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const dayName = dayNames[date.getDay()];
-            console.log('DAYNAME:', dayName.toString());
+            const dayName = dayNames[dateObj.getDay()];
             
             // Find matching history entry for this date
-            const historyEntry = history.find((h: any) => h.date === dateString);
+            // Backend returns dates in user's local timezone, so this should match now
+            const historyEntry = history.find((h: any) => h.date === formattedDate);
             
             weeklyData.push({
               day: dayName,
               intake: historyEntry ? historyEntry.glasses : 0,
               goal: 8,
-              date: dateString
+              date: formattedDate
             });
-            console.log('Weekly data entry:', weeklyData[weeklyData.length - 1]);
-            console.log('END OF LOOP');
           }
           
           setWeeklyData(weeklyData);
@@ -211,7 +224,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
     };
     
     loadWaterData();
-  }, [user?.id]);
+  }, [user?.id, user?.timezone]);
 
   // Listen for water intake updates from other components (like Header)
   useEffect(() => {

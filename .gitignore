@@ -41,3 +41,6 @@ backend/keys/
 code.txt
 
 ./KyoolUniversal/
+
+*.MD
+*.txt
