@@ -296,7 +296,7 @@ class FirestoreUserService:
     
     def update_user_activity(self, user_id: str):
         """
-        Update user's last_activity timestamp to track online status.
+        Update user's last_active timestamp to track online status.
         
         Args:
             user_id: The user's Firebase ID.
@@ -306,7 +306,10 @@ class FirestoreUserService:
         """
         try:
             user_ref = db.collection('users').document(user_id)
-            user_ref.update({'last_activity': get_utc_now_iso()})
+            timestamp = get_utc_now_iso()
+            #print(f"DEBUG: Updating last_active for user {user_id} with timestamp: {timestamp}")
+            user_ref.update({'last_active': timestamp})
+            #print(f"DEBUG: Successfully updated last_active for user {user_id}")
             return True
         except Exception as e:
             print(f"Error updating user activity: {e}")

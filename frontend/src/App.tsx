@@ -50,6 +50,7 @@ import { Explore } from "./components/Explore";
 import { GoalSetting } from "./components/GoalSetting";
 import ViewAllFriends from "./components/ViewAllFriends";
 import UserSearch from "./components/UserSearch";
+import { useUserHeartbeat } from "./hooks/useUserHeartbeat";
 
 import { auth } from "./firebase";
 
@@ -73,6 +74,9 @@ function AppRoutes() {
   const [waitlistOpen, setWaitlistOpen] = useState(false); // needed by Home
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Initialize user heartbeat to track online status
+  useUserHeartbeat();
 
   // ===== Home (Landing) from old App.tsx =====
   const features = [

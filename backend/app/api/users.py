@@ -187,6 +187,7 @@ def check_username(username: str):
 # Update user activity (heartbeat endpoint)
 @router.post("/{user_id}/activity")
 def update_user_activity(user_id: str):
+    print(f"DEBUG API: /activity endpoint called for user {user_id}")
     success = user_service.update_user_activity(user_id)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update activity")
