@@ -246,10 +246,13 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             });
             const formattedDate = formatter.format(date);
             
-            // Extract day name (Sunday=0, Monday=1, etc.)
-            const dateObj = new Date(date);
-            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const dayName = dayNames[dateObj.getDay()];
+            // Extract day name using the SAME timezone (user's timezone, not browser timezone)
+            // We need to use Intl.DateTimeFormat to get the weekday in the correct timezone
+            const dayFormatter = new Intl.DateTimeFormat('en-US', {
+              weekday: 'short',
+              timeZone: userTimezone
+            });
+            const dayName = dayFormatter.format(date);  // Gets day name in user's timezone
             
             // Find matching history entry for this date
             // Backend returns dates in user's local timezone, so this should match now
