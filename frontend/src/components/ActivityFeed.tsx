@@ -1,4 +1,5 @@
 import React, { useState, useEffect, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -33,6 +34,7 @@ interface ActivityFeedProps {
 }
 
 export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends, onStartWorkout }: ActivityFeedProps) {
+  const navigate = useNavigate();
   const [isWorkoutListOpen, setIsWorkoutListOpen] = useState(false);
   const [currentWorkout, setCurrentWorkout] = useState<any>(null);
   const [visibleActivities, setVisibleActivities] = useState(5);
@@ -348,14 +350,21 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
           {quickStats.map((stat, index) => {
             const Icon = stat.icon;
             const isActiveFriends = stat.label === 'Active Friends';
+            const isWaterIntake = stat.label === 'Water Intake';
             
             return (
               <div key={index}>
                 <Card 
                   className={`hover:shadow-md transition-shadow ${
-                    isActiveFriends ? 'cursor-pointer hover:bg-accent/50' : ''
+                    isActiveFriends || isWaterIntake ? 'cursor-pointer hover:bg-accent/50' : ''
                   }`}
-                  onClick={isActiveFriends ? onViewAllFriends : undefined}
+                  onClick={() => {
+                    if (isActiveFriends) {
+                      onViewAllFriends();
+                    } else if (isWaterIntake) {
+                      navigate('/water');
+                    }
+                  }}
                 >
                   <CardContent className="p-2 md:p-4">
                     <div className="flex items-center justify-between mb-1 md:mb-2">
