@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Progress } from './ui/progress';
 import * as userApi from '../api/user_api';
+import { useNotifications } from '../contexts/NotificationContext';
 import { 
   Plus, 
   Minus, 
@@ -29,6 +30,21 @@ import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Switch } from './ui/switch';
 import { motion } from 'motion/react';
 
+// Utility function to format time ago
+function formatTimeAgo(timestamp: Date): string {
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - timestamp.getTime()) / (1000 * 60));
+  
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays}d ago`;
+}
+
 interface HeaderProps {
   user: any;
   activeTab: string;
@@ -38,6 +54,7 @@ interface HeaderProps {
 
 export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) {
   const navigate = useNavigate();
+  const { notifications, getUnreadCount, markAsRead } = useNotifications();
   const [waterIntake, setWaterIntake] = useState(0);
   const [dailyGoal] = useState(8);
   const [loading, setLoading] = useState(false);
@@ -758,7 +775,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="relative p-1 md:p-2">
                 <Bell className="w-4 h-4 md:w-5 md:h-5" />
-                {friendRequests.length > 0 && (
+                {(friendRequests.length > 0 || getUnreadCount() > 0) && (
                   <motion.div
                     className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full"
                     animate={{ scale: [1, 1.2, 1] }}
@@ -771,9 +788,9 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Notifications</h4>
-                  {friendRequests.length > 0 && (
+                  {(friendRequests.length > 0 || getUnreadCount() > 0) && (
                     <Badge variant="destructive" className="text-xs">
-                      {friendRequests.length} new
+                      {friendRequests.length + getUnreadCount()} new
                     </Badge>
                   )}
                 </div>
@@ -838,25 +855,49 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                     </div>
                   ))}
                   
-                  {/* Other Notifications */}
-                  <div className="flex items-start gap-3 p-2 bg-blue-50 rounded-lg">
-                    <div className="w-4 h-4 bg-blue-500 rounded-full mt-0.5" />
-                    <div className="flex-1 text-sm">
-                      <p className="font-medium">Hydration Reminder</p>
-                      <p className="text-muted-foreground">Time to drink water! You're at {waterIntake}/{dailyGoal} glasses today.</p>
-                      <p className="text-xs text-muted-foreground mt-1">5 minutes ago</p>
+                  {/* In-App Notifications */}
+                  {notifications.map((notification) => (
+                    <div 
+                      key={notification.id} 
+                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all hover:opacity-80 ${
+                        notification.type === 'water' ? 'bg-blue-50 border border-blue-200' :
+                        notification.type === 'goal' ? 'bg-green-50 border border-green-200' :
+                        notification.type === 'friend' ? 'bg-purple-50 border border-purple-200' :
+                        'bg-gray-50 border border-gray-200'
+                      } ${!notification.read ? 'ring-2 ring-blue-300' : ''}`}
+                      onClick={() => markAsRead(notification.id)}
+                    >
+                      {notification.icon ? (
+                        <div className={`mt-0.5 ${
+                          notification.type === 'water' ? 'text-blue-500' :
+                          notification.type === 'goal' ? 'text-green-500' :
+                          notification.type === 'friend' ? 'text-purple-500' :
+                          'text-gray-500'
+                        }`}>
+                          {notification.icon}
+                        </div>
+                      ) : (
+                        <div className={`w-4 h-4 rounded-full mt-0.5 ${
+                          notification.type === 'water' ? 'bg-blue-500' :
+                          notification.type === 'goal' ? 'bg-green-500' :
+                          notification.type === 'friend' ? 'bg-purple-500' :
+                          'bg-gray-500'
+                        }`} />
+                      )}
+                      <div className="flex-1 text-sm">
+                        <p className="font-medium">{notification.title}</p>
+                        <p className="text-muted-foreground">{notification.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatTimeAgo(notification.timestamp)}
+                        </p>
+                      </div>
+                      {!notification.read && (
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                      )}
                     </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-2 bg-green-50 rounded-lg">
-                    <Target className="w-4 h-4 text-green-500 mt-0.5" />
-                    <div className="flex-1 text-sm">
-                      <p className="font-medium">Step Goal Achieved</p>
-                      <p className="text-muted-foreground">Congratulations! You've reached your 10K steps goal.</p>
-                      <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
-                    </div>
-                  </div>
+                  ))}
                   
-                  {friendRequests.length === 0 && (
+                  {friendRequests.length === 0 && notifications.length === 0 && (
                     <div className="text-center py-4">
                       <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                       <p className="text-sm text-gray-500">No new notifications</p>

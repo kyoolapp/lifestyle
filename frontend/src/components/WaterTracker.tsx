@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import * as userApi from '../api/user_api';
 import { getBrowserTimezone } from '../utils/timezone';
+import { useNotifications } from '../contexts/NotificationContext';
 
 // Clean bubble animation with smooth water surface
 const waveStyles = `
@@ -177,6 +178,17 @@ const waveStyles = `
     border: 2px solid white;
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   }
+
+  /* Hide number input arrows */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
 `;
 
 if (typeof document !== 'undefined') {
@@ -193,9 +205,14 @@ interface WaterTrackerProps {
 }
 
 export function WaterTracker({ user }: WaterTrackerProps) {
+  const { addNotification } = useNotifications();
   const [dailyGoal] = useState(8); // glasses
   const [todayIntake, setTodayIntake] = useState(0);
   const [customAmountMl, setCustomAmountMl] = useState('');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderInterval, setReminderInterval] = useState(60); // minutes
+  const [reminderInputValue, setReminderInputValue] = useState('60'); // for input display
+  const [reminderIntervalId, setReminderIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [glassSize] = useState(250); // ml
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -370,6 +387,99 @@ export function WaterTracker({ user }: WaterTrackerProps) {
       addCustomAmount();
     }
   };
+
+  // Water Reminder Functions
+
+  const showWaterReminder = () => {
+    console.log('🔔 showWaterReminder called'); // Debug log
+    const remaining = Math.max(0, dailyGoal - todayIntake);
+    console.log(`Remaining glasses: ${remaining}`); // Debug log
+    
+    // Use in-app notification instead of browser notification
+    addNotification({
+      type: 'water',
+      title: '💧 Time to Hydrate!',
+      message: `Drink some water! You're at ${todayIntake.toFixed(1)}/${dailyGoal} glasses today. ${remaining.toFixed(1)} remaining.`,
+      icon: <Droplets className="w-4 h-4" />,
+      color: 'blue'
+    });
+    
+    console.log('✅ In-app notification added to header bell'); // Debug log
+  };
+
+  const startWaterReminders = async () => {
+    console.log('🚀 Starting water reminders...'); // Debug log
+    
+    // Validate interval is a positive number
+    if (reminderInterval <= 0 || isNaN(reminderInterval)) {
+      // Auto-correct to 1 minute and update display
+      setReminderInterval(1);
+      setReminderInputValue('1');
+      addNotification({
+        type: 'water',
+        title: '⚠️ Invalid Interval',
+        message: 'Reminder interval must be a positive number. Set to 1 minute.',
+        icon: <Droplets className="w-4 h-4" />,
+        color: 'orange'
+      });
+      return;
+    }
+    
+    // Clear any existing reminder
+    if (reminderIntervalId) {
+      clearInterval(reminderIntervalId);
+    }
+
+    // Convert minutes to milliseconds
+    const intervalMs = reminderInterval * 60 * 1000;
+    console.log(`⏰ Setting reminder for every ${reminderInterval} minutes (${intervalMs}ms)`); // Debug log
+    
+    // Set up recurring reminders
+    const id = setInterval(() => {
+      console.log('⏳ Triggering water reminder...'); // Debug log
+      showWaterReminder();
+    }, intervalMs);
+
+    setReminderIntervalId(id);
+    setReminderEnabled(true);
+
+    // Show confirmation using in-app notification
+    addNotification({
+      type: 'water',
+      title: '✅ Water Reminders Started!',
+      message: `You'll receive reminders every ${reminderInterval} minute${reminderInterval > 1 ? 's' : ''} in the header bell.`,
+      icon: <Droplets className="w-4 h-4" />,
+      color: 'green'
+    });
+    
+    console.log('✅ Water reminders started successfully'); // Debug log
+  };
+
+  const stopWaterReminders = () => {
+    if (reminderIntervalId) {
+      clearInterval(reminderIntervalId);
+      setReminderIntervalId(null);
+    }
+    setReminderEnabled(false);
+
+    // Show confirmation using in-app notification
+    addNotification({
+      type: 'water',
+      title: '⏹️ Water Reminders Stopped',
+      message: 'Water reminders have been turned off.',
+      icon: <Droplets className="w-4 h-4" />,
+      color: 'gray'
+    });
+  };
+
+  // Cleanup interval on component unmount
+  useEffect(() => {
+    return () => {
+      if (reminderIntervalId) {
+        clearInterval(reminderIntervalId);
+      }
+    };
+  }, [reminderIntervalId]);
 
   const getProgressColor = () => {
     if (todayIntake === 0) return 'bg-red-500';
@@ -780,6 +890,106 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                     </Button>
                   </div>
 
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Water Reminder Controls */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Droplets className="w-5 h-5" />
+                Water Reminders
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Reminder Status */}
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${reminderEnabled ? 'bg-green-500' : 'bg-gray-400'}`} />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {reminderEnabled ? 'Active' : 'Inactive'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {reminderEnabled ? `Every ${reminderInterval} min` : 'Set reminder interval'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant={reminderEnabled ? "destructive" : "default"}
+                  size="sm"
+                  onClick={reminderEnabled ? stopWaterReminders : startWaterReminders}
+                  disabled={loading}
+                  className="text-xs"
+                >
+                  {reminderEnabled ? 'Stop' : 'Start'}
+                </Button>
+              </div>
+
+              {/* Interval Settings */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Interval (minutes)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="480"
+                      value={reminderInputValue}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setReminderInputValue(value);
+                        
+                        if (value !== '') {
+                          const numValue = parseInt(value);
+                          if (!isNaN(numValue) && numValue > 0) {
+                            setReminderInterval(Math.min(480, numValue)); // Only enforce max, not min during typing
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        // On blur, ensure we have a valid positive value
+                        if (reminderInputValue === '' || isNaN(parseInt(reminderInputValue)) || parseInt(reminderInputValue) <= 0) {
+                          setReminderInputValue('1');
+                          setReminderInterval(1);
+                        } else {
+                          const numValue = Math.max(1, Math.min(480, parseInt(reminderInputValue)));
+                          setReminderInputValue(numValue.toString());
+                          setReminderInterval(numValue);
+                        }
+                      }}
+                      className="w-16 px-2 py-1 text-sm border border-border rounded bg-background"
+                      style={{
+                        MozAppearance: 'textfield',
+                        WebkitAppearance: 'none',
+                        margin: 0
+                      }}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      disabled={reminderEnabled}
+                    />
+                    <span className="text-xs text-muted-foreground">min</span>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="grid grid-cols-2 gap-2">
+                  {[30, 60].map((minutes) => (
+                    <Button
+                      key={minutes}
+                      variant={reminderInterval === minutes ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setReminderInterval(minutes);
+                        setReminderInputValue(minutes.toString());
+                      }}
+                      disabled={reminderEnabled}
+                      className="text-xs"
+                    >
+                      {minutes}m
+                    </Button>
+                  ))}
                 </div>
               </div>
             </CardContent>

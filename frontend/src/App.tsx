@@ -53,15 +53,18 @@ import UserSearch from "./components/UserSearch";
 import { useUserHeartbeat } from "./hooks/useUserHeartbeat";
 
 import { auth } from "./firebase";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 
 const BASE_URL= import.meta.env.VITE_API_URL;
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <NotificationProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </NotificationProvider>
   );
 }
 
