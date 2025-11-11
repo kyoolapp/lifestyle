@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
+import { useUnitSystem } from '../context/UnitContext';
 import { 
   Droplets, 
   Plus, 
@@ -206,18 +207,49 @@ interface WaterTrackerProps {
 
 export function WaterTracker({ user }: WaterTrackerProps) {
   const { addNotification } = useNotifications();
-  const [dailyGoal] = useState(8); // glasses
+  //const [dailyGoal] = useState(8); // glasses
+  const { unitSystem } = useUnitSystem();
+  const [dailyGoal] = useState(8); // glasses (250ml each = 2 liters)
   const [todayIntake, setTodayIntake] = useState(0);
   const [customAmountMl, setCustomAmountMl] = useState('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderInterval, setReminderInterval] = useState(60); // minutes
   const [reminderInputValue, setReminderInputValue] = useState('60'); // for input display
-  const [reminderIntervalId, setReminderIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [reminderIntervalId, setReminderIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
   const [glassSize] = useState(250); // ml
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const [dragStartValue, setDragStartValue] = useState(0);
+
+  // Water conversion helpers
+  const getWaterDisplayValue = (glasses: number) => {
+    if (unitSystem === 'metric') {
+      return (glasses * 0.25).toFixed(2); // 1 glass = 0.25 liters
+    } else {
+      return (glasses * 8.45).toFixed(1); // 1 glass = 8.45 fl oz
+    }
+  };
+
+  const getWaterDisplayUnit = () => {
+    return unitSystem === 'metric' ? 'L' : 'fl oz';
+  };
+
+  const getWaterGoalDisplay = (glasses: number) => {
+    if (unitSystem === 'metric') {
+      return (glasses * 0.25).toFixed(2) + 'L'; // 8 glasses = 2L
+    } else {
+      return Math.round(glasses * 8.45) + ' fl oz'; // 8 glasses = ~67.6 fl oz
+    }
+  };
+
+  const getWaterButtonLabel = (glasses: number) => {
+    if (unitSystem === 'metric') {
+      return `${(glasses * 0.25).toFixed(2)}L`;
+    } else {
+      return `${(glasses * 8.45).toFixed(1)} fl oz`;
+    }
+  };
   const [weeklyData, setWeeklyData] = useState([
     { day: 'Mon', intake: 0, goal: 8, date: '' },
     { day: 'Tue', intake: 0, goal: 8, date: '' },
@@ -228,6 +260,61 @@ export function WaterTracker({ user }: WaterTrackerProps) {
     { day: 'Sun', intake: 0, goal: 8, date: '' }, // today
   ]);
 
+  // Function to refresh weekly data from backend
+  const refreshWeeklyData = async () => {
+    if (user?.id) {
+      try {
+        // Load weekly history (last 7 days) from backend
+        const history = await userApi.getWaterHistory(user.id, 7);
+        
+        // Use user's stored timezone to compute dates (same as backend)
+        const userTimezone = user?.timezone || getBrowserTimezone() || 'UTC';
+        
+        // Backend returns dates in user's timezone (YYYY-MM-DD format)
+        // Frontend must compute dates using SAME timezone
+        const weeklyData = [];
+        
+        // Generate 7 days backwards to match backend date range
+        for (let i = 6; i >= 0; i--) {
+          // Format date using Intl API with user's stored timezone
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          
+          // Format as YYYY-MM-DD using user's timezone
+          const formatter = new Intl.DateTimeFormat('en-CA', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            timeZone: userTimezone
+          });
+          const formattedDate = formatter.format(date);
+          
+          // Extract day name using the SAME timezone (user's timezone, not browser timezone)
+          const dayFormatter = new Intl.DateTimeFormat('en-US', {
+            weekday: 'short',
+            timeZone: userTimezone
+          });
+          const dayName = dayFormatter.format(date);
+          
+          // Find matching history entry for this date
+          const historyEntry = history.find((h: any) => h.date === formattedDate);
+          
+          weeklyData.push({
+            day: dayName,
+            intake: historyEntry ? historyEntry.glasses : 0,
+            goal: 8,
+            date: formattedDate
+          });
+        }
+        
+        setWeeklyData(weeklyData);
+        console.log('Weekly water data refreshed from backend:', weeklyData);
+      } catch (error) {
+        console.error('Failed to refresh weekly water data:', error);
+      }
+    }
+  };
+
   // Load water data on mount
   useEffect(() => {
     const loadWaterData = async () => {
@@ -237,53 +324,8 @@ export function WaterTracker({ user }: WaterTrackerProps) {
           const todayGlasses = await userApi.getTodayWaterIntake(user.id);
           setTodayIntake(todayGlasses);
           
-          // Load weekly history (last 7 days)
-          const history = await userApi.getWaterHistory(user.id, 7);
-          
-          // Use user's stored timezone to compute dates (same as backend)
-          // This ensures frontend dates match backend dates exactly
-          const userTimezone = user?.timezone || getBrowserTimezone() || 'UTC';
-          
-          // Backend returns dates in user's timezone (YYYY-MM-DD format)
-          // Frontend must compute dates using SAME timezone
-          const weeklyData = [];
-          
-          // Generate 7 days backwards to match backend date range
-          for (let i = 6; i >= 0; i--) {
-            // Format date using Intl API with user's stored timezone
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            
-            // Format as YYYY-MM-DD using user's timezone
-            const formatter = new Intl.DateTimeFormat('en-CA', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              timeZone: userTimezone
-            });
-            const formattedDate = formatter.format(date);
-            
-            // Extract day name using the SAME timezone (user's timezone, not browser timezone)
-            // We need to use Intl.DateTimeFormat to get the weekday in the correct timezone
-            const dayFormatter = new Intl.DateTimeFormat('en-US', {
-              weekday: 'short',
-              timeZone: userTimezone
-            });
-            const dayName = dayFormatter.format(date);  // Gets day name in user's timezone
-            
-            // Find matching history entry for this date
-            // Backend returns dates in user's local timezone, so this should match now
-            const historyEntry = history.find((h: any) => h.date === formattedDate);
-            
-            weeklyData.push({
-              day: dayName,
-              intake: historyEntry ? historyEntry.glasses : 0,
-              goal: 8,
-              date: formattedDate
-            });
-          }
-          
-          setWeeklyData(weeklyData);
+          // Load weekly history
+          await refreshWeeklyData();
         } catch (error) {
           console.error('Failed to load water data:', error);
         }
@@ -337,6 +379,9 @@ export function WaterTracker({ user }: WaterTrackerProps) {
         day.date === today ? { ...day, intake: newTotal } : day
       ));
 
+      // Refresh weekly data from backend to ensure graph is in sync
+      await refreshWeeklyData();
+
       // Notify other components about the water intake update
       window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
         detail: { userId: user.id, glasses: newTotal }
@@ -363,6 +408,9 @@ export function WaterTracker({ user }: WaterTrackerProps) {
         day.date === today ? { ...day, intake: newTotal } : day
       ));
 
+      // Refresh weekly data from backend to ensure graph is in sync
+      await refreshWeeklyData();
+
       // Notify other components
       window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
         detail: { userId: user.id, glasses: newTotal }
@@ -375,12 +423,22 @@ export function WaterTracker({ user }: WaterTrackerProps) {
   };
 
   const addCustomAmount = async () => {
-    const amountMl = parseFloat(customAmountMl);
-    if (!amountMl || amountMl <= 0 || amountMl > 2500) return; // Max 10 glasses worth
-    
+    const amount = parseFloat(customAmountMl);
+    if (!amount || amount <= 0) return;
+
+    let amountMl = amount;
+    // Convert from user's unit to ml
+    if (unitSystem === 'imperial') {
+      // Input is in fl oz, convert to ml (1 fl oz = 29.5735 ml)
+      amountMl = amount * 29.5735;
+    }
+    // If metric, amount is already in ml
+
+    if (amountMl > 2500) return; // Max 10 glasses worth
+
     // Convert ml to glasses (250ml = 1 glass)
     const glasses = amountMl / glassSize;
-    
+
     await addWater(glasses);
     setCustomAmountMl('');
   };
@@ -582,6 +640,9 @@ export function WaterTracker({ user }: WaterTrackerProps) {
     try {
       await userApi.setWaterIntake(user.id, value);
       
+      // Refresh weekly data from backend to ensure graph is in sync
+      await refreshWeeklyData();
+      
       // Notify other components about the water intake update
       window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
         detail: { userId: user.id, glasses: value }
@@ -632,9 +693,9 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             <CardContent>
               <div className="text-center mb-4 md:mb-6">
                 <div className="text-4xl md:text-6xl font-bold text-blue-500 mb-2">
-                  {todayIntake.toFixed(2)}
+                  {getWaterDisplayValue(todayIntake)}
                 </div>
-                <p className="text-muted-foreground text-sm md:text-base">of {dailyGoal} glasses</p>
+                <p className="text-muted-foreground text-sm md:text-base">{getWaterDisplayUnit()} of {getWaterGoalDisplay(dailyGoal)}</p>
                 <p className="text-xs md:text-sm text-muted-foreground">
                   {(todayIntake * glassSize).toFixed(0)}ml of {dailyGoal * glassSize}ml
                 </p>
@@ -656,7 +717,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   >
                     <Minus className="w-3 h-3 md:w-4 md:h-4" />
                   </Button>
-                  <p className="text-xs text-muted-foreground">-{glassSize}ml</p>
+                  <p className="text-xs text-muted-foreground">-{getWaterButtonLabel(1)}</p>
                 </div>
                 
                 <div className="text-center relative">
@@ -825,7 +886,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   >
                     <Plus className="w-3 h-3 md:w-4 md:h-4" />
                   </Button>
-                  <p className="text-xs text-muted-foreground">+{glassSize}ml</p>
+                  <p className="text-xs text-muted-foreground">+{getWaterButtonLabel(1)}</p>
                 </div>
               </div>
 
@@ -854,7 +915,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                     disabled={loading || todayIntake >= 15}
                     className="text-xs"
                   >
-                    +2 Glasses
+                    +{getWaterButtonLabel(2)}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -863,22 +924,24 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                     disabled={loading || todayIntake >= 15}
                     className="text-xs"
                   >
-                    +4 Glasses
+                    +{getWaterButtonLabel(4)}
                   </Button>
                 </div>
                 
                 {/* Custom Amount Input */}
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Custom Amount (ml)</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Custom Amount ({unitSystem === 'metric' ? 'ml' : 'fl oz'})
+                  </p>
                   <div className="flex gap-2">
                     <input
                       type="number"
-                      placeholder="250"
+                      placeholder={unitSystem === 'metric' ? '250' : '8'}
                       value={customAmountMl}
                       onChange={(e) => setCustomAmountMl(e.target.value)}
                       onKeyPress={handleCustomAmountKeyPress}
                       min="1"
-                      max="2500"
+                      max={unitSystem === 'metric' ? '2500' : '200'}
                       step="1"
                       className="flex-1 px-2 py-1 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                       disabled={loading || todayIntake >= 15}

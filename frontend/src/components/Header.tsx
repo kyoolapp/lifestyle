@@ -6,6 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Progress } from './ui/progress';
 import * as userApi from '../api/user_api';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useUnitSystem } from '../context/UnitContext';
+import { weightConversions } from '../utils/unitConversion';
 import { 
   Plus, 
   Minus, 
@@ -54,7 +56,11 @@ interface HeaderProps {
 
 export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) {
   const navigate = useNavigate();
+<<<<<<< Updated upstream
   const { notifications, getUnreadCount, markAsRead } = useNotifications();
+=======
+  const { unitSystem } = useUnitSystem();
+>>>>>>> Stashed changes
   const [waterIntake, setWaterIntake] = useState(0);
   const [dailyGoal] = useState(8);
   const [loading, setLoading] = useState(false);
@@ -515,7 +521,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
           {/* Current Weight - Mobile Only */}
           <div className="hidden sm:flex xl:hidden items-center gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-purple-50 rounded-lg border border-purple-200">
             <Scale className="w-3 h-3 md:w-4 md:h-4 text-purple-600" />
-            <span className="text-xs md:text-sm font-medium text-purple-700">{user.weight || '75'} kg</span>
+            <span className="text-xs md:text-sm font-medium text-purple-700">{user.weight ? weightConversions.dbToDisplay(user.weight, unitSystem).toFixed(1) : '75'} {weightConversions.getUnit(unitSystem)}</span>
           </div>
 
           {/* Active Friends - Clickable */}

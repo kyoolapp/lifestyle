@@ -11,6 +11,8 @@ import { isUsernameAvailable } from "../api/user_api";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { getBrowserTimezone } from "../utils/timezone";
+import { useUnitSystem } from "../context/UnitContext";
+import { weightConversions, heightConversions } from "../utils/unitConversion";
 import {
   Select,
   SelectContent,
@@ -40,6 +42,8 @@ export default function SignUpPage() {
   }
   console.log("SignUpPage mounted/re-rendered");
   const navigate = useNavigate();
+  const { setUnitSystem } = useUnitSystem();
+  
   const [googleUser, setGoogleUser] = useState<null | {
     uid: string;
     displayName: string | null;
@@ -52,10 +56,14 @@ export default function SignUpPage() {
   const [goal, setGoal] = useState<FitnessGoal | "">("");
   const [accepted, setAccepted] = useState(false);
 
+  // Unit system selection
+  const [unitSystem, setUnitSystemLocal] = useState<'metric' | 'imperial'>('metric');
+
   // NEW fields
   const [age, setAge] = useState<string>(""); // years
-  const [height, setHeight] = useState<string>(""); // cm
-  const [weight, setWeight] = useState<string>(""); // kg
+  const [height, setHeight] = useState<string>(""); // cm or feet
+  const [heightInches, setHeightInches] = useState<string>(""); // inches (imperial only)
+  const [weight, setWeight] = useState<string>(""); // kg or lbs
   const [activity, setActivity] = useState<ActivityLevel | "">("");
   const [username, setUsername] = useState<string>("");
   const [bmr, setBmr] = useState<number | null>(null);
@@ -162,16 +170,34 @@ export default function SignUpPage() {
     try {
       const ageNum =
         age.trim() === "" ? null : Math.max(0, Math.min(120, Number(age)));
-      const heightNum =
-        height.trim() === ""
-          ? null
-          : Math.max(50, Math.min(250, Number(height)));
-      const weightNum =
-        weight.trim() === ""
-          ? null
-          : Math.max(20, Math.min(400, Number(weight)));
+      
+      // Convert height and weight to metric (cm and kg) for storage
+      let heightCm: number | null = null;
+      let weightKg: number | null = null;
 
-      const bmr = calculateBMR(weightNum ?? 0, heightNum ?? 0, ageNum ?? 0, gender);
+      if (unitSystem === 'metric') {
+        // Already in metric
+        heightCm =
+          height.trim() === ""
+            ? null
+            : Math.max(50, Math.min(250, Number(height)));
+        weightKg =
+          weight.trim() === ""
+            ? null
+            : Math.max(20, Math.min(400, Number(weight)));
+      } else {
+        // Convert from imperial to metric
+        if (height.trim() !== "") {
+          const feet = Number(height);
+          const inches = heightInches.trim() === "" ? 0 : Number(heightInches);
+          heightCm = heightConversions.displayToDb(0, 'imperial', feet, inches);
+        }
+        if (weight.trim() !== "") {
+          weightKg = weightConversions.displayToDb(Number(weight), 'imperial');
+        }
+      }
+
+      const bmr = calculateBMR(weightKg ?? 0, heightCm ?? 0, ageNum ?? 0, gender);
       
       // Generate avatar URL - use Google photo if available, otherwise generate one
       const avatarUrl = googleUser?.photoURL || 
@@ -179,7 +205,7 @@ export default function SignUpPage() {
 
       const userData = {
         username,
-        bmi: calculateBMI(weightNum ?? 0, heightNum ?? 0),
+        bmi: calculateBMI(weightKg ?? 0, heightCm ?? 0),
         bmr,
         tdee: calculateTDEE(bmr ?? 0, activity),
         activity_level: activity || null,
@@ -187,19 +213,24 @@ export default function SignUpPage() {
         email: googleUser?.email,
         avatar: avatarUrl,
         gender: gender || null,
-        height: Number.isFinite(heightNum as number) ? heightNum : null,
-        weight: Number.isFinite(weightNum as number) ? weightNum : null,
+        height: Number.isFinite(heightCm as number) ? heightCm : null,
+        weight: Number.isFinite(weightKg as number) ? weightKg : null,
         age: Number.isFinite(ageNum as number) ? ageNum : null,
         date_joined: new Date().toISOString(),
         timezone,
+        unit_system: unitSystem,  // NEW: Save user's unit preference
       };
 
     console.log("DEBUG: User data to submit:", userData);
     console.log("DEBUG: Timezone being sent:", userData.timezone);
+    console.log("DEBUG: Unit system being sent:", userData.unit_system);
 
     // Call backend to create user in Firestore
   await createOrUpdateUser(googleUser?.uid, userData);
   console.log("DEBUG: After backend createOrUpdateUser");
+
+  // Save unit system preference globally
+  await setUnitSystem(unitSystem);
 
     localStorage.setItem("kyool_profile", JSON.stringify(userData));
 
@@ -371,6 +402,20 @@ export default function SignUpPage() {
               </div>
             </div>
 
+            {/* Unit System Selection */}
+            <div>
+              <Label>Measurement Units</Label>
+              <Select value={unitSystem} onValueChange={(v: string) => setUnitSystemLocal(v as 'metric' | 'imperial')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="metric">Metric (kg, cm)</SelectItem>
+                  <SelectItem value="imperial">Imperial (lbs, ft/in)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Age + Height + Weight */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -387,29 +432,62 @@ export default function SignUpPage() {
                   disabled={!googleUser}
                 />
               </div>
+              {unitSystem === 'metric' ? (
+                <div>
+                  <Label htmlFor="height">Height (cm, optional)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    inputMode="decimal"
+                    min={50}
+                    max={250}
+                    placeholder="e.g., 175"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    disabled={!googleUser}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <Label htmlFor="height">Height - Feet (optional)</Label>
+                    <Input
+                      id="height"
+                      type="number"
+                      inputMode="numeric"
+                      min={3}
+                      max={8}
+                      placeholder="e.g., 5"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      disabled={!googleUser}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="heightInches">Height - Inches (optional)</Label>
+                    <Input
+                      id="heightInches"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={11}
+                      placeholder="e.g., 9"
+                      value={heightInches}
+                      onChange={(e) => setHeightInches(e.target.value)}
+                      disabled={!googleUser}
+                    />
+                  </div>
+                </>
+              )}
               <div>
-                <Label htmlFor="height">Height (cm, optional)</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  inputMode="numeric"
-                  min={50}
-                  max={250}
-                  placeholder="e.g., 175"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  disabled={!googleUser}
-                />
-              </div>
-              <div>
-                <Label htmlFor="weight">Current Weight (kg, optional)</Label>
+                <Label htmlFor="weight">Current Weight ({unitSystem === 'metric' ? 'kg' : 'lbs'}, optional)</Label>
                 <Input
                   id="weight"
                   type="number"
-                  inputMode="numeric"
-                  min={20}
-                  max={400}
-                  placeholder="e.g., 85"
+                  inputMode="decimal"
+                  min={unitSystem === 'metric' ? 20 : 44}
+                  max={unitSystem === 'metric' ? 400 : 880}
+                  placeholder={unitSystem === 'metric' ? "e.g., 85" : "e.g., 187"}
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
                   disabled={!googleUser}

@@ -157,6 +157,15 @@ def update_user(user_id: str, user: UserProfile):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.patch("/{user_id}", response_model=dict)
+def partial_update_user(user_id: str, updates: dict = Body(...)):
+    """Partial update - only updates provided fields"""
+    try:
+        success = user_service.update_user(user_id, updates)
+        return {"success": success}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.delete("/{user_id}", response_model=dict)
 def delete_user(user_id: str):
     success = user_service.delete_user(user_id)

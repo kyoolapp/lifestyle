@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { addWeightLog, getWeightLogs } from '../api/user_api';
+import { useUnitSystem } from '../context/UnitContext';
+import { weightConversions, heightConversions, heightInFeetInchesFromCm } from '../utils/unitConversion';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -17,6 +19,7 @@ interface HealthMetricsProps {
 
 export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   // console.log('HealthMetrics component rendered');
+  const { unitSystem } = useUnitSystem();
   const [weightLogs, setWeightLogs] = useState([]);
   const [metrics, setMetrics] = useState({
     height: user.height,
@@ -27,6 +30,19 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
     bloodPressureSystolic: 120,
     bloodPressureDiastolic: 80
   });
+  
+  // Display values for inputs (converted to user's preferred unit)
+  const [displayWeight, setDisplayWeight] = useState(
+    unitSystem === 'metric' ? user.weight : weightConversions.dbToDisplay(user.weight, 'imperial')
+  );
+  const [displayHeight, setDisplayHeight] = useState(user.height);
+  const [displayHeightFeet, setDisplayHeightFeet] = useState(
+    unitSystem === 'metric' ? user.height : heightInFeetInchesFromCm(user.height).feet
+  );
+  const [displayHeightInches, setDisplayHeightInches] = useState(
+    unitSystem === 'metric' ? 0 : heightInFeetInchesFromCm(user.height).inches
+  );
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,22 +85,42 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
     fetchLogs();
   }, [user.id]);
 
+  // Sync display values when unitSystem changes
+  React.useEffect(() => {
+    if (unitSystem === 'metric') {
+      setDisplayWeight(metrics.weight);
+      setDisplayHeight(metrics.height);
+      setDisplayHeightFeet(0);
+      setDisplayHeightInches(0);
+    } else {
+      setDisplayWeight(weightConversions.dbToDisplay(metrics.weight, 'imperial'));
+      const { feet, inches } = heightInFeetInchesFromCm(metrics.height);
+      setDisplayHeightFeet(feet);
+      setDisplayHeightInches(inches);
+    }
+  }, [unitSystem]);
+
   const handleSave = async () => {
     setLoading(true);
     setError(null);
     try {
-      setUser({
+      // Update local user state first
+      const updatedUser = {
         ...user,
         height: metrics.height,
         weight: metrics.weight,
         age: metrics.age
-      });
+      };
+      setUser(updatedUser);
+      
       if (!user.id) {
         setLoading(false);
         return;
       }
+      
+      // Add weight log to backend
       const now = new Date().toISOString();
-      await addWeightLog(
+      const logResult = await addWeightLog(
         user.id,
         metrics.weight,
         now,
@@ -92,10 +128,16 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
         bmr,
         tdee
       );
-      // Refetch logs after saving to update graph immediately
+      
+      console.log('Weight log saved:', logResult);
+      
+      // Refresh weight logs from backend to update graph immediately
       const updatedLogs = await getWeightLogs(user.id);
       setWeightLogs(updatedLogs);
+      
+      console.log('Weight logs refreshed from backend, graph should update now:', updatedLogs);
     } catch (err) {
+      console.error('Failed to save changes:', err);
       setError('Failed to save changes');
     } finally {
       setLoading(false);
@@ -126,22 +168,73 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
         </CardHeader>
         <CardContent className="p-4 md:p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {unitSystem === 'metric' ? (
+              <div>
+                <Label htmlFor="height">Height (cm)</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  step="0.1"
+                  value={displayHeight}
+                  onChange={(e) => {
+                    const cmValue = parseFloat(e.target.value) || 0;
+                    setDisplayHeight(cmValue);
+                    setMetrics({ ...metrics, height: cmValue });
+                  }}
+                />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="height-feet">Height - Feet</Label>
+                  <Input
+                    id="height-feet"
+                    type="number"
+                    min={3}
+                    max={8}
+                    placeholder="Feet"
+                    value={displayHeightFeet}
+                    onChange={(e) => {
+                      const feet = parseFloat(e.target.value) || 0;
+                      setDisplayHeightFeet(feet);
+                      const cmValue = heightConversions.displayToDb(0, 'imperial', feet, displayHeightInches);
+                      setMetrics({ ...metrics, height: cmValue });
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="height-inches">Height - Inches</Label>
+                  <Input
+                    id="height-inches"
+                    type="number"
+                    min={0}
+                    max={11}
+                    placeholder="Inches"
+                    value={displayHeightInches}
+                    onChange={(e) => {
+                      const inches = parseFloat(e.target.value) || 0;
+                      setDisplayHeightInches(inches);
+                      const cmValue = heightConversions.displayToDb(0, 'imperial', displayHeightFeet, inches);
+                      setMetrics({ ...metrics, height: cmValue });
+                    }}
+                  />
+                </div>
+              </>
+            )}
             <div>
-              <Label htmlFor="height">Height (cm)</Label>
-              <Input
-                id="height"
-                type="number"
-                value={metrics.height}
-                onChange={(e) => setMetrics({ ...metrics, height: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="weight">Weight (kg)</Label>
+              <Label htmlFor="weight">Weight ({unitSystem === 'metric' ? 'kg' : 'lbs'})</Label>
               <Input
                 id="weight"
                 type="number"
-                value={metrics.weight}
-                onChange={(e) => setMetrics({ ...metrics, weight: parseFloat(e.target.value) || 0 })}
+                step="0.1"
+                value={displayWeight}
+                onChange={(e) => {
+                  const displayValue = parseFloat(e.target.value) || 0;
+                  setDisplayWeight(displayValue);
+                  // Convert to metric for storage in metrics state
+                  const metricValue = unitSystem === 'metric' ? displayValue : weightConversions.displayToDb(displayValue, 'imperial');
+                  setMetrics({ ...metrics, weight: metricValue });
+                }}
               />
             </div>
             <div>
@@ -175,16 +268,25 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
       {/* Weight Progress Graph */}
       <Card>
         <CardHeader>
-          <CardTitle>Weight Progress</CardTitle>
+          <CardTitle>Weight Progress ({unitSystem === 'metric' ? 'kg' : 'lbs'})</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={weightLogs} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <LineChart 
+              data={weightLogs && Array.isArray(weightLogs) ? weightLogs.map((log: any) => ({
+                ...log,
+                displayWeight: unitSystem === 'metric' ? log.weight : weightConversions.dbToDisplay(log.weight, 'imperial')
+              })) : []} 
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tickFormatter={date => new Date(date).toLocaleDateString()} />
               <YAxis domain={['auto', 'auto']} />
-              <Tooltip labelFormatter={date => new Date(date).toLocaleString()} />
-              <Line type="monotone" dataKey="weight" stroke="#8884d8" dot={true} />
+              <Tooltip 
+                labelFormatter={date => new Date(date).toLocaleString()}
+                formatter={(value: any) => typeof value === 'number' ? value.toFixed(2) : value}
+              />
+              <Line type="monotone" dataKey="displayWeight" stroke="#8884d8" dot={true} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>

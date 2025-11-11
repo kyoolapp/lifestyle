@@ -64,7 +64,7 @@ export async function getWeightLogs(userId) {
 }
 export async function createOrUpdateUser(userId, userData) {
   const res = await fetch(`${BASE_URL}/users/${userId}`, {
-    method: "POST", // or "PUT" for update
+    method: "PUT",  // Use PUT for updates
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
   });

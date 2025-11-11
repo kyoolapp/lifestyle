@@ -8,9 +8,12 @@ import { Target, Plus, ChevronRight, Trophy } from 'lucide-react';
 import * as goalsApi from '../api/goals_api';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
+import { useUnitSystem } from '../context/UnitContext';
+import { weightConversions } from '../utils/unitConversion';
 
 export function GoalsWidget() {
   const [user] = useAuthState(auth);
+  const { unitSystem } = useUnitSystem();
   // Load goals from backend
   const [goals, setGoals] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -48,6 +51,26 @@ export function GoalsWidget() {
 
   const calculateProgress = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100);
+  };
+
+  const convertGoalValue = (value: number, category: string, direction: 'display' | 'db' = 'display'): number => {
+    // Only weight goals need conversion
+    if (category === 'weight') {
+      if (direction === 'display') {
+        return weightConversions.dbToDisplay(value, unitSystem);
+      } else {
+        return weightConversions.displayToDb(value, unitSystem);
+      }
+    }
+    return value;
+  };
+
+  const getGoalUnit = (category: string): string => {
+    if (category === 'weight') {
+      return unitSystem === 'metric' ? 'kg' : 'lbs';
+    }
+    // Return original unit for other categories
+    return '';
   };
 
   const getCategoryColor = (category: string) => {
@@ -119,7 +142,12 @@ export function GoalsWidget() {
       </CardHeader>
       <CardContent className="space-y-4">
         {goals.map((goal) => {
-          const progress = calculateProgress(goal.currentValue, goal.targetValue);
+          // Convert values for display if weight goal
+          const displayCurrent = convertGoalValue(goal.currentValue, goal.category, 'display');
+          const displayTarget = convertGoalValue(goal.targetValue, goal.category, 'display');
+          const progress = calculateProgress(displayCurrent, displayTarget);
+          const displayUnit = getGoalUnit(goal.category) || goal.unit;
+          
           return (
             <div key={goal.id} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -133,7 +161,7 @@ export function GoalsWidget() {
               </div>
               <Progress value={progress} className="h-1.5" />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{goal.currentValue} / {goal.targetValue} {goal.unit}</span>
+                <span>{displayCurrent.toFixed(1)} / {displayTarget.toFixed(1)} {displayUnit}</span>
                 {progress === 100 && (
                   <Badge className="bg-green-500 text-white text-xs py-0 px-2">
                     <Trophy className="w-3 h-3 mr-1" />

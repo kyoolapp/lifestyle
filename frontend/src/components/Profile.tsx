@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 import { createOrUpdateUser, getUserOnlineStatus, getUserFriends } from '../api/user_api';
+import { useUnitSystem } from '../context/UnitContext';
+import { weightConversions, heightConversions } from '../utils/unitConversion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -34,6 +36,10 @@ interface ProfileProps {
 
 export function Profile({ user, setUser }: ProfileProps) {
   const navigate = useNavigate();
+  const { unitSystem, setUnitSystem } = useUnitSystem();
+  const [selectedUnitSystem, setSelectedUnitSystem] = useState<'metric' | 'imperial'>(
+    user.unit_system || 'metric'
+  );
 
   function validateUsernameFormat(username: string) {
     return /^[a-zA-Z0-9_.]{6,20}$/.test(username);
@@ -376,7 +382,9 @@ export function Profile({ user, setUser }: ProfileProps) {
                 <User className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.weight} kg / {user.height} cm</div>
+                <div className="text-2xl font-bold">
+                  {weightConversions.dbToDisplay(user.weight, selectedUnitSystem)} {weightConversions.getUnit(selectedUnitSystem)} / {heightConversions.format(user.height, selectedUnitSystem)}
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -627,6 +635,70 @@ export function Profile({ user, setUser }: ProfileProps) {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Privacy Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Measurement Units</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label>Unit System Preference</Label>
+                  <p className="text-sm text-muted-foreground mb-3">Choose how you want to see your health metrics</p>
+                  <Select 
+                    value={selectedUnitSystem} 
+                    onValueChange={async (newUnit: 'metric' | 'imperial') => {
+                      try {
+                        setSelectedUnitSystem(newUnit);
+                        
+                        // Update unit system in context (this persists to database and localStorage)
+                        await setUnitSystem(newUnit);
+                        
+                        // Update user in backend with new unit_system
+                        const updatedUser = { ...user, unit_system: newUnit };
+                        await createOrUpdateUser(user.id || user.uid, updatedUser);
+                        
+                        // Update local user state
+                        setUser(updatedUser);
+                        
+                        console.log(`Unit system changed to ${newUnit} and saved to database`);
+                      } catch (error) {
+                        console.error('Failed to update unit system:', error);
+                        // Revert the selection on error
+                        setSelectedUnitSystem(user.unit_system || 'metric');
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="metric">Metric (kg, cm)</SelectItem>
+                      <SelectItem value="imperial">Imperial (lbs, ft/in)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium mb-2">Your measurements</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Height</p>
+                      <p className="text-sm font-medium">
+                        {heightConversions.format(user.height, selectedUnitSystem)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Weight</p>
+                      <p className="text-sm font-medium">
+                        {weightConversions.dbToDisplay(user.weight, selectedUnitSystem)} {weightConversions.getUnit(selectedUnitSystem)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

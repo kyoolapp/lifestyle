@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getUserByUserId, getUserOnlineStatus, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendshipStatus, checkFriendshipStatus, getIncomingFriendRequests, getOutgoingFriendRequests, revokeFriendRequest, removeFriend } from '../api/user_api';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
+import { useUnitSystem } from '../context/UnitContext';
+import { heightConversions, weightConversions } from '../utils/unitConversion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -19,6 +21,7 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
   const userId = propUserId || paramUserId;
   const navigate = useNavigate();
   const [currentUser] = useAuthState(auth);
+  const { unitSystem } = useUnitSystem();
   
   const [user, setUser] = useState<any>(null);
   const [isOnline, setIsOnline] = useState(false);
@@ -326,13 +329,13 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
                 {user.height && (
                   <div>
                     <span className="text-gray-500">Height</span>
-                    <div className="font-medium">{user.height} cm</div>
+                    <div className="font-medium">{heightConversions.format(user.height, unitSystem)}</div>
                   </div>
                 )}
                 {user.weight && (
                   <div>
                     <span className="text-gray-500">Weight</span>
-                    <div className="font-medium">{user.weight} kg</div>
+                    <div className="font-medium">{weightConversions.dbToDisplay(user.weight, unitSystem).toFixed(1)} {weightConversions.getUnit(unitSystem)}</div>
                   </div>
                 )}
               </div>

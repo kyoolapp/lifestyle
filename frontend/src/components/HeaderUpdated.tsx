@@ -3,6 +3,8 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Progress } from './ui/progress';
+import { useUnitSystem } from '../context/UnitContext';
+import { weightConversions } from '../utils/unitConversion';
 import { 
   Plus, 
   Minus, 
@@ -32,6 +34,7 @@ interface HeaderProps {
 }
 
 export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) {
+  const { unitSystem } = useUnitSystem();
   const [waterIntake, setWaterIntake] = useState(6);
   const [dailyGoal] = useState(8);
   const [lastReminder, setLastReminder] = useState<Date | null>(null);
@@ -316,7 +319,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
           {/* Current Weight - Mobile Only */}
           <div className="xl:hidden flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg border border-purple-200">
             <Scale className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-medium text-purple-700">{user.weight} kg</span>
+            <span className="text-sm font-medium text-purple-700">{user.weight ? weightConversions.dbToDisplay(user.weight, unitSystem).toFixed(1) : '75'} {weightConversions.getUnit(unitSystem)}</span>
           </div>
 
           {/* Connected Devices Status - Desktop Only */}

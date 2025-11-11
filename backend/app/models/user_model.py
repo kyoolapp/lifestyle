@@ -19,3 +19,4 @@ class UserProfile(BaseModel):
     date_joined: Optional[str] = None
     tdee: Optional[float] = None
     timezone: Optional[str] = 'UTC'  # IANA timezone name (e.g., 'Asia/Kolkata')
+    unit_system: Optional[str] = 'metric'  # 'metric' or 'imperial' (stored as user preference, all calculations use metric)
