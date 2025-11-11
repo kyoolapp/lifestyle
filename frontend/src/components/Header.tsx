@@ -56,11 +56,8 @@ interface HeaderProps {
 
 export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) {
   const navigate = useNavigate();
-<<<<<<< Updated upstream
   const { notifications, getUnreadCount, markAsRead } = useNotifications();
-=======
   const { unitSystem } = useUnitSystem();
->>>>>>> Stashed changes
   const [waterIntake, setWaterIntake] = useState(0);
   const [dailyGoal] = useState(8);
   const [loading, setLoading] = useState(false);
