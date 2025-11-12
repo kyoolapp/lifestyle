@@ -374,10 +374,7 @@ export default function SignUpPage() {
                   <SelectContent>
                     <SelectItem value="female">Female</SelectItem>
                     <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="nonbinary">Non-binary</SelectItem>
-                    <SelectItem value="prefer_not_to_say">
-                      Prefer not to say
-                    </SelectItem>
+                    
                   </SelectContent>
                 </Select>
               </div>
