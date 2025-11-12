@@ -30,26 +30,39 @@ export function UnitProvider({ children }: { children: React.ReactNode }) {
       if (user?.email) {
         const BASE_URL = import.meta.env.VITE_API_URL;
         
-        // First, get the user ID from email
-        const userRes = await fetch(`${BASE_URL}/users/by-email/${encodeURIComponent(user.email)}`);
-        if (!userRes.ok) {
-          throw new Error('Failed to fetch user from database');
+        try {
+          // First, get the user ID from email
+          const userRes = await fetch(`${BASE_URL}/users/by-email/${encodeURIComponent(user.email)}`);
+          if (!userRes.ok) {
+            console.warn('Failed to fetch user from database, skipping unit system sync');
+            return;
+          }
+          
+          const userData = await userRes.json();
+          
+          // Check if user ID exists
+          if (!userData.id) {
+            console.warn('User ID not found in response, skipping unit system sync');
+            return;
+          }
+          
+          // Use PATCH endpoint for partial update (only unit_system field)
+          const updateRes = await fetch(`${BASE_URL}/users/${userData.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ unit_system: system })
+          });
+          
+          if (!updateRes.ok) {
+            console.warn('Failed to update unit system in database');
+            return;
+          }
+          
+          console.log(`Unit system updated to ${system} in database`);
+        } catch (syncErr) {
+          console.warn('Error during unit system sync:', syncErr);
+          // Continue without database sync - local state is already updated
         }
-        
-        const userData = await userRes.json();
-        
-        // Use PATCH endpoint for partial update (only unit_system field)
-        const updateRes = await fetch(`${BASE_URL}/users/${userData.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ unit_system: system })
-        });
-        
-        if (!updateRes.ok) {
-          throw new Error('Failed to update unit system in database');
-        }
-        
-        console.log(`Unit system updated to ${system} in database`);
       }
     } catch (err) {
       console.error('Failed to update unit system:', err);

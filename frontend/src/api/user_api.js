@@ -62,12 +62,17 @@ export async function getWeightLogs(userId) {
   const res = await fetch(`${BASE_URL}/users/${userId}/weight-logs`);
   return res.json();
 }
+
 export async function createOrUpdateUser(userId, userData) {
   const res = await fetch(`${BASE_URL}/users/${userId}`, {
-    method: "PUT",  // Use PUT for updates
+    method: "POST",  // Use POST for both create and update (backend handles it)
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
   });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || 'Failed to create or update user');
+  }
   return res.json();
 }
 

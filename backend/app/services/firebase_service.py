@@ -18,11 +18,11 @@ from .timezone_utils import (
 )
 
 
-#key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
+key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
 # Use environment variable for service account key path, default to Cloud Run secret mount path
-secret_keys = os.environ.get("FIREBASE_KEY_PATH")
+#secret_keys = os.environ.get("FIREBASE_KEY_PATH")
 #print(f"Using Firebase key path: {secret_keys}")
-key_path= json.loads(secret_keys) 
+# key_path= json.loads(secret_keys) 
 #print(f"Decoded Firebase key path: {key_path}")
 
 cred = credentials.Certificate(key_path)
@@ -270,7 +270,15 @@ class FirestoreUserService:
             for user in users:
                 if user.id != user_id:
                     raise ValueError("Username already taken")
-        db.collection('users').document(user_id).update(user_data)
+        
+        # Check if document exists before updating
+        user_doc = db.collection('users').document(user_id).get()
+        if not user_doc.exists:
+            # If document doesn't exist, create it instead (handles edge case of missing user)
+            db.collection('users').document(user_id).set(user_data)
+        else:
+            # Document exists, perform update
+            db.collection('users').document(user_id).update(user_data)
         return True
 
     def delete_user(self, user_id: str):
@@ -280,7 +288,9 @@ class FirestoreUserService:
     def get_user_by_email(self, email: str):
         users = db.collection('users').where('email', '==', email).stream()
         for user in users:
-            return user.to_dict()
+            user_data = user.to_dict()
+            user_data['id'] = user.id  # Include the document ID
+            return user_data
         return None
     
 
