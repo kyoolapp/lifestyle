@@ -297,27 +297,36 @@ def debug_friendship_data(user_id: str, other_user_id: str):
 # Water intake logging endpoints
 @router.post("/{user_id}/water/log")
 def log_water_intake(user_id: str, request: dict):
-    """Add glasses to today's water intake"""
+    """Add glasses to today's water intake and update streak"""
     try:
         glasses = request.get('glasses')
         if glasses is None or glasses <= 0:
             raise HTTPException(status_code=400, detail="glasses must be a positive number")
         
-        new_total = user_service.log_water_intake(user_id, glasses)
-        return {"success": True, "new_total": new_total, "glasses_added": glasses}
+        result = user_service.log_water_intake(user_id, glasses)
+        return {
+            "success": True,
+            "new_total": result.get('glasses'),
+            "glasses_added": glasses,
+            "streak": result.get('streak')
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{user_id}/water/set")
 def set_water_intake(user_id: str, request: dict):
-    """Set total water intake for today"""
+    """Set total water intake for today and update streak"""
     try:
         glasses = request.get('glasses')
         if glasses is None or glasses < 0:
             raise HTTPException(status_code=400, detail="glasses must be a non-negative number")
         
-        total = user_service.set_water_intake(user_id, glasses)
-        return {"success": True, "total": total}
+        result = user_service.set_water_intake(user_id, glasses)
+        return {
+            "success": True,
+            "total": result.get('glasses'),
+            "streak": result.get('streak')
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -339,5 +348,79 @@ def get_water_history(user_id: str, days: int = 7):
         
         history = user_service.get_water_intake_history(user_id, days)
         return {"history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============ STREAK ENDPOINTS (Reusable for any activity type) ============
+
+@router.get("/{user_id}/streak/{streak_type}")
+def get_streak(user_id: str, streak_type: str = "water"):
+    """
+    Get current streak for a user for a specific activity type.
+    
+    Args:
+        user_id: The user's Firebase ID
+        streak_type: Type of streak (water, workout, food, etc.)
+    
+    Returns:
+        Streak data with current_streak, last_logged_date, start_date
+    """
+    try:
+        streak = user_service.get_streak(user_id, streak_type)
+        return streak
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{user_id}/streak/{streak_type}/update")
+def update_streak(user_id: str, streak_type: str = "water"):
+    """
+    Update streak for a user. Call this when an activity is logged.
+    Automatically handles timezone-aware daily resets.
+    
+    Args:
+        user_id: The user's Firebase ID
+        streak_type: Type of streak (water, workout, food, etc.)
+    
+    Returns:
+        Updated streak data
+    """
+    try:
+        streak = user_service.update_streak(user_id, streak_type)
+        return streak
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{user_id}/streaks")
+def get_all_streaks(user_id: str):
+    """
+    Get all streaks for a user across all activity types.
+    
+    Args:
+        user_id: The user's Firebase ID
+    
+    Returns:
+        Dictionary mapping streak_type to streak data
+    """
+    try:
+        streaks = user_service.get_all_streaks(user_id)
+        return {"streaks": streaks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{user_id}/streak/{streak_type}/reset")
+def reset_streak(user_id: str, streak_type: str = "water"):
+    """
+    Manually reset a streak (rarely needed).
+    
+    Args:
+        user_id: The user's Firebase ID
+        streak_type: Type of streak to reset
+    
+    Returns:
+        Reset streak data
+    """
+    try:
+        streak = user_service.reset_streak(user_id, streak_type)
+        return streak
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

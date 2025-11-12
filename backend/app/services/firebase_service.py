@@ -55,13 +55,14 @@ class FirestoreUserService:
         """
         Log water intake for today (in user's local timezone), creating or updating the daily record.
         Uses atomic increment to avoid race conditions with concurrent requests.
+        Also updates the water logging streak automatically.
         
         Args:
             user_id: The user's Firebase ID.
             glasses: Amount of water in glasses to add to today's total.
             
         Returns:
-            float: Updated total glasses for today.
+            dict: Dictionary with 'glasses' (updated total) and 'streak' (updated streak data)
         """
         # Get user's local date based on stored timezone
         today = get_user_local_date(self._get_user_timezone(user_id))
@@ -84,21 +85,30 @@ class FirestoreUserService:
                 'last_updated': now_utc_iso
             })
         
-        # Fetch and return updated value
+        # Fetch updated water value
         doc = water_log_ref.get()
-        return doc.to_dict().get('glasses', glasses) if doc.exists else glasses
+        glasses_total = doc.to_dict().get('glasses', glasses) if doc.exists else glasses
+        
+        # Update streak for water logging
+        streak_data = self.update_streak(user_id, 'water')
+        
+        return {
+            'glasses': glasses_total,
+            'streak': streak_data
+        }
     
     def set_water_intake(self, user_id: str, glasses: float):
         """
         Set the total water intake for today (in user's local timezone).
         Replaces the existing value instead of incrementing.
+        Also updates the water logging streak automatically.
         
         Args:
             user_id: The user's Firebase ID.
             glasses: Exact amount of water in glasses to set for today.
             
         Returns:
-            float: The set value.
+            dict: Dictionary with 'glasses' (set value) and 'streak' (updated streak data)
         """
         today = get_user_local_date(self._get_user_timezone(user_id))
         water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
@@ -121,7 +131,13 @@ class FirestoreUserService:
                 'last_updated': now_utc_iso
             })
         
-        return glasses
+        # Update streak for water logging
+        streak_data = self.update_streak(user_id, 'water')
+        
+        return {
+            'glasses': glasses,
+            'streak': streak_data
+        }
     
     def get_today_water_intake(self, user_id: str):
         """
@@ -173,6 +189,150 @@ class FirestoreUserService:
         
         # Already sorted in descending order from get_local_date_range, so reverse for ascending
         return list(reversed(water_logs))
+    
+    # ============ GLOBAL STREAK LOGIC ============
+    # These methods support streaks for any activity type (water, workout, food, etc.)
+    
+    def get_streak(self, user_id: str, streak_type: str = "water"):
+        """
+        Get the current streak for a user for a specific activity.
+        
+        Args:
+            user_id: The user's Firebase ID.
+            streak_type: Type of streak to retrieve (e.g., 'water', 'workout', 'food').
+                        Allows reuse of this logic for different activities.
+        
+        Returns:
+            dict: Streak data with keys:
+                  - current_streak: Number of consecutive days
+                  - last_logged_date: Date (YYYY-MM-DD) when activity was last logged
+                  - start_date: Date when the current streak started
+        """
+        streak_ref = db.collection('users').document(user_id).collection('streaks').document(streak_type)
+        doc = streak_ref.get()
+        
+        if doc.exists:
+            return doc.to_dict()
+        
+        # Return default streak if none exists
+        return {
+            'current_streak': 0,
+            'last_logged_date': None,
+            'start_date': None,
+            'streak_type': streak_type
+        }
+    
+    def update_streak(self, user_id: str, streak_type: str = "water") -> dict:
+        """
+        Update user's streak for a specific activity. Call this when user logs an activity.
+        Automatically handles timezone-aware daily resets.
+        
+        Streak logic:
+        - If user logs today: Increment streak by 1 (only once per day)
+        - If user logs after missing a day: Reset streak to 1
+        - If user logs after taking a day off: Streak becomes 1
+        - Streak updates only once per calendar day (in user's timezone)
+        
+        Args:
+            user_id: The user's Firebase ID.
+            streak_type: Type of streak (e.g., 'water', 'workout', 'food').
+        
+        Returns:
+            dict: Updated streak data
+        """
+        user_tz = self._get_user_timezone(user_id)
+        today = get_user_local_date(user_tz)
+        
+        streak_ref = db.collection('users').document(user_id).collection('streaks').document(streak_type)
+        streak_doc = streak_ref.get()
+        
+        if not streak_doc.exists:
+            # First time logging this activity - start a new streak
+            new_streak = {
+                'current_streak': 1,
+                'last_logged_date': today,
+                'start_date': today,
+                'streak_type': streak_type,
+                'updated_at': get_utc_now_iso()
+            }
+            streak_ref.set(new_streak)
+            return new_streak
+        
+        streak_data = streak_doc.to_dict()
+        last_logged = streak_data.get('last_logged_date')
+        current_count = streak_data.get('current_streak', 0)
+        
+        # If already logged today, don't update (once per day rule)
+        if last_logged == today:
+            print(f"User {user_id} already logged {streak_type} today. Streak not updated.")
+            return streak_data
+        
+        # Calculate yesterday's date
+        today_obj = datetime.strptime(today, '%Y-%m-%d').date()
+        yesterday = (today_obj - timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        # Determine new streak count
+        if last_logged == yesterday:
+            # Logged yesterday - continue the streak
+            new_count = current_count + 1
+            start_date = streak_data.get('start_date')
+        else:
+            # Missed at least one day - reset to 1
+            new_count = 1
+            start_date = today
+        
+        # Update the streak
+        updated_streak = {
+            'current_streak': new_count,
+            'last_logged_date': today,
+            'start_date': start_date,
+            'streak_type': streak_type,
+            'updated_at': get_utc_now_iso()
+        }
+        streak_ref.update(updated_streak)
+        
+        return updated_streak
+    
+    def reset_streak(self, user_id: str, streak_type: str = "water"):
+        """
+        Manually reset a streak (rarely needed - usually handled automatically).
+        
+        Args:
+            user_id: The user's Firebase ID.
+            streak_type: Type of streak to reset.
+        
+        Returns:
+            dict: Reset streak data
+        """
+        streak_ref = db.collection('users').document(user_id).collection('streaks').document(streak_type)
+        reset_streak = {
+            'current_streak': 0,
+            'last_logged_date': None,
+            'start_date': None,
+            'streak_type': streak_type,
+            'updated_at': get_utc_now_iso()
+        }
+        streak_ref.set(reset_streak)
+        return reset_streak
+    
+    def get_all_streaks(self, user_id: str) -> dict:
+        """
+        Get all streaks for a user across all activity types.
+        
+        Args:
+            user_id: The user's Firebase ID.
+        
+        Returns:
+            dict: Dictionary mapping streak_type to streak data
+        """
+        streaks_ref = db.collection('users').document(user_id).collection('streaks')
+        docs = streaks_ref.stream()
+        
+        all_streaks = {}
+        for doc in docs:
+            all_streaks[doc.id] = doc.to_dict()
+        
+        return all_streaks
     
     #Getting user by ID
     def generate_avatar_url(self, name: str, username: str):

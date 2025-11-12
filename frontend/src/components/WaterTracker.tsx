@@ -10,11 +10,13 @@ import {
   Minus,
   Target,
   Calendar,
-  TrendingUp
+  TrendingUp,
+  Flame
 } from 'lucide-react';
 import * as userApi from '../api/user_api';
 import { getBrowserTimezone } from '../utils/timezone';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useStreak, formatStreakDisplay } from '../hooks/useStreak';
 
 // Clean bubble animation with smooth water surface
 const waveStyles = `
@@ -209,6 +211,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
   const { addNotification } = useNotifications();
   //const [dailyGoal] = useState(8); // glasses
   const { unitSystem } = useUnitSystem();
+  const { streak, updateUserStreak } = useStreak('water', true);
   const [dailyGoal] = useState(8); // glasses (250ml each = 2 liters)
   const [todayIntake, setTodayIntake] = useState(0);
   const [customAmountMl, setCustomAmountMl] = useState('');
@@ -373,6 +376,9 @@ export function WaterTracker({ user }: WaterTrackerProps) {
       await userApi.setWaterIntake(user.id, newTotal);
       setTodayIntake(newTotal);
       
+      // Update streak for water logging
+      await updateUserStreak();
+      
       // Update today in weekly data
       const today = new Date().toISOString().split('T')[0];
       setWeeklyData(prev => prev.map(day => 
@@ -401,6 +407,11 @@ export function WaterTracker({ user }: WaterTrackerProps) {
       const newTotal = Math.max(todayIntake - glasses, 0);
       await userApi.setWaterIntake(user.id, newTotal);
       setTodayIntake(newTotal);
+      
+      // Update streak (only if we're still above 0 intake)
+      if (newTotal > 0) {
+        await updateUserStreak();
+      }
       
       // Update today in weekly data
       const today = new Date().toISOString().split('T')[0];
@@ -1086,6 +1097,22 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                 <span className="font-medium">
                   {Math.max(0, dailyGoal - todayIntake).toFixed(2)} glasses
                 </span>
+              </div>
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-orange-500" />
+                    Streak
+                  </span>
+                  <Badge variant="secondary" className="text-base">
+                    {streak.current_streak} day{streak.current_streak !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+                {streak.start_date && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Started {streak.start_date}
+                  </p>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Average this week</span>
