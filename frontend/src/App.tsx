@@ -55,19 +55,22 @@ import { useUserHeartbeat } from "./hooks/useUserHeartbeat";
 import { auth } from "./firebase";
 import { UnitProvider } from "./context/UnitContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 
 const BASE_URL= import.meta.env.VITE_API_URL;
 
 export default function App() {
   return (
-    <UnitProvider>
-      <NotificationProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </NotificationProvider>
-    </UnitProvider>
+    <ThemeProvider>
+      <UnitProvider>
+        <NotificationProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </NotificationProvider>
+      </UnitProvider>
+    </ThemeProvider>
   );
 }
 

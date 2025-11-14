@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { isUsernameAvailable } from "../api/user_api";
+import { ThemeToggle } from './ThemeToggle';
 import { 
   User, 
   Users,
@@ -791,6 +792,18 @@ export function Profile({ user, setUser }: ProfileProps) {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div>
+                  <Label>Theme Preference</Label>
+                  <p className="text-sm text-muted-foreground mb-3">Choose your preferred color theme</p>
+                  <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <span className="text-sm text-muted-foreground">
+                      Switch between light, dark, and system themes
+                    </span>
+                  </div>
+                </div>
+                
                 <div className="pt-4 border-t">
                   <p className="text-sm font-medium mb-2">Your measurements</p>
                   <div className="grid grid-cols-2 gap-4">
