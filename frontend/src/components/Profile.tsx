@@ -25,7 +25,13 @@ import {
   ChefHat,
   Calendar,
   TrendingUp,
-  Edit
+  Edit,
+  Award,
+  Target,
+  Activity,
+  Zap,
+  Star,
+  Flame
 } from 'lucide-react';
 
 interface ProfileProps {
@@ -296,166 +302,270 @@ export function Profile({ user, setUser }: ProfileProps) {
           <TabsTrigger value="settings" className="text-xs md:text-sm">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4 md:space-y-6">
-          {/* Profile Header */}
-          <Card>
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col md:flex-row items-start gap-4 md:gap-6">
+        <TabsContent value="overview" className="space-y-6">
+          {/* Hero Profile Card */}
+          <Card className="overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900 border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex flex-col lg:flex-row items-center gap-6">
                 <div className="relative">
-                  <Avatar className="w-24 h-24">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur-sm opacity-30"></div>
+                  <Avatar className="relative w-32 h-32 ring-4 ring-white shadow-xl">
                     <AvatarImage 
                       src={user.photoURL || user.avatar}
                       onError={() => {
                         console.warn('Avatar image failed to load:', user.photoURL || user.avatar);
                       }}
                     />
-                    <AvatarFallback className="text-xl">
+                    <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
                       {user.name.split(' ').map((n: string) => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
-                  {/* Online status indicator */}
-                  <div className={`absolute bottom-1 right-2-5 w-3 h-3 rounded-full border-4 border-white ${
+                  {/* Enhanced online status */}
+                  <div className={`absolute bottom-2 right-2 w-6 h-6 rounded-full border-4 border-white shadow-lg flex items-center justify-center ${
                     isOnline ? 'bg-green-500' : 'bg-gray-400'
-                  }`} />
+                  }`}>
+                    {isOnline && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                  </div>
                 </div>
                 
-                <div className="flex-1">
-                  <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-2">
-                    <h2 className="text-xl md:text-2xl font-semibold">{user.name}</h2>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium ${
-                        isOnline ? 'text-green-500' : 'text-gray-400'
-                      }`}>
-                        {isOnline ? 'Online' : 'Offline'}
-                      </span>
-                      {user.isPremium && (
-                        <Badge className="bg-yellow-500 text-yellow-900">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Premium
-                        </Badge>
-                      )}
+                <div className="flex-1 text-center lg:text-left">
+                  <div className="space-y-2 mb-4">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent dark:from-white dark:to-gray-300">
+                      {user.name}
+                    </h1>
+                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+                      <p className="text-lg text-muted-foreground">@{user.username}</p>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${
+                          isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                   : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full mr-1.5 ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                          {isOnline ? 'Online' : 'Offline'}
+                        </span>
+                        {user.isPremium && (
+                          <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 shadow-md">
+                            <Crown className="w-3 h-3 mr-1" />
+                            Premium
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <p className="text-muted-foreground mb-4">@{user.username}</p>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 text-center">
-                    <div>
-                      <div className="text-lg md:text-xl font-semibold">{userStats.totalWorkouts}</div>
-                      <p className="text-xs md:text-sm text-muted-foreground">Workouts</p>
+                  {/* Enhanced Stats Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl backdrop-blur-sm">
+                      <div className="flex items-center justify-center w-8 h-8 mx-auto mb-2 bg-blue-500 rounded-lg">
+                        <Dumbbell className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="text-2xl font-bold text-blue-600">{userStats.totalWorkouts}</div>
+                      <p className="text-sm text-muted-foreground">Workouts</p>
                     </div>
-                    <div>
-                      <div className="text-lg md:text-xl font-semibold">{userStats.totalRecipes}</div>
-                      <p className="text-xs md:text-sm text-muted-foreground">Recipes</p>
+                    <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl backdrop-blur-sm">
+                      <div className="flex items-center justify-center w-8 h-8 mx-auto mb-2 bg-green-500 rounded-lg">
+                        <ChefHat className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="text-2xl font-bold text-green-600">{userStats.totalRecipes}</div>
+                      <p className="text-sm text-muted-foreground">Recipes</p>
                     </div>
-                    <div>
-                      <div className="text-lg md:text-xl font-semibold">{userStats.followers}</div>
-                      <p className="text-xs md:text-sm text-muted-foreground">Followers</p>
+                    <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl backdrop-blur-sm">
+                      <div className="flex items-center justify-center w-8 h-8 mx-auto mb-2 bg-purple-500 rounded-lg">
+                        <Heart className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="text-2xl font-bold text-purple-600">{userStats.followers}</div>
+                      <p className="text-sm text-muted-foreground">Followers</p>
                     </div>
                     <div 
-                      className="cursor-pointer hover:bg-blue-50 p-3 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 group"
+                      className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl backdrop-blur-sm cursor-pointer hover:bg-white/70 dark:hover:bg-gray-800/70 transition-all duration-200 hover:scale-105"
                       onClick={() => navigate('/friends')}
                       title="View all friends"
                     >
-                      <div className="text-xl font-semibold ">
+                      <div className="flex items-center justify-center w-8 h-8 mx-auto mb-2 bg-orange-500 rounded-lg">
+                        <Users className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="text-2xl font-bold text-orange-600">
                         {friendsLoading ? '...' : friendsCount}
                       </div>
-                      <div >
-                        <p className="text-sm text-muted-foreground">Friends</p>
-                      </div>
+                      <p className="text-sm text-muted-foreground">Friends</p>
                     </div>
                   </div>
                 </div>
 
-                <Button variant="outline" onClick={handleShareProfile}>
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Profile
-                </Button>
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleShareProfile}
+                    className="bg-white/80 backdrop-blur-sm border-white/50 hover:bg-white/90"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share Profile
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Health Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Weight / Height</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {weightConversions.dbToDisplay(user.weight, selectedUnitSystem)} {weightConversions.getUnit(selectedUnitSystem)} / {heightConversions.format(user.height, selectedUnitSystem)}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">BMI</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{bmi ?? '--'}</div>
-                <p className="text-xs text-muted-foreground">Body Mass Index</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">BMR</CardTitle>
-                <Droplets className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{bmr ?? '--'}</div>
-                <p className="text-xs text-muted-foreground">Basal Metabolic Rate</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">TDEE / Maintenance</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{tdee ?? '--'}</div>
-                <p className="text-xs text-muted-foreground">Total Daily Energy Expenditure</p>
-              </CardContent>
-            </Card>
+          {/* Enhanced Health Metrics */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-semibold">Health Metrics</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Weight / Height</CardTitle>
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <User className="h-4 w-4 text-blue-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600 mb-1">
+                    {weightConversions.dbToDisplay(user.weight, selectedUnitSystem)} {weightConversions.getUnit(selectedUnitSystem)}
+                  </div>
+                  <div className="text-lg text-muted-foreground">
+                    {heightConversions.format(user.height, selectedUnitSystem)}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">BMI</CardTitle>
+                  <div className="p-2 bg-green-50 rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600 mb-1">{bmi ?? '--'}</div>
+                  <p className="text-sm text-muted-foreground">Body Mass Index</p>
+                  {bmi && (
+                    <div className="mt-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min((bmi / 30) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">BMR</CardTitle>
+                  <div className="p-2 bg-orange-50 rounded-lg">
+                    <Zap className="h-4 w-4 text-orange-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600 mb-1">{bmr ?? '--'}</div>
+                  <p className="text-sm text-muted-foreground">Calories/day</p>
+                  <p className="text-xs text-muted-foreground mt-1">Base Metabolic Rate</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">TDEE</CardTitle>
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <Target className="h-4 w-4 text-purple-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600 mb-1">{tdee ?? '--'}</div>
+                  <p className="text-sm text-muted-foreground">Calories/day</p>
+                  <p className="text-xs text-muted-foreground mt-1">Maintenance Level</p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          {/* Recent Achievements */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Achievements</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                  <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <Crown className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium">30-Day Streak Master</p>
-                    <p className="text-sm text-muted-foreground">Maintained daily activity for 30 days</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                    <Dumbbell className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Fitness Enthusiast</p>
-                    <p className="text-sm text-muted-foreground">Completed 50+ workouts</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                    <Droplets className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Hydration Hero</p>
-                    <p className="text-sm text-muted-foreground">Reached daily water goal 30 times</p>
-                  </div>
-                </div>
+          {/* Enhanced Achievements Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-yellow-600" />
+                <h2 className="text-xl font-semibold">Achievements</h2>
               </div>
-            </CardContent>
-          </Card>
+              <Badge variant="secondary" className="text-xs">
+                Recent
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                        <Crown className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-300 rounded-full flex items-center justify-center">
+                        <Star className="w-2 h-2 text-yellow-800" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">30-Day Streak Master</h3>
+                      <p className="text-sm text-muted-foreground">Maintained daily activity</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Flame className="w-3 h-3 text-orange-500" />
+                        <span className="text-xs font-medium text-orange-600">30 days</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Dumbbell className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-300 rounded-full flex items-center justify-center">
+                        <Star className="w-2 h-2 text-blue-800" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">Fitness Enthusiast</h3>
+                      <p className="text-sm text-muted-foreground">Completed workouts</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Target className="w-3 h-3 text-blue-500" />
+                        <span className="text-xs font-medium text-blue-600">50+ sessions</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Droplets className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-300 rounded-full flex items-center justify-center">
+                        <Star className="w-2 h-2 text-green-800" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">Hydration Hero</h3>
+                      <p className="text-sm text-muted-foreground">Daily water goals</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Droplets className="w-3 h-3 text-green-500" />
+                        <span className="text-xs font-medium text-green-600">30 days</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-6">
