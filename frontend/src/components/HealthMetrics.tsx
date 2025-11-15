@@ -11,6 +11,8 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Heart, Scale, Calculator, TrendingUp, Activity } from 'lucide-react';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
+import { BodyFatCalculatorPopup } from './BodyFatCalculatorPopup';
+import { useBodyFat } from '../hooks/useBodyFat';
 
 interface HealthMetricsProps {
   user: any;
@@ -21,6 +23,8 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   // console.log('HealthMetrics component rendered');
   const { unitSystem } = useUnitSystem();
   const [weightLogs, setWeightLogs] = useState([]);
+  const [bodyFatPopupOpen, setBodyFatPopupOpen] = useState(false);
+  const { bodyFat, logBodyFat, loading: bodyFatLoading } = useBodyFat(user.id, true);
   const [metrics, setMetrics] = useState({
     height: user.height,
     weight: user.weight,
@@ -146,10 +150,20 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
 
   const bmi = calculateBMI(metrics.weight, metrics.height);
   const bmiCategory = getBMICategory(bmi ?? 0);
-  const bodyFatCategory = getBodyFatCategory(metrics.bodyFat);
+  const bodyFatCategory = getBodyFatCategory(bodyFat ?? metrics.bodyFat);
   const bmr = calculateBMR(metrics.weight, metrics.height, metrics.age, user.gender);
   //console.log("User activity level:",user.activity_level);
   const tdee = calculateTDEE(bmr ?? 0, user.activityLevel);
+
+  const handleBodyFatCalculate = async (measurements: {
+    height: number;
+    neck: number;
+    waist: number;
+    hip?: number;
+    bodyFat: number;
+  }) => {
+    await logBodyFat(measurements);
+  };
 
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
@@ -312,11 +326,36 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
             <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.bodyFat}%</div>
-            <Badge variant={bodyFatCategory.color === 'green' ? 'default' : 'secondary'} className="mt-1">
-              {bodyFatCategory.label}
-            </Badge>
-            <Progress value={metrics.bodyFat} className="mt-2" />
+            {bodyFat === null ? (
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-muted-foreground">Not Available</div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setBodyFatPopupOpen(true)}
+                  disabled={bodyFatLoading}
+                >
+                  Calculate Now
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{bodyFat}%</div>
+                <Badge variant={bodyFatCategory.color === 'green' ? 'default' : 'secondary'} className="mt-1">
+                  {bodyFatCategory.label}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setBodyFatPopupOpen(true)}
+                  className="mt-2"
+                  disabled={bodyFatLoading}
+                >
+                  Update Measurement
+                </Button>
+                <Progress value={bodyFat} className="mt-2" />
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -411,6 +450,15 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
           </div>
         </CardContent>
       </Card>
+
+      <BodyFatCalculatorPopup
+        open={bodyFatPopupOpen}
+        onOpenChange={setBodyFatPopupOpen}
+        onCalculate={handleBodyFatCalculate}
+        gender={user.gender}
+        height={metrics.height}
+        isLoading={bodyFatLoading}
+      />
     </div>
   );
 }

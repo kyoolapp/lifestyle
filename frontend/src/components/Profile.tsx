@@ -195,6 +195,11 @@ export function Profile({ user, setUser }: ProfileProps) {
       .finally(() => setUsernameChecking(false));
   }, [username]);
 
+  // Sync unit system state with context
+  useEffect(() => {
+    setSelectedUnitSystem(unitSystem);
+  }, [unitSystem]);
+
   // Load friends count when component mounts
   useEffect(() => {
     const loadFriendsCount = async () => {

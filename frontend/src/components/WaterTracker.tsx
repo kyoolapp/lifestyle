@@ -389,8 +389,15 @@ export function WaterTracker({ user }: WaterTrackerProps) {
       await refreshWeeklyData();
 
       // Notify other components about the water intake update
+      console.log('[WaterTracker] Dispatching waterIntakeUpdated event:', { userId: user.id, glasses: newTotal, glassesAdded: glasses });
       window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
-        detail: { userId: user.id, glasses: newTotal }
+        detail: { userId: user.id, glasses: newTotal, glassesAdded: glasses }
+      }));
+      
+      // Dispatch activity feed refresh event
+      console.log('[WaterTracker] Dispatching activityUpdated event:', { userId: user.id, type: 'water', glassesAdded: glasses });
+      window.dispatchEvent(new CustomEvent('activityUpdated', {
+        detail: { userId: user.id, type: 'water', glassesAdded: glasses }
       }));
     } catch (error) {
       console.error('Failed to add water:', error);
@@ -424,7 +431,12 @@ export function WaterTracker({ user }: WaterTrackerProps) {
 
       // Notify other components
       window.dispatchEvent(new CustomEvent('waterIntakeUpdated', {
-        detail: { userId: user.id, glasses: newTotal }
+        detail: { userId: user.id, glasses: newTotal, glassesRemoved: glasses }
+      }));
+      
+      // Dispatch activity feed refresh event
+      window.dispatchEvent(new CustomEvent('activityUpdated', {
+        detail: { userId: user.id, type: 'water', glassesAdded: -glasses }
       }));
     } catch (error) {
       console.error('Failed to remove water:', error);

@@ -267,3 +267,15 @@ export async function getWaterHistory(userId, days = 7) {
   const data = await res.json();
   return data.history;
 }
+
+// ============ ACTIVITY FEED API ============
+
+export async function getUserActivities(userId, limit = 50) {
+  const res = await fetch(`${BASE_URL}/users/${userId}/activities?limit=${limit}`);
+  if (!res.ok) {
+    console.error('Failed to fetch user activities');
+    return [];
+  }
+  const data = await res.json();
+  return data.activities || [];
+}

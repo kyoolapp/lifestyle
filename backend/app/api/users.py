@@ -424,3 +424,102 @@ def reset_streak(user_id: str, streak_type: str = "water"):
         return streak
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- BODY FAT ENDPOINTS ---
+
+@router.post("/{user_id}/body-fat/log")
+def log_body_fat(user_id: str, body_data: dict = Body(...)):
+    """
+    Log a body fat measurement for a user.
+    
+    Args:
+        user_id: The user's Firebase ID
+        body_data: Dictionary with 'height', 'neck', 'waist', 'hip' (optional), 'body_fat_percentage'
+    
+    Returns:
+        The created body fat log entry
+    """
+    try:
+        height = body_data.get('height')
+        neck = body_data.get('neck')
+        waist = body_data.get('waist')
+        hip = body_data.get('hip')
+        body_fat_percentage = body_data.get('body_fat_percentage')
+        
+        if not all([height, neck, waist, body_fat_percentage]):
+            raise HTTPException(status_code=400, detail="Missing required fields: height, neck, waist, body_fat_percentage")
+        
+        result = user_service.log_body_fat(user_id, height, neck, waist, body_fat_percentage, hip)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{user_id}/body-fat/latest")
+def get_latest_body_fat(user_id: str):
+    """
+    Get the most recent body fat measurement for a user.
+    
+    Args:
+        user_id: The user's Firebase ID
+    
+    Returns:
+        The latest body fat log entry, or 404 if none exists
+    """
+    try:
+        result = user_service.get_latest_body_fat(user_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="No body fat measurements found")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{user_id}/body-fat/history")
+def get_body_fat_history(user_id: str, limit: int = Query(100, ge=1, le=500)):
+    """
+    Get body fat measurement history for a user.
+    
+    Args:
+        user_id: The user's Firebase ID
+        limit: Maximum number of records to return (default 100, max 500)
+    
+    Returns:
+        Array of body fat log entries sorted by date (newest first)
+    """
+    try:
+        result = user_service.get_body_fat_history(user_id, limit)
+        return {"logs": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============ ACTIVITY FEED ENDPOINT ============
+
+@router.get("/{user_id}/activities")
+def get_user_activities(user_id: str, limit: int = Query(50, ge=1, le=100)):
+    """
+    Get recent activities for a user (water logged, friends added/removed, achievements, etc.).
+    Returns activities sorted by timestamp (newest first).
+    
+    Activity types:
+    - water: User logged water intake
+    - fitness: User completed a workout or logged body fat
+    - social: User added/removed friend or accepted friend request
+    - achievement: Streak milestones, goals reached
+    
+    Args:
+        user_id: The user's Firebase ID
+        limit: Maximum number of activities to return (default 50, max 100)
+    
+    Returns:
+        Array of activity objects with: type, title, description, timestamp, related_user (optional)
+    """
+    try:
+        activities = user_service.get_user_activities(user_id, limit)
+        return {"activities": activities}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

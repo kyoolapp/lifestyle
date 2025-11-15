@@ -89,6 +89,20 @@ class FirestoreUserService:
         doc = water_log_ref.get()
         glasses_total = doc.to_dict().get('glasses', glasses) if doc.exists else glasses
         
+        # Create individual water event for activity feed tracking
+        # This allows each water logging action to appear as a separate activity
+        try:
+            water_events_ref = db.collection('users').document(user_id).collection('water_events')
+            # Create a new event document with auto-generated ID and current timestamp
+            water_events_ref.add({
+                'glasses': glasses,
+                'created_at': now_utc_iso,
+                'date': today,
+                'type': 'water_logged'
+            })
+        except Exception as e:
+            print(f"Error creating water event: {e}")
+        
         # Update streak for water logging
         streak_data = self.update_streak(user_id, 'water')
         
@@ -334,6 +348,94 @@ class FirestoreUserService:
         
         return all_streaks
     
+    def log_body_fat(self, user_id: str, height: float, neck: float, waist: float, 
+                     body_fat_percentage: float, hip: float = None):
+        """
+        Log body fat measurement with circumference measurements.
+        Uses today's date in user's local timezone as the document ID.
+        
+        Args:
+            user_id: The user's Firebase ID.
+            height: Height in centimeters.
+            neck: Neck circumference in centimeters.
+            waist: Waist circumference in centimeters.
+            body_fat_percentage: Calculated body fat percentage.
+            hip: Hip circumference in centimeters (for women).
+            
+        Returns:
+            dict: The created body fat log entry
+        """
+        today = get_user_local_date(self._get_user_timezone(user_id))
+        now_utc_iso = get_utc_now_iso()
+        
+        body_fat_ref = db.collection('users').document(user_id).collection('body_fat_logs').document(today)
+        
+        body_fat_data = {
+            'date': today,
+            'height': height,
+            'neck': neck,
+            'waist': waist,
+            'body_fat': body_fat_percentage,
+            'timestamp': now_utc_iso,
+            'created_at': now_utc_iso
+        }
+        
+        if hip:
+            body_fat_data['hip'] = hip
+        
+        body_fat_ref.set(body_fat_data)
+        
+        return {
+            'id': today,
+            'height': height,
+            'neck': neck,
+            'waist': waist,
+            'hip': hip,
+            'body_fat': body_fat_percentage,
+            'timestamp': now_utc_iso
+        }
+    
+    def get_latest_body_fat(self, user_id: str):
+        """
+        Get the most recent body fat measurement for a user.
+        
+        Args:
+            user_id: The user's Firebase ID.
+            
+        Returns:
+            dict: The latest body fat log entry, or None if no logs exist
+        """
+        body_fat_ref = db.collection('users').document(user_id).collection('body_fat_logs')
+        docs = body_fat_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(1).stream()
+        
+        for doc in docs:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            return data
+        
+        return None
+    
+    def get_body_fat_history(self, user_id: str, limit: int = 100):
+        """
+        Get body fat measurement history for a user.
+        
+        Args:
+            user_id: The user's Firebase ID.
+            limit: Maximum number of records to return.
+            
+        Returns:
+            list: Array of body fat log entries sorted by date (newest first)
+        """
+        body_fat_ref = db.collection('users').document(user_id).collection('body_fat_logs')
+        docs = body_fat_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(limit).stream()
+        
+        history = []
+        for doc in docs:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            history.append(data)
+        
+        return history
     #Getting user by ID
     def generate_avatar_url(self, name: str, username: str):
         """Generate a fallback avatar URL using ui-avatars.com"""
@@ -868,3 +970,237 @@ class FirestoreUserService:
             friends = user_data.get('friends', [])
             return other_user_id in friends
         return False
+
+    def get_user_activities(self, user_id: str, limit: int = 50) -> list:
+        """
+        Get recent activities for a user aggregated from various sources:
+        - Water intake logs
+        - Friend additions/removals
+        - Body fat measurements
+        - Streaks and achievements
+        - Friend request acceptances
+        
+        Args:
+            user_id: The user's Firebase ID
+            limit: Maximum number of activities to return
+        
+        Returns:
+            List of activity dictionaries sorted by timestamp (newest first)
+        """
+        activities = []
+        
+        try:
+            user_doc = db.collection('users').document(user_id).get()
+            if not user_doc.exists:
+                return []
+            
+            user_data = user_doc.to_dict()
+            user_name = user_data.get('name', 'User')
+            user_avatar = user_data.get('avatar', '')
+            
+            # ===== 1. WATER INTAKE ACTIVITIES =====
+            # Fetch individual water logging events (each action logged separately)
+            try:
+                water_events_ref = db.collection('users').document(user_id).collection('water_events')
+                # Fetch all events and sort in memory (avoids index requirement)
+                water_events_docs = list(water_events_ref.stream())
+                # Sort by created_at descending (newest first)
+                water_events_docs.sort(key=lambda x: x.to_dict().get('created_at', ''), reverse=True)
+                
+                for event in water_events_docs[:50]:  # Limit to 50 most recent
+                    event_data = event.to_dict()
+                    glasses = event_data.get('glasses', 0)
+                    created_at = event_data.get('created_at', '')
+                    
+                    if glasses > 0 and created_at:
+                        # Format description with the number of glasses
+                        glasses_word = 'glass' if glasses == 1 else 'glasses'
+                        activities.append({
+                            'type': 'nutrition',
+                            'title': f'You logged water intake',
+                            'description': f'Logged {glasses} {glasses_word} of water',
+                            'timestamp': created_at,
+                            'user': {
+                                'name': user_name,
+                                'avatar': user_avatar
+                            },
+                            'icon_type': 'water'
+                        })
+            except Exception as e:
+                print(f"Error fetching water events: {e}")
+                # Fallback to old water_logs for backwards compatibility
+                try:
+                    water_logs_ref = db.collection('users').document(user_id).collection('water_logs')
+                    water_logs = water_logs_ref.limit(20).stream()
+                    
+                    for log in water_logs:
+                        log_data = log.to_dict()
+                        glasses = log_data.get('glasses', 0)
+                        created_at = log_data.get('created_at', '') or log_data.get('last_updated', '')
+                        
+                        if glasses > 0 and created_at:
+                            glasses_word = 'glass' if glasses == 1 else 'glasses'
+                            activities.append({
+                                'type': 'nutrition',
+                                'title': f'You logged water intake',
+                                'description': f'Logged {glasses} {glasses_word} of water',
+                                'timestamp': created_at,
+                                'user': {
+                                    'name': user_name,
+                                    'avatar': user_avatar
+                                },
+                                'icon_type': 'water'
+                            })
+                except Exception as e2:
+                    print(f"Error fetching water logs fallback: {e2}")
+            
+            # ===== 2. BODY FAT ACTIVITIES =====
+            try:
+                body_fat_ref = db.collection('users').document(user_id).collection('body_fat_logs')
+                body_fat_logs = body_fat_ref.limit(20).stream()
+                
+                for log in body_fat_logs:
+                    log_data = log.to_dict()
+                    body_fat_pct = log_data.get('body_fat_percentage', 0)
+                    created_at = log_data.get('created_at', '')
+                    
+                    if body_fat_pct > 0 and created_at:
+                        activities.append({
+                            'type': 'achievement',
+                            'title': f'You logged body measurements',
+                            'description': f'Body fat: {body_fat_pct}%',
+                            'timestamp': created_at,
+                            'user': {
+                                'name': user_name,
+                                'avatar': user_avatar
+                            },
+                            'icon_type': 'body_fat'
+                        })
+            except Exception as e:
+                print(f"Error fetching body fat logs: {e}")
+            
+            # ===== 3. FRIEND ACTIVITIES =====
+            # Get accepted friend requests to show when user added friends OR was added by friends
+            try:
+                # Case 1: When this user sent the friend request (user_id is sender)
+                sent_requests_ref = db.collection('friend_requests').where('sender_id', '==', user_id).where('status', '==', 'accepted')
+                sent_requests = sent_requests_ref.limit(20).stream()
+                
+                for req in sent_requests:
+                    req_data = req.to_dict()
+                    receiver_id = req_data.get('receiver_id')
+                    updated_at = req_data.get('updated_at', '') or req_data.get('created_at', '')
+                    
+                    if receiver_id and updated_at:
+                        # Get friend's info
+                        friend_doc = db.collection('users').document(receiver_id).get()
+                        if friend_doc.exists:
+                            friend_data = friend_doc.to_dict()
+                            friend_name = friend_data.get('name', 'Unknown')
+                            
+                            activities.append({
+                                'type': 'social',
+                                'title': f'You added a friend',
+                                'description': f'Added {friend_name}',
+                                'timestamp': updated_at,
+                                'user': {
+                                    'name': user_name,
+                                    'avatar': user_avatar
+                                },
+                                'icon_type': 'friend_add'
+                            })
+                
+                # Case 2: When another user sent friend request to this user (user_id is receiver)
+                received_requests_ref = db.collection('friend_requests').where('receiver_id', '==', user_id).where('status', '==', 'accepted')
+                received_requests = received_requests_ref.limit(20).stream()
+                
+                for req in received_requests:
+                    req_data = req.to_dict()
+                    sender_id = req_data.get('sender_id')
+                    updated_at = req_data.get('updated_at', '') or req_data.get('created_at', '')
+                    
+                    if sender_id and updated_at:
+                        # Get sender's info
+                        sender_doc = db.collection('users').document(sender_id).get()
+                        if sender_doc.exists:
+                            sender_data = sender_doc.to_dict()
+                            sender_name = sender_data.get('name', 'Unknown')
+                            
+                            activities.append({
+                                'type': 'social',
+                                'title': f'{sender_name} added you as a friend',
+                                'description': f'Your friendship is now active',
+                                'timestamp': updated_at,
+                                'user': {
+                                    'name': user_name,
+                                    'avatar': user_avatar
+                                },
+                                'icon_type': 'friend_add'
+                            })
+            except Exception as e:
+                print(f"Error fetching friend activities: {e}")
+            
+            # ===== 4. STREAK ACTIVITIES =====
+            try:
+                streaks_ref = db.collection('users').document(user_id).collection('streaks')
+                streaks = streaks_ref.stream()
+                
+                for streak_doc in streaks:
+                    streak_data = streak_doc.to_dict()
+                    current_streak = streak_data.get('current_streak', 0)
+                    streak_type = streak_data.get('streak_type', 'unknown')
+                    updated_at = streak_data.get('updated_at', '')
+                    
+                    # Only show streaks of 3+ days or major milestones (5, 10, 14, 30, 60, 90, 100, etc.)
+                    if updated_at and current_streak > 0:
+                        is_milestone = current_streak in [5, 10, 14, 21, 30, 60, 90, 100, 365]
+                        if current_streak >= 3 or is_milestone:
+                            streak_emoji = {
+                                'water': '💧',
+                                'workout': '💪',
+                                'food': '🍎'
+                            }.get(streak_type, '🔥')
+                            
+                            activities.append({
+                                'type': 'achievement',
+                                'title': f'{streak_emoji} {current_streak}-day {streak_type} streak!',
+                                'description': f'Keep it up! Your {streak_type} streak is going strong',
+                                'timestamp': updated_at,
+                                'user': {
+                                    'name': user_name,
+                                    'avatar': user_avatar
+                                },
+                                'icon_type': f'streak_{streak_type}'
+                            })
+            except Exception as e:
+                print(f"Error fetching streak activities: {e}")
+            
+            # ===== 5. SORT BY TIMESTAMP AND LIMIT =====
+            # Convert all timestamps to ISO strings for consistent sorting
+            activities_with_normalized_timestamps = []
+            for activity in activities:
+                timestamp = activity.get('timestamp', '')
+                # Handle Firestore DatetimeWithNanoseconds objects
+                if hasattr(timestamp, 'isoformat'):
+                    # It's a datetime object, convert to ISO string
+                    timestamp_str = timestamp.isoformat()
+                else:
+                    # It's already a string
+                    timestamp_str = str(timestamp) if timestamp else ''
+                
+                activity['timestamp'] = timestamp_str
+                activities_with_normalized_timestamps.append(activity)
+            
+            # Sort by timestamp descending (newest first)
+            activities_with_normalized_timestamps.sort(
+                key=lambda x: x.get('timestamp', ''),
+                reverse=True
+            )
+            
+            return activities_with_normalized_timestamps[:limit]
+            
+        except Exception as e:
+            print(f"Error fetching activities for user {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
