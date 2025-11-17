@@ -40,7 +40,7 @@ export function useBodyFat(userId?: string, autoFetch = true): UseBodyFatReturn 
       setLoading(true);
       setError(null);
       
-      const apiUrl = import.meta.env.VITE_API_BASE_URL;
+      const apiUrl = import.meta.env.VITE_API_URL;
       const response = await fetch(`${apiUrl}/users/${userId}/body-fat/latest`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
