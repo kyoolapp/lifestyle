@@ -32,7 +32,14 @@ import {
   Activity,
   Zap,
   Star,
-  Flame
+  Flame,
+  ChevronDown,
+  Plus,
+  X,
+  Check,
+  MoreHorizontal,
+  Trophy,
+  Clock
 } from 'lucide-react';
 
 interface ProfileProps {
@@ -103,6 +110,70 @@ export function Profile({ user, setUser }: ProfileProps) {
   const [isOnline, setIsOnline] = useState(true); // Default to true for current user
   const [friendsCount, setFriendsCount] = useState(0);
   const [friendsLoading, setFriendsLoading] = useState(false);
+  const [goalsExpanded, setGoalsExpanded] = useState(false);
+  const [showAddGoal, setShowAddGoal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<number | null>(null);
+  const [updatingGoal, setUpdatingGoal] = useState<number | null>(null);
+  const [progressUpdate, setProgressUpdate] = useState({ current: '', progress: 0 });
+  const [newGoal, setNewGoal] = useState({ title: '', target: '', category: 'fitness' });
+  const [goals, setGoals] = useState([
+    {
+      id: 1,
+      title: 'Lose 15 pounds',
+      target: '150 lbs',
+      current: '165 lbs',
+      progress: 60,
+      category: 'weight',
+      icon: Target,
+      color: 'text-rose-500',
+      bgColor: 'bg-rose-50',
+      progressColor: 'bg-rose-500',
+      deadline: 'Dec 31, 2024',
+      streak: 12
+    },
+    {
+      id: 2,
+      title: 'Walk 10K steps daily',
+      target: '10,000 steps',
+      current: '8,200 steps',
+      progress: 82,
+      category: 'fitness',
+      icon: Activity,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50',
+      progressColor: 'bg-blue-500',
+      deadline: 'Daily Goal',
+      streak: 5
+    },
+    {
+      id: 3,
+      title: 'Drink 8 glasses of water',
+      target: '8 glasses',
+      current: '6 glasses',
+      progress: 75,
+      category: 'hydration',
+      icon: Droplets,
+      color: 'text-cyan-500',
+      bgColor: 'bg-cyan-50',
+      progressColor: 'bg-cyan-500',
+      deadline: 'Daily Goal',
+      streak: 15
+    },
+    {
+      id: 4,
+      title: 'Workout 5 times per week',
+      target: '5 workouts',
+      current: '3 workouts',
+      progress: 60,
+      category: 'fitness',
+      icon: Dumbbell,
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-50',
+      progressColor: 'bg-purple-500',
+      deadline: 'Weekly Goal',
+      streak: 3
+    }
+  ]);
   const [editForm, setEditForm] = useState({
     name: user.name,
     username: user.username,
@@ -302,8 +373,9 @@ export function Profile({ user, setUser }: ProfileProps) {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4 md:space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="text-xs md:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="goals" className="text-xs md:text-sm">Goals</TabsTrigger>
           <TabsTrigger value="activity" className="text-xs md:text-sm">Activity Feed</TabsTrigger>
           <TabsTrigger value="settings" className="text-xs md:text-sm">Settings</TabsTrigger>
         </TabsList>
@@ -615,6 +687,326 @@ export function Profile({ user, setUser }: ProfileProps) {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="goals" className="space-y-6">
+          {/* Goals Tab Header */}
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Target className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent dark:from-white dark:to-gray-300">
+              Goals & Progress
+            </h2>
+            <p className="text-muted-foreground mt-2">
+              Track your health and fitness goals with detailed progress monitoring
+            </p>
+          </div>
+
+          {/* Goals Statistics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200/50 dark:border-green-700/50">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {goals.filter(g => g.progress >= 100).length}
+              </div>
+              <div className="text-sm text-green-700 dark:text-green-300">Completed Goals</div>
+            </Card>
+            <Card className="text-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200/50 dark:border-blue-700/50">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {goals.length}
+              </div>
+              <div className="text-sm text-blue-700 dark:text-blue-300">Active Goals</div>
+            </Card>
+            <Card className="text-center p-4 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 border-purple-200/50 dark:border-purple-700/50">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {Math.round(goals.reduce((acc, goal) => acc + goal.progress, 0) / goals.length)}%
+              </div>
+              <div className="text-sm text-purple-700 dark:text-purple-300">Average Progress</div>
+            </Card>
+            <Card className="text-center p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200/50 dark:border-orange-700/50">
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {Math.round(goals.reduce((acc, goal) => acc + goal.streak, 0) / goals.length)}
+              </div>
+              <div className="text-sm text-orange-700 dark:text-orange-300">Avg Streak Days</div>
+            </Card>
+          </div>
+
+          {/* Goals Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+            {goals.map((goal) => {
+              const Icon = goal.icon;
+              const isUpdating = updatingGoal === goal.id;
+              return (
+                <Card key={goal.id} className={`group relative overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]`}>
+                  <CardContent className="p-6">
+                    {/* Goal Header */}
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-14 h-14 rounded-xl ${goal.bgColor} dark:bg-gray-700/50 flex items-center justify-center ring-2 ring-white dark:ring-gray-600 shadow-lg`}>
+                          <Icon className={`w-7 h-7 ${goal.color} dark:${goal.color.replace('500', '400')}`} />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{goal.title}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {goal.deadline}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-2xl font-bold ${goal.color} dark:${goal.color.replace('500', '400')}`}>{goal.progress}%</span>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1 justify-end">
+                          <Flame className="w-3 h-3" />
+                          {goal.streak} day streak
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Update Form or Progress Details */}
+                    {isUpdating ? (
+                      <div className="space-y-4 mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h4 className="font-medium text-gray-900 dark:text-white">Update Progress</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm text-gray-600 dark:text-gray-400">Current Value</Label>
+                            <Input 
+                              placeholder={goal.current}
+                              value={progressUpdate.current}
+                              onChange={(e) => setProgressUpdate({...progressUpdate, current: e.target.value})}
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm text-gray-600 dark:text-gray-400">Progress Percentage</Label>
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              max="100"
+                              value={progressUpdate.progress}
+                              onChange={(e) => setProgressUpdate({...progressUpdate, progress: parseInt(e.target.value) || 0})}
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                // Update the goal with new progress
+                                setGoals(goals.map(g => 
+                                  g.id === goal.id 
+                                    ? {
+                                        ...g,
+                                        current: progressUpdate.current || g.current,
+                                        progress: Math.min(progressUpdate.progress, 100),
+                                        streak: progressUpdate.progress > g.progress ? g.streak + 1 : g.streak
+                                      }
+                                    : g
+                                ));
+                                setUpdatingGoal(null);
+                                setProgressUpdate({ current: '', progress: 0 });
+                              }}
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                            >
+                              <Check className="w-4 h-4 mr-2" />
+                              Save
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => {
+                                setUpdatingGoal(null);
+                                setProgressUpdate({ current: '', progress: 0 });
+                              }}
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Current: </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{goal.current}</span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Target: </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{goal.target}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Enhanced Progress Bar */}
+                        <div className="relative">
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-1000 ease-out ${goal.progressColor} dark:${goal.progressColor.replace('500', '400')} relative`}
+                              style={{ width: `${Math.min(goal.progress, 100)}%` }}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                            </div>
+                          </div>
+                          {goal.progress >= 100 && (
+                            <div className="absolute -top-2 -right-2">
+                              <div className="w-8 h-8 bg-green-500 dark:bg-green-400 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800 shadow-lg">
+                                <Check className="w-5 h-5 text-white" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Action Buttons */}
+                    {!isUpdating && (
+                      <div className="flex gap-2 pt-4">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1 bg-white/70 hover:bg-white dark:bg-gray-700/50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setUpdatingGoal(goal.id);
+                            setProgressUpdate({ current: goal.current, progress: goal.progress });
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Update Progress
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="bg-white/70 hover:bg-white dark:bg-gray-700/50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingGoal(goal.id);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+            
+            {/* Add New Goal Card */}
+            {showAddGoal ? (
+              <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Create New Goal</h3>
+                    <Input 
+                      placeholder="Goal title (e.g., 'Run 5K daily')" 
+                      value={newGoal.title}
+                      onChange={(e) => setNewGoal({...newGoal, title: e.target.value})}
+                      className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                    />
+                    <Input 
+                      placeholder="Target (e.g., '5000 steps')" 
+                      value={newGoal.target}
+                      onChange={(e) => setNewGoal({...newGoal, target: e.target.value})}
+                      className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                    />
+                    <Select value={newGoal.category} onValueChange={(value) => setNewGoal({...newGoal, category: value})}>
+                      <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                        <SelectItem value="fitness">🏃 Fitness & Exercise</SelectItem>
+                        <SelectItem value="weight">⚖️ Weight Management</SelectItem>
+                        <SelectItem value="hydration">💧 Hydration</SelectItem>
+                        <SelectItem value="nutrition">🥗 Nutrition</SelectItem>
+                        <SelectItem value="sleep">😴 Sleep & Recovery</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => {
+                          if (newGoal.title && newGoal.target) {
+                            const iconMap: any = {
+                              fitness: Activity,
+                              weight: Target,
+                              hydration: Droplets,
+                              nutrition: ChefHat,
+                              sleep: Clock
+                            };
+                            const colorMap: any = {
+                              fitness: 'text-blue-500',
+                              weight: 'text-rose-500',
+                              hydration: 'text-cyan-500',
+                              nutrition: 'text-green-500',
+                              sleep: 'text-purple-500'
+                            };
+                            const bgColorMap: any = {
+                              fitness: 'bg-blue-50',
+                              weight: 'bg-rose-50',
+                              hydration: 'bg-cyan-50',
+                              nutrition: 'bg-green-50',
+                              sleep: 'bg-purple-50'
+                            };
+                            const newGoalData = {
+                              id: Date.now(),
+                              title: newGoal.title,
+                              target: newGoal.target,
+                              current: '0',
+                              progress: 0,
+                              category: newGoal.category,
+                              icon: iconMap[newGoal.category],
+                              color: colorMap[newGoal.category],
+                              bgColor: bgColorMap[newGoal.category],
+                              progressColor: colorMap[newGoal.category].replace('text-', 'bg-'),
+                              deadline: 'Daily Goal',
+                              streak: 0
+                            };
+                            setGoals([...goals, newGoalData]);
+                            setNewGoal({ title: '', target: '', category: 'fitness' });
+                            setShowAddGoal(false);
+                          }
+                        }}
+                        className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Create Goal
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowAddGoal(false);
+                          setNewGoal({ title: '', target: '', category: 'fitness' });
+                        }}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card 
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer group"
+                onClick={() => setShowAddGoal(true)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                      <Plus className="w-8 h-8 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-gray-100 mb-2">
+                      Add New Goal
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Set a new health and fitness target to track your progress
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
