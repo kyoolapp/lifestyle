@@ -3,7 +3,7 @@ from firebase_admin import credentials, firestore
 import os
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from .timezone_utils import (
     get_utc_now,
@@ -55,6 +55,7 @@ class FirestoreUserService:
         """
         Log water intake for today (in user's local timezone), creating or updating the daily record.
         Uses atomic increment to avoid race conditions with concurrent requests.
+        Batches consecutive water logs within 30 seconds into a single activity event.
         Also updates the water logging streak automatically.
         
         Args:
@@ -89,19 +90,67 @@ class FirestoreUserService:
         doc = water_log_ref.get()
         glasses_total = doc.to_dict().get('glasses', glasses) if doc.exists else glasses
         
-        # Create individual water event for activity feed tracking
-        # This allows each water logging action to appear as a separate activity
+        # Create cumulative water event using a session document approach
         try:
             water_events_ref = db.collection('users').document(user_id).collection('water_events')
-            # Create a new event document with auto-generated ID and current timestamp
-            water_events_ref.add({
-                'glasses': glasses,
-                'created_at': now_utc_iso,
-                'date': today,
-                'type': 'water_logged'
-            })
+            session_ref = db.collection('users').document(user_id).collection('water_session').document('current')
+            
+            # Get or create the current session
+            session_doc = session_ref.get()
+            
+            if session_doc.exists:
+                session_data = session_doc.to_dict()
+                session_timestamp = session_data.get('created_at', '')
+                session_glasses = session_data.get('glasses', 0)
+                
+                # Parse timestamps to check if still within 30 seconds
+                try:
+                    from datetime import datetime
+                    current_time = datetime.fromisoformat(now_utc_iso.replace('Z', '+00:00'))
+                    session_time = datetime.fromisoformat(session_timestamp.replace('Z', '+00:00'))
+                    time_diff = (current_time - session_time).total_seconds()
+                    
+                    if time_diff < 30:
+                        # Still within 30 seconds, update existing session
+                        session_ref.update({
+                            'glasses': firestore.Increment(glasses),
+                            'last_added_at': now_utc_iso
+                        })
+                    else:
+                        # Outside 30 second window, save old session and create new one
+                        # Save the old session to events
+                        water_events_ref.add({
+                            'glasses': session_glasses,
+                            'created_at': session_timestamp,
+                            'date': today,
+                            'type': 'water_logged_session'
+                        })
+                        # Create new session
+                        session_ref.set({
+                            'glasses': glasses,
+                            'created_at': now_utc_iso,
+                            'last_added_at': now_utc_iso,
+                            'date': today
+                        })
+                except Exception as e:
+                    print(f"Error parsing timestamps: {e}")
+                    # Fallback: just create a new event
+                    water_events_ref.add({
+                        'glasses': glasses,
+                        'created_at': now_utc_iso,
+                        'date': today,
+                        'type': 'water_logged_session'
+                    })
+            else:
+                # No existing session, create new one
+                session_ref.set({
+                    'glasses': glasses,
+                    'created_at': now_utc_iso,
+                    'last_added_at': now_utc_iso,
+                    'date': today
+                })
         except Exception as e:
-            print(f"Error creating water event: {e}")
+            print(f"Error managing water session: {e}")
         
         # Update streak for water logging
         streak_data = self.update_streak(user_id, 'water')
@@ -115,6 +164,7 @@ class FirestoreUserService:
         """
         Set the total water intake for today (in user's local timezone).
         Replaces the existing value instead of incrementing.
+        Also creates cumulative water events for tracking activity changes.
         Also updates the water logging streak automatically.
         
         Args:
@@ -128,9 +178,11 @@ class FirestoreUserService:
         water_log_ref = db.collection('users').document(user_id).collection('water_logs').document(today)
         now_utc_iso = get_utc_now_iso()
         
-        # Check if doc exists to preserve created_at
+        # Get the old value to calculate delta
+        old_glasses = 0
         doc = water_log_ref.get()
         if doc.exists:
+            old_glasses = doc.to_dict().get('glasses', 0)
             # Update existing record, preserving created_at
             water_log_ref.update({
                 'glasses': glasses,
@@ -144,6 +196,71 @@ class FirestoreUserService:
                 'created_at': now_utc_iso,
                 'last_updated': now_utc_iso
             })
+        
+        # Calculate the delta (change) and create cumulative water event
+        # Only create events if there's a change
+        delta = glasses - old_glasses
+        if delta != 0:
+            try:
+                water_events_ref = db.collection('users').document(user_id).collection('water_events')
+                session_ref = db.collection('users').document(user_id).collection('water_session').document('current')
+                
+                # Get or create the current session
+                session_doc = session_ref.get()
+                
+                if session_doc.exists:
+                    session_data = session_doc.to_dict()
+                    session_timestamp = session_data.get('created_at', '')
+                    session_glasses = session_data.get('glasses', 0)
+                    
+                    # Parse timestamps to check if still within 30 seconds
+                    try:
+                        from datetime import datetime
+                        current_time = datetime.fromisoformat(now_utc_iso.replace('Z', '+00:00'))
+                        session_time = datetime.fromisoformat(session_timestamp.replace('Z', '+00:00'))
+                        time_diff = (current_time - session_time).total_seconds()
+                        
+                        if time_diff < 30:
+                            # Still within 30 seconds, update existing session
+                            session_ref.update({
+                                'glasses': firestore.Increment(delta),
+                                'last_added_at': now_utc_iso
+                            })
+                        else:
+                            # Outside 30 second window, save old session and create new one
+                            # Save the old session to events
+                            water_events_ref.add({
+                                'glasses': session_glasses,
+                                'created_at': session_timestamp,
+                                'date': today,
+                                'type': 'water_logged_session'
+                            })
+                            # Create new session
+                            session_ref.set({
+                                'glasses': delta,
+                                'created_at': now_utc_iso,
+                                'last_added_at': now_utc_iso,
+                                'date': today
+                            })
+                    except Exception as e:
+                        print(f"Error parsing timestamps: {e}")
+                        # Fallback: just create a new event
+                        water_events_ref.add({
+                            'glasses': delta,
+                            'created_at': now_utc_iso,
+                            'date': today,
+                            'type': 'water_logged_session'
+                        })
+                else:
+                    # No existing session, create new one
+                    session_ref.set({
+                        'glasses': delta,
+                        'created_at': now_utc_iso,
+                        'last_added_at': now_utc_iso,
+                        'date': today
+                    })
+            except Exception as e:
+                print(f"Error managing water session: {e}")
         
         # Update streak for water logging
         streak_data = self.update_streak(user_id, 'water')
@@ -999,11 +1116,19 @@ class FirestoreUserService:
             user_avatar = user_data.get('avatar', '')
             
             # ===== 1. WATER INTAKE ACTIVITIES =====
-            # Fetch individual water logging events (each action logged separately)
+            # Fetch water events and current session
             try:
                 water_events_ref = db.collection('users').document(user_id).collection('water_events')
+                water_session_ref = db.collection('users').document(user_id).collection('water_session').document('current')
+                
                 # Fetch all events and sort in memory (avoids index requirement)
                 water_events_docs = list(water_events_ref.stream())
+                
+                # Also check if there's a current session in progress
+                current_session_doc = water_session_ref.get()
+                if current_session_doc.exists:
+                    water_events_docs.append(current_session_doc)
+                
                 # Sort by created_at descending (newest first)
                 water_events_docs.sort(key=lambda x: x.to_dict().get('created_at', ''), reverse=True)
                 

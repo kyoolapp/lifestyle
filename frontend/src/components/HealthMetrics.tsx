@@ -260,7 +260,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
                 onChange={(e) => setMetrics({ ...metrics, age: parseFloat(e.target.value) || 0 })}
               />
             </div>
-            <div>
+            {/*<div>
               <Label htmlFor="bodyFat">Body Fat (%)</Label>
               <Input
                 id="bodyFat"
@@ -268,7 +268,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
                 value={metrics.bodyFat}
                 onChange={(e) => setMetrics({ ...metrics, bodyFat: parseFloat(e.target.value) || 0 })}
               />
-            </div>
+            </div>*/}
           </div>
           <Button type="button" onClick={handleSave} className="mt-4" disabled={loading}>
             {loading ? 'Saving...' : 'Save Changes'}
@@ -341,12 +341,13 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
             ) : (
               <>
                 <div className="text-2xl font-bold">{bodyFat}%</div>
-                <Badge variant={bodyFatCategory.color === 'green' ? 'default' : 'secondary'} className="mt-1">
+               {/* <Badge variant={bodyFatCategory.color === 'green' ? 'default' : 'secondary'} className="mt-1">
                   {bodyFatCategory.label}
-                </Badge>
+                </Badge> */}
+                <p className="text-xs text-muted-foreground mt-2">{bodyFatCategory.label}</p>
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setBodyFatPopupOpen(true)}
                   className="mt-2"
                   disabled={bodyFatLoading}

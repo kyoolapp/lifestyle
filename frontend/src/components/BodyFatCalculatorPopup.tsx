@@ -246,6 +246,7 @@ export function BodyFatCalculatorPopup({
                 Cancel
               </Button>
               <Button
+                variant ="outline"
                 onClick={handleCalculate}
                 disabled={!isFormValid || isLoading || localLoading}
               >
@@ -297,6 +298,7 @@ export function BodyFatCalculatorPopup({
                 Recalculate
               </Button>
               <Button
+              variant ="outline"
                 onClick={handleSave}
                 disabled={isLoading || localLoading}
               >
