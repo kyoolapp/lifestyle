@@ -1,6 +1,6 @@
 // src/api/health_api.js
 
-const BASE_URL = (import.meta.env as any).VITE_API_BASE_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 const getAuthHeader = () => ({
   'Authorization': `Bearer ${localStorage.getItem('authToken')}`
