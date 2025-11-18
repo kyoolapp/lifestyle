@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import * as userApi from '../api/user_api';
 import { GoalsWidget } from './GoalsWidget';
+import { useGoals } from '../hooks/useGoals';
 import { formatRelativeTime } from '../utils/timeFormat';
 
 interface ActivityFeedProps {
@@ -36,6 +37,7 @@ interface ActivityFeedProps {
 
 export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends, onStartWorkout }: ActivityFeedProps) {
   const navigate = useNavigate();
+  const { goals } = useGoals();
   const [isWorkoutListOpen, setIsWorkoutListOpen] = useState(false);
   const [currentWorkout, setCurrentWorkout] = useState<any>(null);
   const [visibleActivities, setVisibleActivities] = useState(5);
@@ -536,7 +538,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
       <div className="grid lg:grid-cols-3 gap-3 md:gap-6">
         {/* Goals Widget */}
         <div className="lg:col-span-1">
-          <GoalsWidget />
+          <GoalsWidget goals={goals} />
         </div>
         
         {/* Social Health Community Section */}

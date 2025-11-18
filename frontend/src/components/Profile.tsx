@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 import { createOrUpdateUser, getUserOnlineStatus, getUserFriends } from '../api/user_api';
 import { useUnitSystem } from '../context/UnitContext';
@@ -11,8 +11,10 @@ import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Progress } from './ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { isUsernameAvailable } from "../api/user_api";
+import { useGoals } from '../hooks/useGoals';
 import { ThemeToggle } from './ThemeToggle';
 import { 
   User, 
@@ -32,14 +34,14 @@ import {
   Activity,
   Zap,
   Star,
-  Flame,
   ChevronDown,
   Plus,
   X,
   Check,
   MoreHorizontal,
   Trophy,
-  Clock
+  Clock,
+  Trash2
 } from 'lucide-react';
 
 interface ProfileProps {
@@ -50,10 +52,42 @@ interface ProfileProps {
 
 export function Profile({ user, setUser }: ProfileProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { unitSystem, setUnitSystem } = useUnitSystem();
   const [selectedUnitSystem, setSelectedUnitSystem] = useState<'metric' | 'imperial'>(
     user.unit_system || 'metric'
   );
+  
+  // Initialize activeTab with URL parameter if it exists
+  const getInitialTab = () => {
+    const urlParams = new URLSearchParams(location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && ['overview', 'goals', 'activity', 'settings'].includes(tabParam)) {
+      return tabParam;
+    }
+    if (location.state?.activeTab) {
+      return location.state.activeTab;
+    }
+    return 'overview';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+
+  // Check if we should navigate to Goals tab from URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && ['overview', 'goals', 'activity', 'settings'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
+
+  // Check if we should navigate to Goals tab from Activity page (via state)
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state]);
 
   function validateUsernameFormat(username: string) {
     return /^[a-zA-Z0-9_.]{6,20}$/.test(username);
@@ -114,66 +148,13 @@ export function Profile({ user, setUser }: ProfileProps) {
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<number | null>(null);
   const [updatingGoal, setUpdatingGoal] = useState<number | null>(null);
-  const [progressUpdate, setProgressUpdate] = useState({ current: '', progress: 0 });
+  const [currentValue, setCurrentValue] = useState('');
+  const [deletingGoal, setDeletingGoal] = useState<number | null>(null);
+  const [goalEditForm, setGoalEditForm] = useState({ title: '', target: '', category: 'fitness' });
   const [newGoal, setNewGoal] = useState({ title: '', target: '', category: 'fitness' });
-  const [goals, setGoals] = useState([
-    {
-      id: 1,
-      title: 'Lose 15 pounds',
-      target: '150 lbs',
-      current: '165 lbs',
-      progress: 60,
-      category: 'weight',
-      icon: Target,
-      color: 'text-rose-500',
-      bgColor: 'bg-rose-50',
-      progressColor: 'bg-rose-500',
-      deadline: 'Dec 31, 2024',
-      streak: 12
-    },
-    {
-      id: 2,
-      title: 'Walk 10K steps daily',
-      target: '10,000 steps',
-      current: '8,200 steps',
-      progress: 82,
-      category: 'fitness',
-      icon: Activity,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50',
-      progressColor: 'bg-blue-500',
-      deadline: 'Daily Goal',
-      streak: 5
-    },
-    {
-      id: 3,
-      title: 'Drink 8 glasses of water',
-      target: '8 glasses',
-      current: '6 glasses',
-      progress: 75,
-      category: 'hydration',
-      icon: Droplets,
-      color: 'text-cyan-500',
-      bgColor: 'bg-cyan-50',
-      progressColor: 'bg-cyan-500',
-      deadline: 'Daily Goal',
-      streak: 15
-    },
-    {
-      id: 4,
-      title: 'Workout 5 times per week',
-      target: '5 workouts',
-      current: '3 workouts',
-      progress: 60,
-      category: 'fitness',
-      icon: Dumbbell,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-50',
-      progressColor: 'bg-purple-500',
-      deadline: 'Weekly Goal',
-      streak: 3
-    }
-  ]);
+  
+  // Initialize goals from localStorage or use defaults
+  const { goals, setGoals } = useGoals();
   const [editForm, setEditForm] = useState({
     name: user.name,
     username: user.username,
@@ -372,7 +353,7 @@ export function Profile({ user, setUser }: ProfileProps) {
         <p className="text-muted-foreground mt-1 text-sm md:text-base">Manage your account and view your health journey</p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4 md:space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="text-xs md:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="goals" className="text-xs md:text-sm">Goals</TabsTrigger>
@@ -586,11 +567,11 @@ export function Profile({ user, setUser }: ProfileProps) {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">30-Day Streak Master</h3>
-                      <p className="text-sm text-muted-foreground">Maintained daily activity</p>
+                      <h3 className="font-semibold text-gray-900">Goal Achiever</h3>
+                      <p className="text-sm text-muted-foreground">Completed multiple goals</p>
                       <div className="flex items-center gap-1 mt-1">
-                        <Flame className="w-3 h-3 text-orange-500" />
-                        <span className="text-xs font-medium text-orange-600">30 days</span>
+                        <Trophy className="w-3 h-3 text-orange-500" />
+                        <span className="text-xs font-medium text-orange-600">3 completed</span>
                       </div>
                     </div>
                   </div>
@@ -723,12 +704,6 @@ export function Profile({ user, setUser }: ProfileProps) {
               </div>
               <div className="text-sm text-purple-700 dark:text-purple-300">Average Progress</div>
             </Card>
-            <Card className="text-center p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200/50 dark:border-orange-700/50">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {Math.round(goals.reduce((acc, goal) => acc + goal.streak, 0) / goals.length)}
-              </div>
-              <div className="text-sm text-orange-700 dark:text-orange-300">Avg Streak Days</div>
-            </Card>
           </div>
 
           {/* Goals Grid */}
@@ -743,7 +718,17 @@ export function Profile({ user, setUser }: ProfileProps) {
                     <div className="flex items-start justify-between mb-6">
                       <div className="flex items-center gap-4">
                         <div className={`w-14 h-14 rounded-xl ${goal.bgColor} dark:bg-gray-700/50 flex items-center justify-center ring-2 ring-white dark:ring-gray-600 shadow-lg`}>
-                          <Icon className={`w-7 h-7 ${goal.color} dark:${goal.color.replace('500', '400')}`} />
+                          <Icon className={`w-7 h-7 ${
+                            goal.color || 
+                            (goal.category === 'weight' ? 'text-rose-500' :
+                             goal.category === 'hydration' ? 'text-cyan-500' :
+                             goal.category === 'fitness' ? 'text-blue-500' : 'text-purple-500')
+                          } dark:${
+                            goal.color?.replace('500', '400') || 
+                            (goal.category === 'weight' ? 'text-rose-400' :
+                             goal.category === 'hydration' ? 'text-cyan-400' :
+                             goal.category === 'fitness' ? 'text-blue-400' : 'text-purple-400')
+                          }`} />
                         </div>
                         <div className="flex-1">
                           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{goal.title}</h3>
@@ -754,56 +739,133 @@ export function Profile({ user, setUser }: ProfileProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className={`text-2xl font-bold ${goal.color} dark:${goal.color.replace('500', '400')}`}>{goal.progress}%</span>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1 justify-end">
-                          <Flame className="w-3 h-3" />
-                          {goal.streak} day streak
-                        </p>
+                        <span className={`text-2xl font-bold ${
+                          goal.color || 
+                          (goal.category === 'weight' ? 'text-rose-500' :
+                           goal.category === 'hydration' ? 'text-cyan-500' :
+                           goal.category === 'fitness' ? 'text-blue-500' : 'text-purple-500')
+                        } dark:${
+                          goal.color?.replace('500', '400') || 
+                          (goal.category === 'weight' ? 'text-rose-400' :
+                           goal.category === 'hydration' ? 'text-cyan-400' :
+                           goal.category === 'fitness' ? 'text-blue-400' : 'text-purple-400')
+                        }`}>{goal.progress}%</span>
                       </div>
                     </div>
                     
-                    {/* Progress Update Form or Progress Details */}
+                    {/* Smart Auto-Calculation Update */}
                     {isUpdating ? (
                       <div className="space-y-4 mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <h4 className="font-medium text-gray-900 dark:text-white">Update Progress</h4>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-gray-900 dark:text-white">Update Progress</h4>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => {
+                              setUpdatingGoal(null);
+                              setCurrentValue('');
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
                         <div className="space-y-3">
                           <div>
-                            <Label className="text-sm text-gray-600 dark:text-gray-400">Current Value</Label>
+                            <Label className="text-sm text-gray-600 dark:text-gray-400">Enter your current value</Label>
                             <Input 
-                              placeholder={goal.current}
-                              value={progressUpdate.current}
-                              onChange={(e) => setProgressUpdate({...progressUpdate, current: e.target.value})}
+                              placeholder={`e.g., ${goal.target}`}
+                              value={currentValue}
+                              onChange={(e) => setCurrentValue(e.target.value)}
                               className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                             />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Progress will be calculated automatically based on your current value
+                            </p>
                           </div>
-                          <div>
-                            <Label className="text-sm text-gray-600 dark:text-gray-400">Progress Percentage</Label>
-                            <Input 
-                              type="number" 
-                              min="0" 
-                              max="100"
-                              value={progressUpdate.progress}
-                              onChange={(e) => setProgressUpdate({...progressUpdate, progress: parseInt(e.target.value) || 0})}
-                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                            />
-                          </div>
+                          
                           <div className="flex gap-2">
                             <Button 
                               size="sm" 
                               onClick={() => {
-                                // Update the goal with new progress
-                                setGoals(goals.map(g => 
-                                  g.id === goal.id 
-                                    ? {
-                                        ...g,
-                                        current: progressUpdate.current || g.current,
-                                        progress: Math.min(progressUpdate.progress, 100),
-                                        streak: progressUpdate.progress > g.progress ? g.streak + 1 : g.streak
+                                if (currentValue.trim()) {
+                                  // Auto-calculate progress based on goal type
+                                  let newProgress = 0;
+                                  let newCurrent = currentValue;
+                                  
+                                  // Extract numbers from current and target values
+                                  const getCurrentNumber = (str: string) => {
+                                    // Remove all non-numeric characters except decimal points
+                                    const cleanStr = str.replace(/[^\d.]/g, '');
+                                    const match = cleanStr.match(/\d+\.?\d*/);
+                                    return match ? parseFloat(match[0]) : 0;
+                                  };
+                                  
+                                  const currentNum = getCurrentNumber(currentValue);
+                                  const targetNum = getCurrentNumber(goal.target);
+                                  
+                                  // Calculate progress based on goal type
+                                  if (goal.category === 'weight') {
+                                    if (goal.title.toLowerCase().includes('lose')) {
+                                      // For weight loss: progress = (starting_weight - current_weight) / (starting_weight - target_weight) * 100
+                                      // Starting weight is stored in the target comparison (e.g., need to lose from current weight)
+                                      const startingWeight = 165; // Starting weight for "Lose 15 pounds" goal
+                                      if (startingWeight > targetNum && currentNum <= startingWeight) {
+                                        newProgress = Math.min(Math.max(((startingWeight - currentNum) / (startingWeight - targetNum)) * 100, 0), 100);
                                       }
-                                    : g
-                                ));
-                                setUpdatingGoal(null);
-                                setProgressUpdate({ current: '', progress: 0 });
+                                    } else {
+                                      // For weight gain: progress = current_weight / target_weight * 100
+                                      if (targetNum > 0) {
+                                        newProgress = Math.min((currentNum / targetNum) * 100, 100);
+                                      }
+                                    }
+                                  } else if (goal.category === 'fitness') {
+                                    if (goal.title.toLowerCase().includes('steps')) {
+                                      // For steps: progress = current_steps / target_steps * 100
+                                      if (targetNum > 0) {
+                                        newProgress = Math.min((currentNum / targetNum) * 100, 100);
+                                      }
+                                    } else if (goal.title.toLowerCase().includes('workout')) {
+                                      // For workouts: progress = current_workouts / target_workouts * 100
+                                      if (targetNum > 0) {
+                                        newProgress = Math.min((currentNum / targetNum) * 100, 100);
+                                      }
+                                    } else {
+                                      // Generic fitness: current / target * 100
+                                      if (targetNum > 0) {
+                                        newProgress = Math.min((currentNum / targetNum) * 100, 100);
+                                      }
+                                    }
+                                  } else if (goal.category === 'hydration') {
+                                    // For hydration: progress = current_glasses / target_glasses * 100
+                                    if (targetNum > 0) {
+                                      newProgress = Math.min((currentNum / targetNum) * 100, 100);
+                                    }
+                                  } else {
+                                    // Generic calculation: current / target * 100
+                                    if (targetNum > 0) {
+                                      newProgress = Math.min((currentNum / targetNum) * 100, 100);
+                                    }
+                                  }
+                                  
+                                  // Ensure progress is a valid number
+                                  if (isNaN(newProgress) || newProgress < 0) {
+                                    newProgress = 0;
+                                  }
+                                  
+                                  setGoals(goals.map((g: any) => 
+                                    g.id === goal.id 
+                                      ? {
+                                          ...g,
+                                          current: newCurrent,
+                                          progress: Math.round(newProgress),
+                                          streak: newProgress > g.progress ? g.streak + 1 : g.streak
+                                        }
+                                      : g
+                                  ));
+                                  setCurrentValue('');
+                                  setUpdatingGoal(null);
+                                }
                               }}
                               className="bg-green-500 hover:bg-green-600 text-white"
                             >
@@ -815,7 +877,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                               variant="outline" 
                               onClick={() => {
                                 setUpdatingGoal(null);
-                                setProgressUpdate({ current: '', progress: 0 });
+                                setCurrentValue('');
                               }}
                               className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                             >
@@ -840,14 +902,14 @@ export function Profile({ user, setUser }: ProfileProps) {
                         
                         {/* Enhanced Progress Bar */}
                         <div className="relative">
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-1000 ease-out ${goal.progressColor} dark:${goal.progressColor.replace('500', '400')} relative`}
-                              style={{ width: `${Math.min(goal.progress, 100)}%` }}
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
-                            </div>
-                          </div>
+                          <Progress 
+                            value={Math.min(goal.progress, 100)} 
+                            className={`h-4 ${
+                              goal.category === 'weight' ? '[&>div]:bg-rose-500' :
+                              goal.category === 'hydration' ? '[&>div]:bg-cyan-500' :
+                              goal.category === 'fitness' ? '[&>div]:bg-blue-500' : '[&>div]:bg-purple-500'
+                            }`}
+                          />
                           {goal.progress >= 100 && (
                             <div className="absolute -top-2 -right-2">
                               <div className="w-8 h-8 bg-green-500 dark:bg-green-400 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800 shadow-lg">
@@ -860,32 +922,67 @@ export function Profile({ user, setUser }: ProfileProps) {
                     )}
                     
                     {/* Action Buttons */}
-                    {!isUpdating && (
-                      <div className="flex gap-2 pt-4">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1 bg-white/70 hover:bg-white dark:bg-gray-700/50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setUpdatingGoal(goal.id);
-                            setProgressUpdate({ current: goal.current, progress: goal.progress });
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Update Progress
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="bg-white/70 hover:bg-white dark:bg-gray-700/50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingGoal(goal.id);
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                    {!isUpdating && editingGoal !== goal.id && (
+                      <div className="space-y-3 pt-4">
+                        {deletingGoal === goal.id ? (
+                          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                              <h4 className="font-medium text-red-800 dark:text-red-300">Delete Goal</h4>
+                            </div>
+                            <p className="text-sm text-red-700 dark:text-red-400 mb-3">
+                              Are you sure you want to delete "{goal.title}"? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => {
+                                  setGoals(goals.filter((g: any) => g.id !== goal.id));
+                                  setDeletingGoal(null);
+                                }}
+                                className="bg-red-500 hover:bg-red-600 text-white"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setDeletingGoal(null)}
+                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex-1 bg-white/70 hover:bg-white dark:bg-gray-700/50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                setUpdatingGoal(goal.id);
+                                setCurrentValue('');
+                              }}
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Update Progress
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="bg-white/70 hover:bg-red-50 dark:bg-gray-700/50 dark:hover:bg-red-900/20 border-gray-300 dark:border-gray-600 hover:border-red-300 dark:hover:border-red-700 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                setDeletingGoal(goal.id);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
@@ -911,7 +1008,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                       onChange={(e) => setNewGoal({...newGoal, target: e.target.value})}
                       className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                     />
-                    <Select value={newGoal.category} onValueChange={(value) => setNewGoal({...newGoal, category: value})}>
+                    <Select value={newGoal.category} onValueChange={(value: string) => setNewGoal({...newGoal, category: value})}>
                       <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>

@@ -47,7 +47,6 @@ import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
 import { UserProfile } from "./components/UserProfile";
 import { Explore } from "./components/Explore";
-import { GoalSetting } from "./components/GoalSetting";
 import ViewAllFriends from "./components/ViewAllFriends";
 import UserSearch from "./components/UserSearch";
 import { useUserHeartbeat } from "./hooks/useUserHeartbeat";
@@ -783,14 +782,6 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <Explore />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/goals"
-          element={
-            <PrivateRoute>
-              <GoalSetting />
             </PrivateRoute>
           }
         />

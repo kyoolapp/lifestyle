@@ -3,74 +3,79 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
-import { Link } from 'react-router-dom';
-import { Target, Plus, ChevronRight, Trophy } from 'lucide-react';
-import * as goalsApi from '../api/goals_api';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../firebase';
-import { useUnitSystem } from '../context/UnitContext';
-import { weightConversions } from '../utils/unitConversion';
+import { useNavigate } from 'react-router-dom';
+import { Target, Plus, ChevronRight, Trophy, Activity, Droplets, ChefHat, Clock } from 'lucide-react';
+import { Goal } from '../hooks/useGoals';
 
-export function GoalsWidget() {
-  const [user] = useAuthState(auth);
-  const { unitSystem } = useUnitSystem();
-  // Load goals from backend
-  const [goals, setGoals] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
+interface GoalsWidgetProps {
+  goals?: Goal[];
+}
 
-  React.useEffect(() => {
-    const loadGoals = async () => {
-      if (!user?.uid) {
-        setLoading(false);
-        return;
-      }
+export function GoalsWidget({ goals: propGoals }: GoalsWidgetProps) {
+  const navigate = useNavigate();
 
-      try {
-        setLoading(true);
-        const backendGoals = await goalsApi.getUserGoals(user.uid, 'active');
-        setGoals(backendGoals.slice(0, 3)); // Show only first 3 active goals
-      } catch (error) {
-        console.error('Failed to load goals for widget:', error);
-        // Fallback to localStorage
-        const savedGoals = localStorage.getItem('lifestyle_goals');
-        if (savedGoals) {
-          const parsedGoals = JSON.parse(savedGoals).map((goal: any) => ({
-            ...goal,
-            deadline: new Date(goal.deadline),
-            createdDate: new Date(goal.createdDate)
-          }));
-          setGoals(parsedGoals.filter((g: any) => g.status === 'active').slice(0, 3));
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Use passed goals or fallback to default goals
+  const defaultGoals = [
+    {
+      id: 1,
+      title: 'Lose 15 pounds',
+      target: '150 lbs',
+      current: '165 lbs',
+      progress: 0,
+      category: 'weight',
+      icon: Target,
+      color: 'text-rose-500',
+      bgColor: 'bg-rose-50',
+      progressColor: 'bg-rose-500'
+    },
+    {
+      id: 2,
+      title: 'Walk 10K steps daily',
+      target: '10,000 steps',
+      current: '0 steps',
+      progress: 0,
+      category: 'fitness',
+      icon: Activity,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50',
+      progressColor: 'bg-blue-500'
+    },
+    {
+      id: 3,
+      title: 'Drink 8 glasses of water',
+      target: '8 glasses',
+      current: '0 glasses',
+      progress: 0,
+      category: 'hydration',
+      icon: Droplets,
+      color: 'text-cyan-500',
+      bgColor: 'bg-cyan-50',
+      progressColor: 'bg-cyan-500'
+    },
+    {
+      id: 4,
+      title: 'Workout 5 times per week',
+      target: '5 workouts',
+      current: '0 workouts',
+      progress: 0,
+      category: 'fitness',
+      icon: Activity,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50',
+      progressColor: 'bg-blue-500'
+    }
+  ];
 
-    loadGoals();
-  }, [user?.uid]);
+  const goals = propGoals || defaultGoals;
 
-  const calculateProgress = (current: number, target: number) => {
-    return Math.min((current / target) * 100, 100);
+  const handleCreateNewGoal = () => {
+    // Navigate to Profile page and switch to Goals tab
+    navigate('/profile?tab=goals');
   };
 
-  const convertGoalValue = (value: number, category: string, direction: 'display' | 'db' = 'display'): number => {
-    // Only weight goals need conversion
-    if (category === 'weight') {
-      if (direction === 'display') {
-        return weightConversions.dbToDisplay(value, unitSystem);
-      } else {
-        return weightConversions.displayToDb(value, unitSystem);
-      }
-    }
-    return value;
-  };
-
-  const getGoalUnit = (category: string): string => {
-    if (category === 'weight') {
-      return unitSystem === 'metric' ? 'kg' : 'lbs';
-    }
-    // Return original unit for other categories
-    return '';
+  const handleViewAllGoals = () => {
+    // Navigate to Profile page Goals tab
+    navigate('/profile?tab=goals');
   };
 
   const getCategoryColor = (category: string) => {
@@ -80,50 +85,10 @@ export function GoalsWidget() {
       hydration: 'bg-cyan-500',
       sleep: 'bg-purple-500',
       wellness: 'bg-pink-500',
-      weight: 'bg-orange-500'
+      weight: 'bg-rose-500'
     };
     return colors[category as keyof typeof colors] || 'bg-gray-500';
   };
-
-  if (loading) {
-    return (
-      <Card className="w-full">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Target className="w-5 h-5 text-blue-500" />
-            Goals
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center py-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-sm text-muted-foreground mt-2">Loading goals...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (goals.length === 0) {
-    return (
-      <Card className="w-full">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Target className="w-5 h-5 text-blue-500" />
-            Goals
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center py-6">
-          <Target className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-4">No active goals yet</p>
-          <Link to="/goals">
-            <Button size="sm" className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Your First Goal
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="w-full">
@@ -133,21 +98,18 @@ export function GoalsWidget() {
             <Target className="w-5 h-5 text-blue-500" />
             Goals
           </div>
-          <Link to="/goals">
-            <Button variant="ghost" size="sm">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleViewAllGoals}
+            className="text-blue-500 hover:text-blue-600 p-1"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {goals.map((goal) => {
-          // Convert values for display if weight goal
-          const displayCurrent = convertGoalValue(goal.currentValue, goal.category, 'display');
-          const displayTarget = convertGoalValue(goal.targetValue, goal.category, 'display');
-          const progress = calculateProgress(displayCurrent, displayTarget);
-          const displayUnit = getGoalUnit(goal.category) || goal.unit;
-          
+        {goals.slice(0, 3).map((goal) => {
           return (
             <div key={goal.id} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -156,13 +118,13 @@ export function GoalsWidget() {
                   <span className="font-medium text-sm">{goal.title}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {Math.round(progress)}%
+                  {goal.progress}%
                 </span>
               </div>
-              <Progress value={progress} className="h-1.5" />
+              <Progress value={goal.progress} className="h-1.5" />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{displayCurrent.toFixed(1)} / {displayTarget.toFixed(1)} {displayUnit}</span>
-                {progress === 100 && (
+                <span>{goal.current} / {goal.target}</span>
+                {goal.progress === 100 && (
                   <Badge className="bg-green-500 text-white text-xs py-0 px-2">
                     <Trophy className="w-3 h-3 mr-1" />
                     Complete!
@@ -173,11 +135,24 @@ export function GoalsWidget() {
           );
         })}
         
-        <Link to="/goals">
-          <Button variant="outline" size="sm" className="w-full mt-3">
+        <div className="space-y-2 pt-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full" 
+            onClick={handleViewAllGoals}
+          >
             View All Goals
           </Button>
-        </Link>
+          <Button 
+            size="sm" 
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white" 
+            onClick={handleCreateNewGoal}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create New Goal
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
