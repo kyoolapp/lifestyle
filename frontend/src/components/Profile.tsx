@@ -408,11 +408,11 @@ export function Profile({ user, setUser }: ProfileProps) {
                 
                 <div className="flex-1 text-center lg:text-left">
                   <div className="space-y-2 mb-4">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent dark:from-white dark:to-gray-300">
+                    <h1 className="text-3xl font-bold text-black dark:text-white">
                       {user.name}
                     </h1>
                     <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
-                      <p className="text-lg text-muted-foreground">@{user.username}</p>
+                      <p className="text-lg text-black dark:text-white">@{user.username}</p>
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${
                           isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
@@ -1119,11 +1119,11 @@ export function Profile({ user, setUser }: ProfileProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label>Full Name</Label>
-                    <p className="text-lg">{user.name}</p>
+                    <p className="text-lg text-black dark:text-white">{user.name}</p>
                   </div>
                   <div>
                     <Label>Email</Label>
-                    <p className="text-lg">{user.email}</p>
+                    <p className="text-lg text-black dark:text-white">{user.email}</p>
                   </div>
                   <div>
                     <Label>Height</Label>
