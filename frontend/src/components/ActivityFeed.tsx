@@ -45,6 +45,19 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
   const [showQuickWalkTimer, setShowQuickWalkTimer] = useState(false);
   const [realActivities, setRealActivities] = useState<any[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
+  
+  // Reactions system
+  const [activityReactions, setActivityReactions] = useState<{[key: string]: any}>({});
+  const [reactingToActivity, setReactingToActivity] = useState<string | null>(null);
+  
+  // Reaction types
+  const reactionTypes = [
+    { emoji: '👍', label: 'Great job!', type: 'support', color: 'text-blue-500' },
+    { emoji: '💪', label: 'Strong!', type: 'strength', color: 'text-red-500' },
+    { emoji: '💧', label: 'Hydrated!', type: 'hydration', color: 'text-cyan-500' },
+    { emoji: '🔥', label: 'On fire!', type: 'streak', color: 'text-orange-500' },
+    { emoji: '🎯', label: 'Goal!', type: 'achievement', color: 'text-green-500' }
+  ];
 
   // Workout routines data (from FitnessTracker)
   const workoutRoutines = [
@@ -161,8 +174,69 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
       time: formatRelativeTime(backendActivity.timestamp),
       user: backendActivity.user || { name: 'User', avatar: '' },
       likes: 0,
-      comments: 0
+      comments: 0,
+      reactions: activityReactions[`activity-${index}`] || []
     };
+  };
+  
+  // Handle adding reaction to activity
+  const handleReaction = async (activityId: string, reactionType: any) => {
+    if (!user?.id) return;
+    
+    const reactionKey = `activity-${activityId}`;
+    const currentReactions = activityReactions[reactionKey] || [];
+    
+    // Check if user already reacted with this type
+    const existingReaction = currentReactions.find(
+      (r: any) => r.userId === user.id && r.type === reactionType.type
+    );
+    
+    let newReactions;
+    if (existingReaction) {
+      // Remove reaction if already exists
+      newReactions = currentReactions.filter(
+        (r: any) => !(r.userId === user.id && r.type === reactionType.type)
+      );
+    } else {
+      // Remove any other reaction from this user first (one reaction per user)
+      const withoutUserReactions = currentReactions.filter((r: any) => r.userId !== user.id);
+      // Add new reaction
+      newReactions = [...withoutUserReactions, {
+        id: Date.now().toString(),
+        userId: user.id,
+        userName: user.name || 'You',
+        userAvatar: user.avatar || '',
+        type: reactionType.type,
+        emoji: reactionType.emoji,
+        label: reactionType.label,
+        timestamp: new Date().toISOString()
+      }];
+    }
+    
+    setActivityReactions(prev => ({
+      ...prev,
+      [reactionKey]: newReactions
+    }));
+    
+    // Here you would normally save to backend
+    console.log('Reaction added:', { activityId, reactionType, newReactions });
+  };
+  
+  // Get reaction summary for display
+  const getReactionSummary = (reactions: any[]) => {
+    if (!reactions || reactions.length === 0) return null;
+    
+    const reactionCounts = reactions.reduce((acc, reaction) => {
+      acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
+      return acc;
+    }, {} as {[key: string]: number});
+    
+    const total = reactions.length;
+    const topReactions = Object.entries(reactionCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3);
+    
+    return { total, topReactions, reactions };
   };
 
   // Load real activities from backend
@@ -664,19 +738,59 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                         </Badge>
                       </div>
 
-                      {/* Social Actions (for social activities) */}
-                      {(activity.likes > 0 || activity.comments > 0) && (
-                        <div className="flex items-center gap-4 mt-3 pt-2 border-t border-white/50">
-                          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                            <ThumbsUp className="w-3 h-3" />
-                            <span>{activity.likes}</span>
-                          </button>
-                          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                            <MessageCircle className="w-3 h-3" />
-                            <span>{activity.comments}</span>
-                          </button>
-                        </div>
-                      )}
+                      {/* Reactions Section */}
+                      <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                        {(() => {
+                          const reactionSummary = getReactionSummary(activity.reactions);
+                          const userReaction = activity.reactions?.find((r: any) => r.userId === user?.id);
+                          
+                          return (
+                            <div className="space-y-2">
+                              {/* Reaction Summary */}
+                              {reactionSummary && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    {reactionSummary.topReactions.map(([emoji, count]) => (
+                                      <span key={emoji} className="flex items-center gap-0.5">
+                                        {emoji}<span>{count}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <span>•</span>
+                                  <span>
+                                    {reactionSummary.total === 1 
+                                      ? '1 person reacted'
+                                      : `${reactionSummary.total} people reacted`
+                                    }
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {/* Reaction Buttons */}
+                              <div className="flex items-center gap-1">
+                                {reactionTypes.map((reaction) => {
+                                  const isSelected = userReaction?.type === reaction.type;
+                                  return (
+                                    <button
+                                      key={reaction.type}
+                                      onClick={() => handleReaction(activity.id, reaction)}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                                        isSelected 
+                                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-700'
+                                          : 'text-muted-foreground hover:text-foreground'
+                                      }`}
+                                      title={reaction.label}
+                                    >
+                                      <span className="text-sm">{reaction.emoji}</span>
+                                      <span className="hidden sm:inline">{reaction.label}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
                 );
