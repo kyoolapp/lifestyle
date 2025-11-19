@@ -118,32 +118,32 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
       nutrition: {
         icon: ChefHat,
         iconColor: 'text-orange-500',
-        bgColor: 'bg-orange-50',
-        borderColor: 'border-orange-200'
+        bgColor: '',
+        borderColor: 'border-gray-200 dark:border-gray-700'
       },
       achievement: {
         icon: Trophy,
         iconColor: 'text-yellow-500',
-        bgColor: 'bg-yellow-50',
-        borderColor: 'border-yellow-200'
+        bgColor: '',
+        borderColor: 'border-gray-200 dark:border-gray-700'
       },
       fitness: {
         icon: Activity,
         iconColor: 'text-purple-500',
-        bgColor: 'bg-purple-50',
-        borderColor: 'border-purple-200'
+        bgColor: '',
+        borderColor: 'border-gray-200 dark:border-gray-700'
       },
       social: {
         icon: Users,
         iconColor: 'text-blue-500',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200'
+        bgColor: '',
+        borderColor: 'border-gray-200 dark:border-gray-700'
       },
       'safe-zone': {
         icon: Target,
         iconColor: 'text-green-500',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-200'
+        bgColor: '',
+        borderColor: 'border-gray-200 dark:border-gray-700'
       }
     };
 

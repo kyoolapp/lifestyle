@@ -336,13 +336,13 @@ export function Profile({ user, setUser }: ProfileProps) {
   const getActivityColor = (type: string) => {
     switch (type) {
       case 'workout':
-        return 'text-blue-600 bg-blue-100';
+        return 'text-blue-600 border border-gray-200 dark:border-gray-700';
       case 'recipe':
-        return 'text-green-600 bg-green-100';
+        return 'text-green-600 border border-gray-200 dark:border-gray-700';
       case 'milestone':
-        return 'text-purple-600 bg-purple-100';
+        return 'text-purple-600 border border-gray-200 dark:border-gray-700';
       default:
-        return 'text-gray-600 bg-gray-100';
+        return 'text-gray-600 border border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -363,7 +363,7 @@ export function Profile({ user, setUser }: ProfileProps) {
 
         <TabsContent value="overview" className="space-y-6">
           {/* Hero Profile Card */}
-          <Card className="overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900 border-0 shadow-lg">
+          <Card className="overflow-hidden border shadow-lg">
             <CardContent className="p-6">
               <div className="flex flex-col lg:flex-row items-center gap-6">
                 <div className="relative">
@@ -396,11 +396,11 @@ export function Profile({ user, setUser }: ProfileProps) {
                       <p className="text-lg text-black dark:text-white">@{user.username}</p>
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${
-                          isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                          isOnline ? 'bg-green-100 dark:bg-green-100' 
                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
                         }`}>
                           <div className={`w-2 h-2 rounded-full mr-1.5 ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                          {isOnline ? 'Online' : 'Offline'}
+                          <span style={{ color: isOnline ? '#166534' : undefined }}>{isOnline ? 'Online' : 'Offline'}</span>
                         </span>
                         {user.isPremium && (
                           <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 shadow-md">
@@ -414,21 +414,21 @@ export function Profile({ user, setUser }: ProfileProps) {
                   
                   {/* Enhanced Stats Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl backdrop-blur-sm">
+                    <div className="text-center p-3 rounded-xl backdrop-blur-sm border shadow-sm">
                       <div className="flex items-center justify-center w-8 h-8 mx-auto mb-2 bg-blue-500 rounded-lg">
                         <Dumbbell className="w-4 h-4 text-white" />
                       </div>
                       <div className="text-2xl font-bold text-blue-600">{userStats.totalWorkouts}</div>
                       <p className="text-sm text-muted-foreground">Workouts</p>
                     </div>
-                    <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl backdrop-blur-sm">
+                    <div className="text-center p-3 rounded-xl backdrop-blur-sm border shadow-sm">
                       <div className="flex items-center justify-center w-8 h-8 mx-auto mb-2 bg-green-500 rounded-lg">
                         <ChefHat className="w-4 h-4 text-white" />
                       </div>
                       <div className="text-2xl font-bold text-green-600">{userStats.totalRecipes}</div>
                       <p className="text-sm text-muted-foreground">Recipes</p>
                     </div>
-                    <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl backdrop-blur-sm">
+                    <div className="text-center p-3 rounded-xl backdrop-blur-sm border shadow-sm">
                       <div className="flex items-center justify-center w-8 h-8 mx-auto mb-2 bg-purple-500 rounded-lg">
                         <Heart className="w-4 h-4 text-white" />
                       </div>
@@ -436,7 +436,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                       <p className="text-sm text-muted-foreground">Followers</p>
                     </div>
                     <div 
-                      className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl backdrop-blur-sm cursor-pointer hover:bg-white/70 dark:hover:bg-gray-800/70 transition-all duration-200 hover:scale-105"
+                      className="text-center p-3 rounded-xl backdrop-blur-sm cursor-pointer border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                       onClick={() => navigate('/friends')}
                       title="View all friends"
                     >
@@ -555,7 +555,7 @@ export function Profile({ user, setUser }: ProfileProps) {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 border border-gray-200 dark:border-gray-700">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -578,7 +578,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                 </CardContent>
               </Card>
               
-              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 border border-gray-200 dark:border-gray-700">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -601,7 +601,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                 </CardContent>
               </Card>
               
-              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+              <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 border border-gray-200 dark:border-gray-700">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -686,19 +686,19 @@ export function Profile({ user, setUser }: ProfileProps) {
 
           {/* Goals Statistics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200/50 dark:border-green-700/50">
+            <Card className="text-center p-4 border border-gray-200 dark:border-gray-700">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {goals.filter(g => g.progress >= 100).length}
               </div>
               <div className="text-sm text-green-700 dark:text-green-300">Completed Goals</div>
             </Card>
-            <Card className="text-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200/50 dark:border-blue-700/50">
+            <Card className="text-center p-4 border border-gray-200 dark:border-gray-700">
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {goals.length}
               </div>
               <div className="text-sm text-blue-700 dark:text-blue-300">Active Goals</div>
             </Card>
-            <Card className="text-center p-4 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 border-purple-200/50 dark:border-purple-700/50">
+            <Card className="text-center p-4 border border-gray-200 dark:border-gray-700">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {Math.round(goals.reduce((acc, goal) => acc + goal.progress, 0) / goals.length)}%
               </div>
@@ -712,12 +712,12 @@ export function Profile({ user, setUser }: ProfileProps) {
               const Icon = goal.icon;
               const isUpdating = updatingGoal === goal.id;
               return (
-                <Card key={goal.id} className={`group relative overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]`}>
+                <Card key={goal.id} className={`group relative overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]`}>
                   <CardContent className="p-6">
                     {/* Goal Header */}
                     <div className="flex items-start justify-between mb-6">
                       <div className="flex items-center gap-4">
-                        <div className={`w-14 h-14 rounded-xl ${goal.bgColor} dark:bg-gray-700/50 flex items-center justify-center ring-2 ring-white dark:ring-gray-600 shadow-lg`}>
+                        <div className={`w-14 h-14 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center ring-2 ring-white dark:ring-gray-600 shadow-lg`}>
                           <Icon className={`w-7 h-7 ${
                             goal.color || 
                             (goal.category === 'weight' ? 'text-rose-500' :

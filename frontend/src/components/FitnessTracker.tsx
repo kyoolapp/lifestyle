@@ -1346,10 +1346,10 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {achievements.map((achievement) => (
-              <Card key={achievement.id} className={achievement.unlocked ? 'border-green-200 bg-green-50' : 'opacity-60'}>
+              <Card key={achievement.id} className={achievement.unlocked ? 'border border-gray-200 dark:border-gray-700' : 'opacity-60 border border-gray-200 dark:border-gray-700'}>
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${achievement.unlocked ? 'bg-green-100' : 'bg-gray-100'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center border ${achievement.unlocked ? 'border-gray-200 dark:border-gray-700' : 'border-gray-200 dark:border-gray-700'}`}>
                       <achievement.icon className={`w-6 h-6 ${achievement.unlocked ? achievement.color : 'text-gray-400'}`} />
                     </div>
                     <div>
