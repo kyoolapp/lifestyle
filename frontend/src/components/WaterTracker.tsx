@@ -1132,10 +1132,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   {(weeklyData.reduce((sum, day) => sum + day.intake, 0) / weeklyData.length).toFixed(1)} glasses
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Streak</span>
-                <span className="font-medium">{getCurrentStreak()} days</span>
-              </div>
+
             </CardContent>
           </Card>
         </div>
