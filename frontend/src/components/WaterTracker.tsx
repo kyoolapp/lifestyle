@@ -155,6 +155,15 @@ const waveStyles = `
     }
   }
 
+  /* Glass tumbler animations */
+  .glass-reflection {
+    background: linear-gradient(135deg, 
+      rgba(255,255,255,0.4) 0%, 
+      transparent 30%, 
+      transparent 70%, 
+      rgba(255,255,255,0.2) 100%);
+  }
+
   /* Custom slider styles */
   .slider::-webkit-slider-thumb {
     appearance: none;
@@ -215,6 +224,11 @@ export function WaterTracker({ user }: WaterTrackerProps) {
   const [dailyGoal] = useState(8); // glasses (250ml each = 2 liters)
   const [todayIntake, setTodayIntake] = useState(0);
   const [customAmountMl, setCustomAmountMl] = useState('');
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [showDragTumblerModal, setShowDragTumblerModal] = useState(false);
+  const [dragTumblerAmount, setDragTumblerAmount] = useState(0);
+  const [dragBigTumblerAmount, setDragBigTumblerAmount] = useState(0);
+  const [showBigTumbler, setShowBigTumbler] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderInterval, setReminderInterval] = useState(60); // minutes
   const [reminderInputValue, setReminderInputValue] = useState('60'); // for input display
@@ -368,11 +382,11 @@ export function WaterTracker({ user }: WaterTrackerProps) {
   ];
 
   const addWater = async (glasses = 1) => {
-    if (loading || !user?.id || todayIntake >= 15) return;
+    if (loading || !user?.id || todayIntake >= 8) return;
     
     setLoading(true);
     try {
-      const newTotal = Math.min(todayIntake + glasses, 15);
+      const newTotal = Math.min(todayIntake + glasses, 8);
       await userApi.setWaterIntake(user.id, newTotal);
       setTodayIntake(newTotal);
       
@@ -596,7 +610,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
       const deltaY = dragStartY - e.clientY; // Inverted for intuitive dragging
       const sensitivity = 8; // More sensitive for better control (8px = 1 glass)
       const change = deltaY / sensitivity;
-      const newValue = Math.max(0, Math.min(15, dragStartValue + change));
+      const newValue = Math.max(0, Math.min(8, dragStartValue + change));
       
       // Allow fractional values for smoother dragging, round to nearest 0.25
       const roundedValue = Math.round(newValue * 4) / 4;
@@ -611,7 +625,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
       const deltaY = dragStartY - e.touches[0].clientY;
       const sensitivity = 8; // More sensitive for touch
       const change = deltaY / sensitivity;
-      const newValue = Math.max(0, Math.min(15, dragStartValue + change));
+      const newValue = Math.max(0, Math.min(8, dragStartValue + change));
       
       // Allow fractional values for smoother dragging
       const roundedValue = Math.round(newValue * 4) / 4;
@@ -718,7 +732,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                 <div className="text-4xl md:text-6xl font-bold text-blue-500 mb-2">
                   {getWaterDisplayValue(todayIntake)}
                 </div>
-                <p className="text-muted-foreground text-sm md:text-base">{getWaterDisplayUnit()} of {getWaterGoalDisplay(dailyGoal)}</p>
                 <p className="text-xs md:text-sm text-muted-foreground">
                   {(todayIntake * glassSize).toFixed(0)}ml of {dailyGoal * glassSize}ml
                 </p>
@@ -729,187 +742,166 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                 className="h-2 md:h-3 mb-3 md:mb-4"
               />
 
-              <div className="flex items-center justify-center gap-3 md:gap-4 mb-3 md:mb-4">
-                <div className="text-center">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => removeWater(1)}
-                    disabled={loading || todayIntake === 0}
-                    className="mb-1 md:mb-2 w-10 h-10 md:w-12 md:h-12"
-                  >
-                    <Minus className="w-3 h-3 md:w-4 md:h-4" />
-                  </Button>
-                  <p className="text-xs text-muted-foreground">-{getWaterButtonLabel(1)}</p>
-                </div>
-                
+              <div className="flex items-center justify-center mb-3 md:mb-4">
                 <div className="text-center relative">
-                  {/* Interactive Water Bottle with Slider */}
+                  {/* Glass Tumbler Visualization */}
                   <div className="relative flex flex-col items-center mb-2 group">
-                    {/* Bottle Cap */}
-                    <div className="w-8 h-4 bg-blue-600 rounded-t-lg mb-1 shadow-md"></div>
                     
-                    {/* Bottle Neck */}
-                    <div className="w-5 h-3 bg-gray-300 border border-gray-400"></div>
-                    
-                    {/* Main Bottle with Interactive Slider */}
+                    {/* Glass Tumbler Container */}
                     <div 
-                      className={`relative w-16 h-24 bg-gradient-to-b from-gray-100 to-gray-300 rounded-b-3xl border-2 overflow-hidden shadow-lg select-none transition-all duration-150 ${
+                      className={`relative overflow-hidden shadow-lg select-none transition-all duration-150 cursor-grab ${
                         isDragging 
-                          ? 'border-blue-500 shadow-xl cursor-grabbing scale-105' 
-                          : 'border-gray-500 cursor-grab hover:border-blue-400 hover:shadow-xl'
+                          ? 'cursor-grabbing scale-105 shadow-2xl' 
+                          : 'hover:shadow-xl'
                       }`}
+                      style={{
+                        width: '180px',
+                        height: '180px',
+                        background: 'linear-gradient(to bottom, #f9fafb, #e5e7eb)',
+                        clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
+                        borderRadius: '8px 8px 12px 12px'
+                      }}
                       onMouseDown={(e) => handleBottleMouseDown(e)}
                       onTouchStart={(e) => handleBottleTouchStart(e)}
                     >
                       
-                      {/* Clean Water Animation Like Reference */}
+                      {/* Glass outline using SVG for precise control */}
+                      <svg 
+                        className="absolute inset-0 w-full h-full pointer-events-none z-20" 
+                        viewBox="0 0 180 180"
+                        style={{ overflow: 'visible' }}
+                      >
+                        <path
+                          d="M 36 0 L 144 0 L 135 180 L 45 180 Z"
+                          fill="none"
+                          stroke="black"
+                          strokeWidth="2"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      
+                      {/* Water Fill */}
                       <div 
-                        className="absolute bottom-0 w-full rounded-b-3xl transition-all duration-1000 ease-out overflow-hidden"
+                        className="absolute bottom-0 w-full transition-all duration-1000 ease-out overflow-hidden"
                         style={{ 
                           height: `${(todayIntake / dailyGoal) * 100}%`,
+                          clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
+                          borderRadius: '0 0 12px 12px'
                         }}
                       >
-                        {/* Simple water body */}
+                        {/* Clean water body */}
                         {todayIntake > 0 && (
                           <>
-                            {/* Main water layer - Always blue with smooth wave surface */}
+                            {/* Clean cyan water */}
                             <div 
-                              className="absolute inset-0 w-full h-full rounded-b-3xl"
+                              className="absolute inset-0 w-full h-full"
                               style={{
-                                background: '#06b6d4', // Always cyan blue
+                                background: '#00bcd4',
                                 animation: 'smoothWaterSurface 6s ease-in-out infinite, gentleWaterMovement 4s ease-in-out infinite'
                               }}
                             />
                             
-                            {/* Subtle water surface highlight */}
+                            {/* Water surface highlight */}
                             <div 
-                              className="absolute top-0 left-0 w-full h-2"
+                              className="absolute top-0 left-0 w-full h-2 opacity-50"
                               style={{
-                                background: `linear-gradient(to bottom, 
-                                  rgba(255, 255, 255, 0.3) 0%, 
-                                  transparent 100%)`,
-                                borderRadius: '0 0 50% 50%'
+                                background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0%, transparent 100%)',
+                                clipPath: 'polygon(20% 0%, 80% 0%, 80% 100%, 20% 100%)'
                               }}
                             />
                             
-                            {/* Simple shimmer effect */}
+                            {/* Subtle water shimmer */}
                             <div 
-                              className="absolute top-2 left-4 w-8 h-1"
+                              className="absolute top-2 left-6 w-12 h-0.5 opacity-60"
                               style={{
-                                background: 'rgba(255, 255, 255, 0.4)',
-                                borderRadius: '50px',
-                                animation: 'subtleShimmer 3s ease-in-out infinite',
-                                filter: 'blur(0.5px)'
+                                background: 'rgba(255, 255, 255, 0.8)',
+                                borderRadius: '2px',
+                                animation: 'subtleShimmer 3s ease-in-out infinite'
                               }}
                             />
                             
-                            {/* Clean floating bubbles like in reference */}
-                            {(todayIntake / dailyGoal) > 0.2 && (
+                            {/* Small water bubbles */}
+                            {(todayIntake / dailyGoal) > 0.3 && (
                               <>
                                 <div 
-                                  className="absolute w-2 h-2 rounded-full"
+                                  className="absolute w-1.5 h-1.5 rounded-full opacity-40"
                                   style={{
                                     left: '30%',
-                                    bottom: '20px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                                    bottom: '25px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
                                     animation: 'simpleBubbleFloat 4s ease-in-out infinite',
                                     animationDelay: '0s'
                                   }}
                                 />
                                 <div 
-                                  className="absolute w-1.5 h-1.5 rounded-full"
+                                  className="absolute w-1 h-1 rounded-full opacity-50"
                                   style={{
                                     left: '60%',
-                                    bottom: '15px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                                    bottom: '20px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
                                     animation: 'simpleBubbleFloat 5s ease-in-out infinite',
                                     animationDelay: '1.5s'
                                   }}
                                 />
                                 <div 
-                                  className="absolute w-1 h-1 rounded-full"
+                                  className="absolute w-1 h-1 rounded-full opacity-30"
                                   style={{
                                     left: '45%',
-                                    bottom: '25px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                                    bottom: '30px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
                                     animation: 'simpleBubbleFloat 3.5s ease-in-out infinite',
                                     animationDelay: '2.5s'
                                   }}
                                 />
-                                <div 
-                                  className="absolute w-1 h-1 rounded-full"
-                                  style={{
-                                    left: '75%',
-                                    bottom: '30px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                                    animation: 'simpleBubbleFloat 4.5s ease-in-out infinite',
-                                    animationDelay: '1s'
-                                  }}
-                                />
-                                <div 
-                                  className="absolute w-0.5 h-0.5 rounded-full"
-                                  style={{
-                                    left: '20%',
-                                    bottom: '35px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-                                    animation: 'simpleBubbleFloat 3s ease-in-out infinite',
-                                    animationDelay: '3s'
-                                  }}
-                                />
                               </>
-                            )} 
+                            )}
                           </>
                         )}
                       </div>
                       
-
+                      {/* Glass rim highlight */}
+                      <div 
+                        className="absolute top-0 left-0 w-full h-1 opacity-30"
+                        style={{
+                          background: 'linear-gradient(to right, transparent 20%, rgba(255,255,255,0.8) 50%, transparent 80%)',
+                          clipPath: 'polygon(20% 0%, 80% 0%, 80% 100%, 20% 100%)'
+                        }}
+                      />
+                      
                     </div>
-                    
-                    {/* Bottle Brand Label */}
-                    <div className="w-8 h-2 bg-blue-300 rounded-full mt-1 opacity-80 border border-blue-400 flex items-center justify-center">
-                      <div className="text-[8px] font-bold text-blue-700">H₂O</div>
-                    </div>
-                    
-                    {/* Enhanced drag indicator */}
-                    {isDragging && (
-                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap z-30 shadow-lg border-2 border-white">
-                        <div className="text-center">
-                          <div className="font-bold">{todayIntake % 1 === 0 ? todayIntake : todayIntake.toFixed(1)} / {dailyGoal}</div>
-                          <div className="text-xs opacity-90">{(todayIntake * glassSize).toFixed(0)}ml</div>
-                        </div>
-                        {/* Arrow pointing to bottle */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-blue-600"></div>
-                      </div>
-                    )}
                     
                   </div>
                   
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">{glassSize}ml per glass</p>
-                    <div className="flex items-center justify-center gap-1 mt-1">
-                      <span className="text-xs text-blue-500">↕️</span>
-                      <p className="text-xs text-blue-500">Drag bottle up/down</p>
-                    </div>
-                    {isDragging && (
-                      <p className="text-xs text-green-500 font-medium mt-1 animate-pulse">
-                        Keep dragging...
-                      </p>
-                    )}
+                  {/* Custom Amount and Drag Tumbler Buttons */}
+                  <div className="flex justify-center gap-3 mt-3">
+                    <button
+                      onClick={() => setShowCustomModal(true)}
+                      disabled={loading || todayIntake >= 8}
+                      className="w-12 h-12 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors flex items-center justify-center disabled:opacity-50 shadow-sm"
+                      title="Add custom amount"
+                    >
+                      <div className="grid grid-cols-3 gap-0.5">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => setShowDragTumblerModal(true)}
+                      disabled={loading || todayIntake >= 8}
+                      className="w-12 h-12 rounded-full bg-green-100 hover:bg-green-200 transition-colors flex items-center justify-center disabled:opacity-50 shadow-sm"
+                      title="Drag water amount"
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 2L16 2C17.1 2 18 2.9 18 4L17 20C17 21.1 16.1 22 15 22L9 22C7.9 22 7 21.1 7 20L6 4C6 2.9 6.9 2 8 2Z" stroke="#10b981" strokeWidth="2" fill="none"/>
+                        <path d="M8 14L16 14L15.5 20L8.5 20Z" fill="#10b981" opacity="0.3"/>
+                      </svg>
+                    </button>
                   </div>
-                </div>
-                
-                <div className="text-center">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => addWater(1)}
-                    disabled={loading || todayIntake >= 15}
-                    className="mb-1 md:mb-2 w-10 h-10 md:w-12 md:h-12"
-                  >
-                    <Plus className="w-3 h-3 md:w-4 md:h-4" />
-                  </Button>
-                  <p className="text-xs text-muted-foreground">+{getWaterButtonLabel(1)}</p>
                 </div>
               </div>
 
@@ -927,60 +919,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                 </p>
               </div>
 
-              {/* Quick Actions */}
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-sm font-medium mb-2">Quick Actions</p>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => addWater(2)}
-                    disabled={loading || todayIntake >= 15}
-                    className="text-xs"
-                  >
-                    +{getWaterButtonLabel(2)}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => addWater(4)}
-                    disabled={loading || todayIntake >= 15}
-                    className="text-xs"
-                  >
-                    +{getWaterButtonLabel(4)}
-                  </Button>
-                </div>
-                
-                {/* Custom Amount Input */}
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Custom Amount ({unitSystem === 'metric' ? 'ml' : 'fl oz'})
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder={unitSystem === 'metric' ? '250' : '8'}
-                      value={customAmountMl}
-                      onChange={(e) => setCustomAmountMl(e.target.value)}
-                      onKeyPress={handleCustomAmountKeyPress}
-                      min="1"
-                      max={unitSystem === 'metric' ? '2500' : '200'}
-                      step="1"
-                      className="flex-1 px-2 py-1 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      disabled={loading || todayIntake >= 15}
-                    />
-                    <Button 
-                      size="sm"
-                      onClick={addCustomAmount}
-                      disabled={loading || todayIntake >= 15 || !customAmountMl || parseFloat(customAmountMl) <= 0}
-                      className="text-xs px-3"
-                    >
-                      Add
-                    </Button>
-                  </div>
-
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -1231,6 +1169,408 @@ export function WaterTracker({ user }: WaterTrackerProps) {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Custom Amount Modal */}
+      {showCustomModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl transform transition-all">
+            {/* Header with droplet icon */}
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Droplets className="w-8 h-8 text-blue-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Add Water</h3>
+              <p className="text-gray-600 font-medium">Enter custom amount</p>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Amount input with styled container */}
+              <div className="relative">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Amount ({unitSystem === 'metric' ? 'ml' : 'fl oz'})
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder={unitSystem === 'metric' ? '500' : '16'}
+                    value={customAmountMl}
+                    onChange={(e) => setCustomAmountMl(e.target.value)}
+                    onKeyPress={handleCustomAmountKeyPress}
+                    min="1"
+                    max={unitSystem === 'metric' ? '2500' : '200'}
+                    step="1"
+                    className="w-full px-6 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all placeholder-gray-400 text-center"
+                    autoFocus
+                  />
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-medium">
+                    {unitSystem === 'metric' ? 'ml' : 'fl oz'}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Quick amount buttons */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Quick amounts</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {unitSystem === 'metric' ? (
+                    <>
+                      <button 
+                        onClick={() => setCustomAmountMl('250')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        250ml
+                      </button>
+                      <button 
+                        onClick={() => setCustomAmountMl('500')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        500ml
+                      </button>
+                      <button 
+                        onClick={() => setCustomAmountMl('750')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        750ml
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => setCustomAmountMl('8')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        8 fl oz
+                      </button>
+                      <button 
+                        onClick={() => setCustomAmountMl('16')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        16 fl oz
+                      </button>
+                      <button 
+                        onClick={() => setCustomAmountMl('24')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        24 fl oz
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex gap-4 pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setShowCustomModal(false);
+                    setCustomAmountMl('');
+                  }}
+                  className="flex-1 py-4 rounded-xl border-2 hover:bg-gray-50 font-semibold text-gray-700"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    const amount = parseFloat(customAmountMl);
+                    if (amount && amount > 0) {
+                      let amountMl = amount;
+                      // Convert from user's unit to ml
+                      if (unitSystem === 'imperial') {
+                        amountMl = amount * 29.5735;
+                      }
+                      // Convert ml to glasses
+                      const glasses = amountMl / glassSize;
+                      addWater(glasses);
+                    }
+                    setCustomAmountMl('');
+                    setShowCustomModal(false);
+                  }}
+                  disabled={!customAmountMl || parseFloat(customAmountMl) <= 0}
+                  className="flex-1 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add Water
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drag Tumbler Modal */}
+      {showDragTumblerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl transform transition-all">
+            {/* Header with tumbler icon */}
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 2L16 2C17.1 2 18 2.9 18 4L17 20C17 21.1 16.1 22 15 22L9 22C7.9 22 7 21.1 7 20L6 4C6 2.9 6.9 2 8 2Z" stroke="#3b82f6" strokeWidth="2" fill="none"/>
+                  <path d="M8 14L16 14L15.5 20L8.5 20Z" fill="#3b82f6" opacity="0.3"/>
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Add Water</h3>
+              <p className="text-gray-600 font-medium">Drag to set amount</p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Interactive Tumbler Section */}
+              <div className="relative">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  {showBigTumbler ? 'Choose your glass size' : 'Drag the glass to adjust amount'}
+                </label>
+                
+                {!showBigTumbler ? (
+                  // Single Glass Display
+                  <div>
+                    <div className="flex justify-center mb-4">
+                      <div className="relative">
+                        <div 
+                          className="relative overflow-hidden shadow-xl select-none transition-all duration-200 cursor-grab hover:shadow-2xl hover:scale-105 border-3 border-gray-900"
+                          style={{
+                            width: '100px',
+                            height: '120px',
+                            background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)',
+                            clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
+                            borderRadius: '6px 6px 10px 10px',
+                            boxShadow: '0 10px 25px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6)'
+                          }}
+                          onMouseDown={(e) => {
+                            const startY = e.clientY;
+                            const startAmount = dragTumblerAmount;
+                            
+                            const handleMouseMove = (moveEvent: MouseEvent) => {
+                              const deltaY = startY - moveEvent.clientY;
+                              const change = deltaY / 20;
+                              const newAmount = Math.max(0, Math.min(1, startAmount + change));
+                              setDragTumblerAmount(Math.round(newAmount * 4) / 4);
+                            };
+                            
+                            const handleMouseUp = () => {
+                              document.removeEventListener('mousemove', handleMouseMove);
+                              document.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            
+                            document.addEventListener('mousemove', handleMouseMove);
+                            document.addEventListener('mouseup', handleMouseUp);
+                          }}
+                        >
+                          {/* Water Fill */}
+                          <div 
+                            className="absolute bottom-0 w-full transition-all duration-500 ease-out overflow-hidden"
+                            style={{ 
+                              height: `${(dragTumblerAmount / 1) * 100}%`,
+                              clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
+                              borderRadius: '0 0 10px 10px'
+                            }}
+                          >
+                            {dragTumblerAmount > 0 && (
+                              <>
+                                <div 
+                                  className="absolute inset-0 w-full h-full"
+                                  style={{
+                                    background: 'linear-gradient(180deg, #22d3ee 0%, #0891b2 50%, #0e7490 100%)',
+                                    animation: 'smoothWaterSurface 4s ease-in-out infinite'
+                                  }}
+                                />
+                                <div 
+                                  className="absolute top-0 left-0 w-full h-1"
+                                  style={{
+                                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, transparent 100%)',
+                                    animation: 'subtleShimmer 2s ease-in-out infinite'
+                                  }}
+                                />
+                              </>
+                            )}
+                          </div>
+                          
+                          {/* Glass outline */}
+                          <svg 
+                            className="absolute inset-0 w-full h-full pointer-events-none z-20" 
+                            viewBox="0 0 100 120"
+                            style={{ overflow: 'visible' }}
+                          >
+                            <path
+                              d="M 20 0 L 80 0 L 75 120 L 25 120 Z"
+                              fill="none"
+                              stroke="black"
+                              strokeWidth="2.5"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Amount Display */}
+                    <div className="text-center mb-4">
+                      <div className="text-lg font-medium text-gray-600 mb-1">
+                        Current amount: <span className="font-bold text-blue-600">{(dragTumblerAmount * glassSize).toFixed(0)}ml</span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {dragTumblerAmount.toFixed(1)} glasses (250ml each)
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // Dual Glass Display
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Small Glass */}
+                    <div className="text-center">
+                      <p className="text-xs font-medium text-gray-600 mb-2">Small (250ml)</p>
+                      <div className="flex justify-center mb-2">
+                        <div 
+                          className="relative overflow-hidden shadow-lg cursor-grab hover:shadow-xl transition-all duration-200 border-2 border-gray-700"
+                          style={{
+                            width: '70px',
+                            height: '90px',
+                            background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)',
+                            clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
+                            borderRadius: '4px 4px 8px 8px',
+                            boxShadow: '0 6px 15px rgba(0,0,0,0.1)'
+                          }}
+                          onMouseDown={(e) => {
+                            const startY = e.clientY;
+                            const startAmount = dragTumblerAmount;
+                            
+                            const handleMouseMove = (moveEvent: MouseEvent) => {
+                              const deltaY = startY - moveEvent.clientY;
+                              const change = deltaY / 20;
+                              const newAmount = Math.max(0, Math.min(1, startAmount + change));
+                              setDragTumblerAmount(Math.round(newAmount * 4) / 4);
+                            };
+                            
+                            const handleMouseUp = () => {
+                              document.removeEventListener('mousemove', handleMouseMove);
+                              document.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            
+                            document.addEventListener('mousemove', handleMouseMove);
+                            document.addEventListener('mouseup', handleMouseUp);
+                          }}
+                        >
+                          <div 
+                            className="absolute bottom-0 w-full transition-all duration-300"
+                            style={{ 
+                              height: `${(dragTumblerAmount / 1) * 100}%`,
+                              background: 'linear-gradient(180deg, #22d3ee 0%, #0891b2 70%, #0e7490 100%)',
+                              clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
+                              borderRadius: '0 0 8px 8px'
+                            }}
+                          />
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 70 90">
+                            <path d="M 14 0 L 56 0 L 52.5 90 L 17.5 90 Z" fill="none" stroke="black" strokeWidth="2"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500">{(dragTumblerAmount * glassSize).toFixed(0)}ml</div>
+                    </div>
+
+                    {/* Large Glass */}
+                    <div className="text-center">
+                      <p className="text-xs font-medium text-gray-600 mb-2">Large (1000ml)</p>
+                      <div className="flex justify-center mb-2">
+                        <div 
+                          className="relative overflow-hidden shadow-lg cursor-grab hover:shadow-xl transition-all duration-200 border-2 border-gray-700"
+                          style={{
+                            width: '80px',
+                            height: '100px',
+                            background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)',
+                            clipPath: 'polygon(15% 0%, 85% 0%, 80% 100%, 20% 100%)',
+                            borderRadius: '6px 6px 10px 10px',
+                            boxShadow: '0 6px 15px rgba(0,0,0,0.1)'
+                          }}
+                          onMouseDown={(e) => {
+                            const startY = e.clientY;
+                            const startAmount = dragBigTumblerAmount;
+                            
+                            const handleMouseMove = (moveEvent: MouseEvent) => {
+                              const deltaY = startY - moveEvent.clientY;
+                              const change = deltaY / 20;
+                              const newAmount = Math.max(0, Math.min(4, startAmount + change));
+                              setDragBigTumblerAmount(Math.round(newAmount * 4) / 4);
+                            };
+                            
+                            const handleMouseUp = () => {
+                              document.removeEventListener('mousemove', handleMouseMove);
+                              document.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            
+                            document.addEventListener('mousemove', handleMouseMove);
+                            document.addEventListener('mouseup', handleMouseUp);
+                          }}
+                        >
+                          <div 
+                            className="absolute bottom-0 w-full transition-all duration-300"
+                            style={{ 
+                              height: `${(dragBigTumblerAmount / 4) * 100}%`,
+                              background: 'linear-gradient(180deg, #22d3ee 0%, #0891b2 70%, #0e7490 100%)',
+                              clipPath: 'polygon(15% 0%, 85% 0%, 80% 100%, 20% 100%)',
+                              borderRadius: '0 0 10px 10px'
+                            }}
+                          />
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 80 100">
+                            <path d="M 12 0 L 68 0 L 64 100 L 16 100 Z" fill="none" stroke="black" strokeWidth="2"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500">{(dragBigTumblerAmount * glassSize).toFixed(0)}ml</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Add Large Glass Option Button */}
+                {!showBigTumbler && (
+                  <div className="text-center mt-4">
+                    <button 
+                      onClick={() => setShowBigTumbler(true)}
+                      className="py-2 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors text-sm"
+                    >
+                      + Add Large Glass Option
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex gap-4 pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setShowDragTumblerModal(false);
+                    setDragTumblerAmount(0);
+                    setDragBigTumblerAmount(0);
+                    setShowBigTumbler(false);
+                  }}
+                  className="flex-1 py-4 rounded-xl border-2 hover:bg-gray-50 font-semibold text-gray-700"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (dragTumblerAmount > 0) {
+                      addWater(dragTumblerAmount);
+                    }
+                    if (dragBigTumblerAmount > 0) {
+                      addWater(dragBigTumblerAmount);
+                    }
+                    setShowDragTumblerModal(false);
+                    setDragTumblerAmount(0);
+                    setDragBigTumblerAmount(0);
+                    setShowBigTumbler(false);
+                  }}
+                  disabled={dragTumblerAmount <= 0 && dragBigTumblerAmount <= 0}
+                  className="flex-1 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add Water
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
