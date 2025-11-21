@@ -1342,9 +1342,14 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                             
                             const handleMouseMove = (moveEvent: MouseEvent) => {
                               const deltaY = startY - moveEvent.clientY;
-                              const change = deltaY / 20;
-                              const newAmount = Math.max(0, Math.min(1, startAmount + change));
-                              setDragTumblerAmount(Math.round(newAmount * 4) / 4);
+                              // Extremely sensitive: 1 pixel = 1ml movement
+                              const mlChange = deltaY;
+                              const glassChange = mlChange / 250; // Convert ml to glasses
+                              const newAmount = Math.max(0, Math.min(1, startAmount + glassChange));
+                              
+                              // Round to nearest ml (1/250 of a glass)
+                              const roundedAmount = Math.round(newAmount * 250) / 250;
+                              setDragTumblerAmount(roundedAmount);
                             };
                             
                             const handleMouseUp = () => {
@@ -1354,6 +1359,32 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                             
                             document.addEventListener('mousemove', handleMouseMove);
                             document.addEventListener('mouseup', handleMouseUp);
+                            e.preventDefault();
+                          }}
+                          onTouchStart={(e) => {
+                            const startY = e.touches[0].clientY;
+                            const startAmount = dragTumblerAmount;
+                            
+                            const handleTouchMove = (moveEvent: TouchEvent) => {
+                              const deltaY = startY - moveEvent.touches[0].clientY;
+                              // Extremely sensitive: 1 pixel = 1ml movement
+                              const mlChange = deltaY;
+                              const glassChange = mlChange / 250;
+                              const newAmount = Math.max(0, Math.min(1, startAmount + glassChange));
+                              
+                              const roundedAmount = Math.round(newAmount * 250) / 250;
+                              setDragTumblerAmount(roundedAmount);
+                              moveEvent.preventDefault();
+                            };
+                            
+                            const handleTouchEnd = () => {
+                              document.removeEventListener('touchmove', handleTouchMove);
+                              document.removeEventListener('touchend', handleTouchEnd);
+                            };
+                            
+                            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                            document.addEventListener('touchend', handleTouchEnd);
+                            e.preventDefault();
                           }}
                         >
                           {/* Water Fill */}
@@ -1406,7 +1437,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                     {/* Amount Display */}
                     <div className="text-center mb-4">
                       <div className="text-lg font-medium text-gray-600 mb-1">
-                        Current amount: <span className="font-bold text-blue-600">{(dragTumblerAmount * glassSize).toFixed(0)}ml</span>
+                        Current amount: <span className="font-bold text-blue-600">{Math.round(dragTumblerAmount * glassSize)}ml</span>
                       </div>
                       <div className="text-sm text-gray-500">
                         {dragTumblerAmount.toFixed(1)} glasses (250ml each)
@@ -1436,9 +1467,14 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                             
                             const handleMouseMove = (moveEvent: MouseEvent) => {
                               const deltaY = startY - moveEvent.clientY;
-                              const change = deltaY / 20;
-                              const newAmount = Math.max(0, Math.min(1, startAmount + change));
-                              setDragTumblerAmount(Math.round(newAmount * 4) / 4);
+                              // Extremely sensitive: 1 pixel = 1ml movement
+                              const mlChange = deltaY;
+                              const glassChange = mlChange / 250; // Convert ml to glasses
+                              const newAmount = Math.max(0, Math.min(1, startAmount + glassChange));
+                              
+                              // Round to nearest ml (1/250 of a glass)
+                              const roundedAmount = Math.round(newAmount * 250) / 250;
+                              setDragTumblerAmount(roundedAmount);
                             };
                             
                             const handleMouseUp = () => {
@@ -1448,6 +1484,32 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                             
                             document.addEventListener('mousemove', handleMouseMove);
                             document.addEventListener('mouseup', handleMouseUp);
+                            e.preventDefault();
+                          }}
+                          onTouchStart={(e) => {
+                            const startY = e.touches[0].clientY;
+                            const startAmount = dragTumblerAmount;
+                            
+                            const handleTouchMove = (moveEvent: TouchEvent) => {
+                              const deltaY = startY - moveEvent.touches[0].clientY;
+                              // Extremely sensitive: 1 pixel = 1ml movement
+                              const mlChange = deltaY;
+                              const glassChange = mlChange / 250;
+                              const newAmount = Math.max(0, Math.min(1, startAmount + glassChange));
+                              
+                              const roundedAmount = Math.round(newAmount * 250) / 250;
+                              setDragTumblerAmount(roundedAmount);
+                              moveEvent.preventDefault();
+                            };
+                            
+                            const handleTouchEnd = () => {
+                              document.removeEventListener('touchmove', handleTouchMove);
+                              document.removeEventListener('touchend', handleTouchEnd);
+                            };
+                            
+                            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                            document.addEventListener('touchend', handleTouchEnd);
+                            e.preventDefault();
                           }}
                         >
                           <div 
@@ -1464,7 +1526,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                           </svg>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500">{(dragTumblerAmount * glassSize).toFixed(0)}ml</div>
+                      <div className="text-xs text-gray-500">{Math.round(dragTumblerAmount * glassSize)}ml</div>
                     </div>
 
                     {/* Large Glass */}
@@ -1487,9 +1549,14 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                             
                             const handleMouseMove = (moveEvent: MouseEvent) => {
                               const deltaY = startY - moveEvent.clientY;
-                              const change = deltaY / 20;
-                              const newAmount = Math.max(0, Math.min(4, startAmount + change));
-                              setDragBigTumblerAmount(Math.round(newAmount * 4) / 4);
+                              // Extremely sensitive: 1 pixel = 1ml movement
+                              const mlChange = deltaY;
+                              const glassChange = mlChange / 250; // Convert ml to glasses
+                              const newAmount = Math.max(0, Math.min(4, startAmount + glassChange));
+                              
+                              // Round to nearest ml (1/250 of a glass)
+                              const roundedAmount = Math.round(newAmount * 250) / 250;
+                              setDragBigTumblerAmount(roundedAmount);
                             };
                             
                             const handleMouseUp = () => {
@@ -1499,6 +1566,32 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                             
                             document.addEventListener('mousemove', handleMouseMove);
                             document.addEventListener('mouseup', handleMouseUp);
+                            e.preventDefault();
+                          }}
+                          onTouchStart={(e) => {
+                            const startY = e.touches[0].clientY;
+                            const startAmount = dragBigTumblerAmount;
+                            
+                            const handleTouchMove = (moveEvent: TouchEvent) => {
+                              const deltaY = startY - moveEvent.touches[0].clientY;
+                              // Extremely sensitive: 1 pixel = 1ml movement
+                              const mlChange = deltaY;
+                              const glassChange = mlChange / 250;
+                              const newAmount = Math.max(0, Math.min(4, startAmount + glassChange));
+                              
+                              const roundedAmount = Math.round(newAmount * 250) / 250;
+                              setDragBigTumblerAmount(roundedAmount);
+                              moveEvent.preventDefault();
+                            };
+                            
+                            const handleTouchEnd = () => {
+                              document.removeEventListener('touchmove', handleTouchMove);
+                              document.removeEventListener('touchend', handleTouchEnd);
+                            };
+                            
+                            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                            document.addEventListener('touchend', handleTouchEnd);
+                            e.preventDefault();
                           }}
                         >
                           <div 
@@ -1515,7 +1608,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                           </svg>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500">{(dragBigTumblerAmount * glassSize).toFixed(0)}ml</div>
+                      <div className="text-xs text-gray-500">{Math.round(dragBigTumblerAmount * glassSize)}ml</div>
                     </div>
                   </div>
                 )}
