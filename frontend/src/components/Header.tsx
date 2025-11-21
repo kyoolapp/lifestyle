@@ -915,153 +915,83 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
             </PopoverContent>
           </Popover>
 
-          {/* Water Bottle Widget */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                className="relative cursor-pointer group p-1 md:p-2 h-auto hover:bg-muted/30 rounded-lg transition-colors"
-              >
-                <div className="flex items-center gap-1 md:gap-2">
-                  {/* Water Bottle - Same as WaterTracker */}
-                  <div className="relative flex flex-col items-center">
-                    {/* Bottle Cap */}
-                    <div className="w-2 h-1 md:w-3 md:h-1.5 bg-blue-600 rounded-t-lg mb-0.5 shadow-md"></div>
-                    
-                    {/* Bottle Neck */}
-                    <div className="w-1.5 h-1 md:w-2 md:h-1 bg-gray-300 border border-gray-400"></div>
-                    
-                    {/* Main Bottle */}
-                    <div className="relative w-4 h-6 md:w-5 md:h-7 bg-gradient-to-b from-gray-100 to-gray-300 rounded-b-3xl border-2 border-gray-500 overflow-hidden shadow-lg">
-                      
-                      {/* Water fill with same logic as WaterTracker */}
-                      <motion.div 
-                        className="absolute bottom-0 w-full rounded-b-3xl transition-all duration-500"
-                        style={{ 
-                          height: `${Math.min(waterPercentage, 100)}%`,
-                          backgroundColor: waterIntake === 0 ? 'transparent' :
-                            waterIntake < 4 ? '#f87171' : // red-400  
-                            waterIntake <= 6 ? '#facc15' : // yellow-400
-                            '#60a5fa' // blue-400
-                        }}
-                        initial={{ height: 0 }}
-                        animate={{ height: `${Math.min(waterPercentage, 100)}%` }}
-                        transition={{ duration: 0.3 }}
-                      />
-                      
-                      {/* Water Surface Animation */}
-                      <div 
-                        className={`absolute inset-x-0 w-full bg-white h-px animate-pulse ${waterIntake === 0 ? 'opacity-0' : 'opacity-80'}`}
-                        style={{ 
-                          bottom: `${Math.min(waterPercentage, 100)}%`
-                        }}
-                      />
-                      
-                      {/* Measurement lines - fewer for smaller size */}
-                      <div className="absolute inset-x-0.5 h-px bg-gray-600 opacity-30" style={{ bottom: '75%' }}></div>
-                      <div className="absolute inset-x-0.5 h-px bg-gray-600 opacity-30" style={{ bottom: '50%' }}></div>
-                      <div className="absolute inset-x-0.5 h-px bg-gray-600 opacity-30" style={{ bottom: '25%' }}></div>
-                    </div>
-                  </div>
-                  
-                  {/* Water count */}
-                  <div className="hidden sm:block text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                    {waterIntake % 1 === 0 ? waterIntake : waterIntake.toFixed(1)}/{dailyGoal}
-                  </div>
-                </div>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <div className="w-6 h-6 bg-blue-500 rounded-full" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Water Intake</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {waterIntake % 1 === 0 ? waterIntake : waterIntake.toFixed(1)} of {dailyGoal} glasses today
-                    </p>
-                  </div>
-                </div>
-                
-                <Progress value={waterPercentage} className="h-2" />
-                
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    {waterIntake * 250}ml / {dailyGoal * 250}ml
-                  </div>
-                  <Badge variant={waterPercentage >= 100 ? 'default' : 'secondary'}>
-                    {waterPercentage.toFixed(0)}%
-                  </Badge>
-                </div>
-                
-                {/* Glass Amount Options */}
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-center">Add water</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addWater(0.25)}
-                      disabled={loading || waterIntake >= 15}
-                      className="flex flex-col h-12 p-1"
-                    >
-                      <div className="text-xs font-medium">1/4</div>
-                      <div className="text-xs text-muted-foreground">glass</div>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addWater(0.5)}
-                      disabled={loading || waterIntake >= 15}
-                      className="flex flex-col h-12 p-1"
-                    >
-                      <div className="text-xs font-medium">1/2</div>
-                      <div className="text-xs text-muted-foreground">glass</div>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addWater(1)}
-                      disabled={loading || waterIntake >= 15}
-                      className="flex flex-col h-12 p-1"
-                    >
-                      <div className="text-xs font-medium">Full</div>
-                      <div className="text-xs text-muted-foreground">glass</div>
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Quick Actions */}
-                <div className="flex gap-2 pt-2 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={removeWater}
-                    disabled={loading || waterIntake <= 0}
-                    className="flex-1"
+          {/* Water Droplet Widget */}
+          <Button
+            variant="ghost"
+            className="relative cursor-pointer group p-1 md:p-2 h-auto hover:bg-muted/30 rounded-lg transition-colors"
+            onClick={() => navigate('/water')}
+          >
+            <div className="flex items-center gap-1 md:gap-2">
+              {/* Water Droplet */}
+              <div className="relative flex flex-col items-center">
+                {/* Droplet Shape */}
+                <div className="relative w-4 h-6 md:w-5 md:h-7 overflow-hidden">
+                  {/* SVG Water Droplet */}
+                  <svg 
+                    className="w-full h-full" 
+                    viewBox="0 0 20 28" 
+                    fill="none"
                   >
-                    <Minus className="w-3 h-3 mr-1" />
-                    Remove
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => addWater(1)}
-                    disabled={loading || waterIntake >= 15}
-                    className="flex-1"
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Add Glass
-                  </Button>
-                </div>
-                
-                <div className="text-xs text-muted-foreground text-center">
-                  Target: 2L (8 glasses) daily for optimal health
+                    <defs>
+                      <linearGradient id="dropletGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#dbeafe" />
+                        <stop offset="100%" stopColor="#bfdbfe" />
+                      </linearGradient>
+                      <linearGradient id="waterFillGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor={
+                          waterIntake === 0 ? 'transparent' :
+                          waterIntake < 4 ? '#3b82f6' : 
+                          waterIntake <= 6 ? '#06b6d4' : 
+                          '#0891b2'
+                        } />
+                        <stop offset="100%" stopColor={
+                          waterIntake === 0 ? 'transparent' :
+                          waterIntake < 4 ? '#1e40af' : 
+                          waterIntake <= 6 ? '#0e7490' : 
+                          '#164e63'
+                        } />
+                      </linearGradient>
+                    </defs>
+                    
+                    {/* Droplet outline */}
+                    <path
+                      d="M10 2 C6 6, 2 12, 2 18 C2 23, 6 26, 10 26 C14 26, 18 23, 18 18 C18 12, 14 6, 10 2 Z"
+                      fill="url(#dropletGradient)"
+                      stroke="#3b82f6"
+                      strokeWidth="1"
+                    />
+                    
+                    {/* Water fill */}
+                    <motion.path
+                      d="M10 2 C6 6, 2 12, 2 18 C2 23, 6 26, 10 26 C14 26, 18 23, 18 18 C18 12, 14 6, 10 2 Z"
+                      fill="url(#waterFillGradient)"
+                      style={{
+                        clipPath: `inset(${100 - Math.min(waterPercentage, 100)}% 0 0 0)`
+                      }}
+                      initial={{ clipPath: 'inset(100% 0 0 0)' }}
+                      animate={{ clipPath: `inset(${100 - Math.min(waterPercentage, 100)}% 0 0 0)` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    
+                    {/* Highlight */}
+                    <ellipse
+                      cx="7"
+                      cy="8"
+                      rx="1.5"
+                      ry="3"
+                      fill="rgba(255,255,255,0.4)"
+                      transform="rotate(-20 7 8)"
+                    />
+                  </svg>
                 </div>
               </div>
-            </PopoverContent>
-          </Popover>
+              
+              {/* Water count */}
+              <div className="hidden sm:block text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                {waterIntake % 1 === 0 ? waterIntake : waterIntake.toFixed(1)}/{dailyGoal}
+              </div>
+            </div>
+          </Button>
         </div>
       </div>
     </header>
