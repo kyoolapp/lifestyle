@@ -586,7 +586,8 @@ export function WaterTracker({ user }: WaterTrackerProps) {
     return 'bg-green-500'; // 7+ glasses
   };
 
-  // Interactive bottle sliding handlers
+  // Interactive bottle sliding handlers - DISABLED
+  /*
   const handleBottleMouseDown = (e: React.MouseEvent) => {
     if (loading) return;
     setIsDragging(true);
@@ -658,6 +659,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
       document.removeEventListener('touchend', handleEnd);
     };
   }, [isDragging, dragStartY, dragStartValue, todayIntake]);
+  */
 
   // Direct water intake setter for smooth dragging
   const setWaterIntakeDirectly = (newValue: number) => {
@@ -761,8 +763,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                         clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
                         borderRadius: '8px 8px 12px 12px'
                       }}
-                      onMouseDown={(e) => handleBottleMouseDown(e)}
-                      onTouchStart={(e) => handleBottleTouchStart(e)}
                     >
                       
                       {/* Glass outline using SVG for precise control */}
