@@ -917,6 +917,28 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                         <div className="text-[3 px] text-cyan-600 leading-[0.6rem]">250ml</div>
                       </div>  
                     </button>
+
+                    <button
+                      onClick={async () => {
+                        if (loading || todayIntake <= 0) return;
+                        const glassesEquivalent = 250 / glassSize;
+                        const newIntake = Math.max(0, todayIntake - glassesEquivalent);
+                        await saveWaterIntake(newIntake);
+                        setTodayIntake(newIntake);
+                        const today = new Date().toISOString().split('T')[0];
+                        setWeeklyData(prev => prev.map(day => 
+                          day.date === today ? { ...day, intake: newIntake } : day
+                        ));
+                      }}
+                      disabled={loading || todayIntake <= 0}
+                      className="w-12 h-12 rounded-full bg-red-100 hover:bg-red-200 transition-colors flex items-center justify-center disabled:opacity-50 shadow-sm"
+                      title="Remove 250ml"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-0">
+                        <Droplets className="w-3 h-3 text-red-600" />
+                        <div className="text-[3 px] text-red-600 leading-[0.6rem]">-250ml</div>
+                      </div>  
+                    </button>
                   </div>  
                 </div>
               </div>
