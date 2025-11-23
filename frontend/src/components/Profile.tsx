@@ -15,7 +15,7 @@ import { Progress } from './ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { isUsernameAvailable } from "../api/user_api";
 import { useGoals } from '../hooks/useGoals';
-import { ThemeToggle } from './ThemeToggle';
+// import { ThemeToggle } from './ThemeToggle'; // COMMENTED OUT - Dark theme disabled
 import { 
   User, 
   Users,
@@ -1287,6 +1287,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                   </Select>
                 </div>
                 
+                {/* COMMENTED OUT - Dark theme disabled
                 <div>
                   <Label>Theme Preference</Label>
                   <p className="text-sm text-muted-foreground mb-3">Choose your preferred color theme</p>
@@ -1297,6 +1298,7 @@ export function Profile({ user, setUser }: ProfileProps) {
                     </span>
                   </div>
                 </div>
+                */}
                 
                 <div className="pt-4 border-t">
                   <p className="text-sm font-medium mb-2">Your measurements</p>

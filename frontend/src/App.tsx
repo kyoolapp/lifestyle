@@ -54,22 +54,22 @@ import { useUserHeartbeat } from "./hooks/useUserHeartbeat";
 import { auth } from "./firebase";
 import { UnitProvider } from "./context/UnitContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
-import { ThemeProvider } from "./contexts/ThemeContext";
+// import { ThemeProvider } from "./contexts/ThemeContext"; // COMMENTED OUT - Dark theme disabled
 
 
 const BASE_URL= import.meta.env.VITE_API_URL;
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <UnitProvider>
-        <NotificationProvider>
-          <BrowserRouter>
+    <UnitProvider>
+      <NotificationProvider>
+        <BrowserRouter>
+          <div className="min-h-screen bg-background">
             <AppRoutes />
-          </BrowserRouter>
-        </NotificationProvider>
-      </UnitProvider>
-    </ThemeProvider>
+          </div>
+        </BrowserRouter>
+      </NotificationProvider>
+    </UnitProvider>
   );
 }
 

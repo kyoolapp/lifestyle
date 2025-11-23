@@ -31,7 +31,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Switch } from './ui/switch';
 import { motion } from 'motion/react';
-import { ThemeToggle } from './ThemeToggle';
+// import { ThemeToggle } from './ThemeToggle'; // COMMENTED OUT - Dark theme disabled
 
 // Utility function to format time ago
 function formatTimeAgo(timestamp: Date): string {
@@ -775,7 +775,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
           </div>
 
           {/* Theme Toggle */}
-          <ThemeToggle />
+          {/* <ThemeToggle /> COMMENTED OUT - Dark theme disabled */}
 
           {/* Notifications */}
           <Popover>
