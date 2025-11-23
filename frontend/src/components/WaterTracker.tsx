@@ -901,7 +901,23 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                         <path d="M8 14L16 14L15.5 20L8.5 20Z" fill="#10b981" opacity="0.3"/>
                       </svg>
                     </button>
-                  </div>
+
+                    <button
+                      onClick={async () => {
+                        if (loading || todayIntake >= 8) return;
+                        const glassesEquivalent = 250 / glassSize;
+                        await addWater(glassesEquivalent);
+                      }}
+                      disabled={loading || todayIntake >= 8}
+                      className="w-12 h-12 rounded-full bg-cyan-100 hover:bg-cyan-200 transition-colors flex items-center justify-center disabled:opacity-50 shadow-sm"
+                      title="Quick add 250ml"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-0">
+                        <Droplets className="w-3 h-3 text-cyan-600" />
+                        <div className="text-[3 px] text-cyan-600 leading-[0.6rem]">250ml</div>
+                      </div>  
+                    </button>
+                  </div>  
                 </div>
               </div>
 
