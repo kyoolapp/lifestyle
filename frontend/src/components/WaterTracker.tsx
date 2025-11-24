@@ -267,6 +267,22 @@ export function WaterTracker({ user }: WaterTrackerProps) {
       return `${(glasses * 8.45).toFixed(1)} fl oz`;
     }
   };
+
+  const getWaterDetailedDisplay = (glasses: number) => {
+    if (unitSystem === 'metric') {
+      return `${(glasses * 250).toFixed(0)}ml`; // 1 glass = 250ml
+    } else {
+      return `${(glasses * 8.45).toFixed(1)} fl oz`; // 1 glass = 8.45 fl oz
+    }
+  };
+
+  const getWaterGoalDetailed = (glasses: number) => {
+    if (unitSystem === 'metric') {
+      return `${(glasses * 250).toFixed(0)}ml`; // 8 glasses = 2000ml
+    } else {
+      return `${Math.round(glasses * 8.45)} fl oz`; // 8 glasses = ~67.6 fl oz
+    }
+  };
   const [weeklyData, setWeeklyData] = useState([
     { day: 'Mon', intake: 0, goal: 8, date: '' },
     { day: 'Tue', intake: 0, goal: 8, date: '' },
@@ -735,7 +751,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   {getWaterDisplayValue(todayIntake)}
                 </div>
                 <p className="text-xs md:text-sm text-muted-foreground">
-                  {(todayIntake * glassSize).toFixed(0)}ml of {dailyGoal * glassSize}ml
+                  {getWaterDetailedDisplay(todayIntake)} of {getWaterGoalDetailed(dailyGoal)}
                 </p>
               </div>
 
@@ -1077,7 +1093,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
               <div className="flex items-center justify-between">
                 <span className="text-sm">Today's Intake</span>
                 <span className="font-medium">
-                  {(todayIntake * glassSize).toFixed(0)}ml ({todayIntake.toFixed(2)} glasses)
+                  {getWaterDetailedDisplay(todayIntake)} ({todayIntake.toFixed(2)} glasses)
                 </span>
               </div>
               <div className="flex items-center justify-between">
