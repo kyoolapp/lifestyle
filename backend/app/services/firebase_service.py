@@ -1329,3 +1329,336 @@ class FirestoreUserService:
             import traceback
             traceback.print_exc()
             return []
+
+    # MET VALUES for calorie calculation
+    MET_VALUES = {
+        # Strength Training
+        'Bench Press': 6.0,
+        'Squats': 6.0,
+        'Deadlifts': 6.0,
+        'Push-ups': 8.0,
+        'Pull-ups': 8.0,
+        'Barbell Rows': 6.0,
+        'Dumbbell Rows': 6.0,
+        'Bicep Curls': 3.5,
+        'Tricep Dips': 8.0,
+        'Lat Pulldowns': 6.0,
+        'Leg Press': 6.0,
+        'Leg Curls': 3.5,
+        'Shoulder Press': 6.0,
+        'Dumbbell Flyes': 5.0,
+        'Inclined Bench Press': 6.0,
+        'Lunges': 6.0,
+        'Cable Rows': 6.0,
+        'Face Pulls': 3.5,
+        'Planks': 3.8,
+        # Cardio/Conditioning
+        'Jumping Jacks': 8.0,
+        'Burpees': 8.0,
+        'Mountain Climbers': 8.0,
+        'Running': 9.8,
+        'Cycling': 7.5,
+        'Swimming': 8.0,
+    }
+
+    def calculate_calories_burned(self, user_id: str, exercises: list, duration_minutes: float = None) -> float:
+        """
+        Calculate calories burned using the MET method.
+        Formula: Calories = MET × Weight (kg) × Duration (hours)
+        
+        Args:
+            user_id: The user's Firebase ID
+            exercises: List of completed exercises [{ 'name': 'Bench Press', 'duration_minutes': 10 }, ...]
+            duration_minutes: Total workout duration (optional, calculated from exercises if not provided)
+            
+        Returns:
+            float: Estimated calories burned
+        """
+        try:
+            # Get user's weight
+            user_doc = db.collection('users').document(user_id).get()
+            if not user_doc.exists:
+                return 0.0
+            
+            user_data = user_doc.to_dict()
+            weight_kg = user_data.get('weight', 70)  # Default 70kg if not set
+            
+            total_calories = 0.0
+            
+            for exercise in exercises:
+                exercise_name = exercise.get('name', '')
+                # Get MET value from dictionary, default to 5 if not found
+                met_value = self.MET_VALUES.get(exercise_name, 5.0)
+                
+                # If duration provided per exercise, use it; otherwise estimate 5 min per set
+                if 'duration_minutes' in exercise:
+                    exercise_duration = exercise['duration_minutes']
+                else:
+                    # Estimate: 5 minutes per set (can be overridden per exercise)
+                    sets = exercise.get('sets', 3)
+                    exercise_duration = sets * 5
+                
+                exercise_calories = met_value * weight_kg * (exercise_duration / 60)
+                total_calories += exercise_calories
+            
+            return round(total_calories, 1)
+            
+        except Exception as e:
+            print(f"Error calculating calories for user {user_id}: {e}")
+            return 0.0
+
+    def log_workout(self, user_id: str, routine_name: str, exercises_completed: list, 
+                   duration_minutes: float, shared_with: list = None) -> dict:
+        """
+        Log a completed workout for the user and create activity entries for selected friends.
+        
+        Args:
+            user_id: The user's Firebase ID
+            routine_name: Name of the workout routine (e.g., 'Push Day')
+            exercises_completed: List of completed exercises
+            duration_minutes: Total workout duration
+            shared_with: List of friend user IDs to share this workout with (optional)
+            
+        Returns:
+            dict: Workout data with calculated calories and streak info
+        """
+        if shared_with is None:
+            shared_with = []
+        
+        try:
+            now_utc_iso = get_utc_now_iso()
+            
+            # Calculate calories burned
+            calories_burned = self.calculate_calories_burned(user_id, exercises_completed, duration_minutes)
+            
+            # Create workout document
+            workout_data = {
+                'routine_name': routine_name,
+                'exercises_completed': exercises_completed,
+                'duration_minutes': duration_minutes,
+                'calories_burned': calories_burned,
+                'created_at': now_utc_iso,
+                'shared_with': shared_with
+            }
+            
+            # Store workout in user's workouts collection
+            workouts_ref = db.collection('users').document(user_id).collection('workouts')
+            workout_doc = workouts_ref.add(workout_data)
+            
+            # Update workout streak
+            streak_data = self.update_streak(user_id, 'workout')
+            
+            # Create activity entries for user and selected friends
+            activity_data = {
+                'type': 'workout',
+                'user_id': user_id,
+                'routine_name': routine_name,
+                'exercises_count': len(exercises_completed),
+                'duration_minutes': duration_minutes,
+                'calories_burned': calories_burned,
+                'timestamp': now_utc_iso,
+                'emoji': '💪'
+            }
+            
+            # Add to user's own activity feed
+            db.collection('users').document(user_id).collection('activities').add(activity_data)
+            
+            # Add to selected friends' activity feeds
+            for friend_id in shared_with:
+                friend_activity = {
+                    **activity_data,
+                    'friend_name': self._get_user_name(user_id),  # Show who did the workout
+                }
+                db.collection('users').document(friend_id).collection('activities').add(friend_activity)
+            
+            return {
+                'workout_id': workout_doc[1].id,
+                'calories_burned': calories_burned,
+                'streak': streak_data.get('current_streak', 0),
+                'timestamp': now_utc_iso
+            }
+            
+        except Exception as e:
+            print(f"Error logging workout for user {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+
+    def get_workout_history(self, user_id: str, limit: int = 50) -> list:
+        """
+        Retrieve user's workout history.
+        
+        Args:
+            user_id: The user's Firebase ID
+            limit: Maximum number of workouts to retrieve
+            
+        Returns:
+            list: List of workout records
+        """
+        try:
+            workouts_ref = db.collection('users').document(user_id).collection('workouts')
+            workouts = workouts_ref.order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit).stream()
+            
+            workout_list = []
+            for doc in workouts:
+                workout = doc.to_dict()
+                workout['id'] = doc.id
+                workout_list.append(workout)
+            
+            return workout_list
+            
+        except Exception as e:
+            print(f"Error retrieving workout history for user {user_id}: {e}")
+            return []
+
+    def _get_user_name(self, user_id: str) -> str:
+        """Helper to get user's display name for activity feed"""
+        try:
+            user_doc = db.collection('users').document(user_id).get()
+            if user_doc.exists:
+                return user_doc.to_dict().get('name', 'User')
+            return 'User'
+        except:
+            return 'User'
+
+    # ===== ROUTINE TEMPLATE METHODS =====
+
+    def save_routine(self, user_id: str, routine_name: str, exercises: list, notes: str = '') -> dict:
+        """
+        Save a routine template to user's routines collection.
+        
+        Args:
+            user_id: The user's Firebase ID
+            routine_name: Name of the routine (e.g., 'Push Day')
+            exercises: List of exercises with sets configuration
+            notes: Optional routine notes
+            
+        Returns:
+            dict: Created routine data with ID
+        """
+        try:
+            now_utc_iso = get_utc_now_iso()
+            
+            routine_data = {
+                'name': routine_name,
+                'exercises': exercises,
+                'notes': notes,
+                'created_at': now_utc_iso,
+                'updated_at': now_utc_iso
+            }
+            
+            routines_ref = db.collection('users').document(user_id).collection('routines')
+            routine_doc = routines_ref.add(routine_data)
+            
+            result = routine_data.copy()
+            result['id'] = routine_doc[1].id
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error saving routine for user {user_id}: {e}")
+            raise
+
+    def get_routines(self, user_id: str, limit: int = 100) -> list:
+        """
+        Get all saved routine templates for a user.
+        
+        Args:
+            user_id: The user's Firebase ID
+            limit: Maximum number of routines to retrieve
+            
+        Returns:
+            list: List of routine templates
+        """
+        try:
+            routines_ref = db.collection('users').document(user_id).collection('routines')
+            routines = routines_ref.order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit).stream()
+            
+            routine_list = []
+            for doc in routines:
+                routine = doc.to_dict()
+                routine['id'] = doc.id
+                routine_list.append(routine)
+            
+            return routine_list
+            
+        except Exception as e:
+            print(f"Error retrieving routines for user {user_id}: {e}")
+            return []
+
+    def get_routine(self, user_id: str, routine_id: str) -> dict:
+        """
+        Get a specific routine template by ID.
+        
+        Args:
+            user_id: The user's Firebase ID
+            routine_id: The routine document ID
+            
+        Returns:
+            dict: Routine data or None if not found
+        """
+        try:
+            routine_ref = db.collection('users').document(user_id).collection('routines').document(routine_id)
+            routine_doc = routine_ref.get()
+            
+            if routine_doc.exists:
+                routine = routine_doc.to_dict()
+                routine['id'] = routine_doc.id
+                return routine
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error retrieving routine {routine_id} for user {user_id}: {e}")
+            return None
+
+    def update_routine(self, user_id: str, routine_id: str, routine_data: dict) -> dict:
+        """
+        Update an existing routine template.
+        
+        Args:
+            user_id: The user's Firebase ID
+            routine_id: The routine document ID
+            routine_data: Dictionary with fields to update
+            
+        Returns:
+            dict: Updated routine data
+        """
+        try:
+            routine_ref = db.collection('users').document(user_id).collection('routines').document(routine_id)
+            
+            # Add updated_at timestamp
+            routine_data['updated_at'] = get_utc_now_iso()
+            
+            routine_ref.update(routine_data)
+            
+            # Return updated data
+            routine = routine_ref.get().to_dict()
+            routine['id'] = routine_id
+            
+            return routine
+            
+        except Exception as e:
+            print(f"Error updating routine {routine_id} for user {user_id}: {e}")
+            raise
+
+    def delete_routine(self, user_id: str, routine_id: str) -> bool:
+        """
+        Delete a routine template.
+        
+        Args:
+            user_id: The user's Firebase ID
+            routine_id: The routine document ID
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            routine_ref = db.collection('users').document(user_id).collection('routines').document(routine_id)
+            routine_ref.delete()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error deleting routine {routine_id} for user {user_id}: {e}")
+            raise

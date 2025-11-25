@@ -123,9 +123,11 @@ export const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<"div">
 >(({ className, children, ...props }, ref) => {
   const { open, setOpen } = useDialog();
-  if (!open) return null;
+  
+  // Move hook call outside conditional - IMPORTANT: hooks must be called unconditionally
+  useBodyScrollLock(open);
 
-  useBodyScrollLock(true);
+  if (!open) return null;
 
   return (
     <DialogPortal>

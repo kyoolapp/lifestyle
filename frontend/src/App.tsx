@@ -43,6 +43,8 @@ import { WaterTracker } from "./components/WaterTracker";
 import { RecipeSearch } from "./components/RecipeSearch";
 import { Profile } from "./components/Profile";
 import { FitnessTracker } from "./components/FitnessTracker";
+import { RoutineBuilder } from "./components/RoutineBuilder";
+import { WorkoutLogger } from "./components/WorkoutLogger";
 import { DeviceConnections } from "./components/DeviceConnections";
 import { FeaturesShowcase } from "./components/FeaturesShowcase";
 import { UserProfile } from "./components/UserProfile";
@@ -774,6 +776,30 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <FitnessTracker />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/routine/new"
+          element={
+            <PrivateRoute>
+              <RoutineBuilder />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/workout/log"
+          element={
+            <PrivateRoute>
+              <WorkoutLogger />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/workout/log/standalone"
+          element={
+            <PrivateRoute>
+              <WorkoutLogger />
             </PrivateRoute>
           }
         />

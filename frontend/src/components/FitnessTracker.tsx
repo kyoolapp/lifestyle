@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -13,7 +14,10 @@ import { Separator } from './ui/separator';
 import { AppleWatchRoller } from './AppleWatchRoller';
 import { EmojiMoodSelector } from './EmojiMoodSelector';
 import { WorkoutEditor } from './WorkoutEditor';
-import { WorkoutLibrary } from './WorkoutLibrary';
+import { ExerciseLibrary } from './ExerciseLibrary';
+import { getRoutines, saveRoutine } from '../api/routines_api';
+import { logWorkout } from '../api/workouts_api';
+import { auth } from '../firebase';
 import { 
   Dumbbell, 
   Plus, 
@@ -71,6 +75,7 @@ interface FitnessTrackerProps {
 }
 
 export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTrackerProps = {}) {
+  const navigate = useNavigate();
   // Exercise Library - moved to top to avoid temporal dead zone
   const exerciseLibrary = [
     {
@@ -427,6 +432,10 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
   // Workout Library states
   const [isWorkoutLibraryOpen, setIsWorkoutLibraryOpen] = useState(false);
 
+  // Routine Builder states
+  const [savedRoutines, setSavedRoutines] = useState<any[]>([]);
+  const [loadingRoutines, setLoadingRoutines] = useState(false);
+
   const [workoutRoutines, setWorkoutRoutines] = useState([
     {
       id: 1,
@@ -462,7 +471,13 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
   ]);
 
   const [activeRoutineIndex, setActiveRoutineIndex] = useState(0);
-  const [newRoutine, setNewRoutine] = useState({
+  const [newRoutine, setNewRoutine] = useState<{
+    name: string;
+    exercises: any[];
+    difficulty: string;
+    targetMuscles: any[];
+    isPublic: boolean;
+  }>({
     name: '',
     exercises: [],
     difficulty: 'Beginner',
@@ -513,7 +528,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
 
   // Timer functions
   React.useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isRunning) {
       interval = setInterval(() => {
         setTimer(timer => timer + 1);
@@ -521,6 +536,26 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
     }
     return () => clearInterval(interval);
   }, [isRunning]);
+
+  // Load saved routines on mount
+  useEffect(() => {
+    const loadRoutines = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        
+        setLoadingRoutines(true);
+        const routines = await getRoutines(user.uid);
+        setSavedRoutines(routines);
+      } catch (error) {
+        console.error('Error loading routines:', error);
+      } finally {
+        setLoadingRoutines(false);
+      }
+    };
+
+    loadRoutines();
+  }, []);
 
   // Handle selectedWorkout from home page
   React.useEffect(() => {
@@ -694,7 +729,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
 
   const recordSet = () => {
     const key = `${currentExerciseIndex}-${currentSetIndex}`;
-    setExecutionData(prev => ({
+    setExecutionData((prev: any) => ({
       ...prev,
       [key]: {
         weight: currentWeight,
@@ -815,8 +850,8 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                 </>
               ) : (
                 <EmojiMoodSelector
-                  onMoodSelected={handleMoodSelected}
-                  question="How did that set feel?"
+                  onSelect={handleMoodSelected}
+                  onSkip={() => setShowMoodSelector(false)}
                 />
               )}
             </CardContent>
@@ -948,394 +983,201 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
 
         <TabsContent value="routines" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Workout Routines</h2>
-            <Dialog open={isWorkoutBuilderOpen} onOpenChange={setIsWorkoutBuilderOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Routine
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create New Workout Routine</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="routineName">Routine Name</Label>
-                      <Input
-                        id="routineName"
-                        value={newRoutine.name}
-                        onChange={(e) => setNewRoutine({ ...newRoutine, name: e.target.value })}
-                        placeholder="Enter routine name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="difficulty">Difficulty</Label>
-                      <Select value={newRoutine.difficulty} onValueChange={(value) => setNewRoutine({ ...newRoutine, difficulty: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Beginner">Beginner</SelectItem>
-                          <SelectItem value="Intermediate">Intermediate</SelectItem>
-                          <SelectItem value="Advanced">Advanced</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+            <div>
+              <h2 className="text-2xl font-semibold">Workout Routines</h2>
+              <p className="text-sm text-muted-foreground mt-1">Create custom routines or select saved templates</p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => navigate('/workout/log/standalone')}
+                className="gap-2 bg-green-600 hover:bg-green-700"
+                variant="outline"
+              >
+                <Play className="w-4 h-4" />
+                Log Workout
+              </Button>
+              <Button 
+                onClick={() => navigate('/routine/new')}
+                className="gap-2 bg-blue-600 hover:bg-blue-700"
+                variant="outline"
+              >
+                <Plus className="w-4 h-4" />
+                New Routine
+              </Button>
+            </div>
+          </div>
 
-                  <div>
-                    <Label>Selected Exercises</Label>
-                    <div className="border rounded-lg p-4 min-h-[100px]">
-                      {newRoutine.exercises.length === 0 ? (
-                        <p className="text-muted-foreground text-center">No exercises selected</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {newRoutine.exercises.map((exercise, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                              <span>{exercise.name}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeExerciseFromRoutine(index)}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ))}
+          {/* Saved Routines */}
+          {loadingRoutines ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Loading routines...</p>
+            </div>
+          ) : savedRoutines.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-12 text-center">
+                <Dumbbell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-semibold mb-2">No routines yet</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Create your first routine to get started with Hevy-style workout logging
+                </p>
+                <Button 
+                  onClick={() => navigate('/routine/new')}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create First Routine
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {savedRoutines.map((routine: any) => (
+                <Card key={routine.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div>
+                      <CardTitle className="text-lg">{routine.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {routine.exercises?.length || 0} exercises
+                      </p>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Exercise list */}
+                    <div className="space-y-2">
+                      {routine.exercises?.slice(0, 3).map((exercise: any, idx: number) => (
+                        <div key={idx} className="text-sm">
+                          <div className="font-medium">{exercise.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {exercise.sets?.length || 0} sets × {exercise.sets?.[0]?.reps || 'varies'} reps
+                          </div>
                         </div>
+                      ))}
+                      {(routine.exercises?.length || 0) > 3 && (
+                        <p className="text-xs text-muted-foreground pt-2">
+                          +{(routine.exercises?.length || 0) - 3} more
+                        </p>
                       )}
                     </div>
-                  </div>
 
-                  <div>
-                    <Label>Exercise Library</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto">
-                      {exerciseLibrary.map((exercise) => (
-                        <Card key={exercise.id} className="cursor-pointer hover:bg-muted/50">
-                          <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-sm">{exercise.name}</CardTitle>
-                                <Badge variant="outline" className="text-xs mt-1">
-                                  {exercise.difficulty}
-                                </Badge>
-                              </div>
-                              <Button
-                                size="sm"
-                                onClick={() => addExerciseToRoutine({
-                                  name: exercise.name,
-                                  sets: 3,
-                                  reps: '8-12',
-                                  weight: 'varies'
-                                })}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            <p className="text-xs text-muted-foreground">{exercise.primaryMuscles.join(', ')}</p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsWorkoutBuilderOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={saveWorkoutRoutine}>
-                      Save Routine
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {workoutRoutines.map((routine, index) => (
-              <Card key={routine.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{routine.name}</CardTitle>
-                      <div className="flex gap-2 mt-2">
-                        <Badge variant="outline">{routine.difficulty}</Badge>
-                        <Badge variant="secondary">{routine.duration}</Badge>
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => duplicateRoutine(routine)}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteRoutine(routine.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Target Muscles:</p>
-                      <p className="text-sm">{routine.targetMuscles.join(', ')}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Exercises ({routine.exercises.length}):</p>
-                      <div className="text-sm">
-                        {routine.exercises.slice(0, 3).map((ex, i) => ex.name).join(', ')}
-                        {routine.exercises.length > 3 && '...'}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
+                    {/* Action buttons */}
+                    <div className="flex gap-2 pt-2">
                       <Button
                         size="sm"
-                        onClick={() => startWorkoutExecution(index)}
-                        className="flex-1"
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        Start Workout
-                      </Button>
-                      <Button
                         variant="outline"
-                        size="sm"
-                        onClick={() => openPreview(routine)}
+                        className="flex-1"
+                        onClick={() => {
+                          navigate('/workout/log', { state: { routine } });
+                        }}
                       >
-                        Preview
+                        <Play className="w-4 h-4 mr-1" />
+                        Log
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        onClick={() => {
+                          navigate('/routine/new', { state: { routine } });
+                        }}
+                      >
+                        <Edit3 className="w-4 h-4 mr-1" />
+                        Edit
                       </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Legacy Workout Routines (kept for backwards compatibility) */}
+          {workoutRoutines.length > 0 && (
+            <div>
+              <Separator className="my-6" />
+              <h3 className="text-lg font-semibold mb-4">Library Routines</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {workoutRoutines.map((routine, index) => (
+                  <Card key={routine.id}>
+
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{routine.name}</CardTitle>
+                          <div className="flex gap-2 mt-2">
+                            <Badge variant="outline">{routine.difficulty}</Badge>
+                            <Badge variant="secondary">{routine.duration}</Badge>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => duplicateRoutine(routine)}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteRoutine(routine.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Target Muscles:</p>
+                          <p className="text-sm">{routine.targetMuscles.join(', ')}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Exercises ({routine.exercises.length}):</p>
+                          <div className="text-sm">
+                            {routine.exercises.slice(0, 3).map((ex, i) => ex.name).join(', ')}
+                            {routine.exercises.length > 3 && '...'}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => startWorkoutExecution(index)}
+                            className="flex-1"
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Start Workout
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openPreview(routine)}
+                          >
+                            Preview
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="exercises" className="space-y-6">
           <div>
             <h2 className="text-2xl font-semibold">Exercise Library</h2>
-            <p className="text-muted-foreground">Comprehensive collection of exercises with detailed instructions</p>
+            <p className="text-muted-foreground">Browse exercises from our comprehensive database</p>
           </div>
 
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search exercises..."
-                  value={exerciseSearchTerm}
-                  onChange={(e) => setExerciseSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Equipment" />
-              </SelectTrigger>
-              <SelectContent>
-                {equipmentTypes.map(equipment => (
-                  <SelectItem key={equipment} value={equipment}>
-                    {equipment === 'all' ? 'All Equipment' : equipment}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Exercise Cards */}
-          <div className="grid gap-6">
-            {filteredExercises.map((exercise) => (
-              <Card key={exercise.id} className="overflow-hidden">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {exercise.name}
-                        <Badge variant="outline">{exercise.difficulty}</Badge>
-                      </CardTitle>
-                      <div className="flex gap-2 mt-2">
-                        <Badge variant="secondary">{exercise.category}</Badge>
-                        <Badge variant="outline">{exercise.equipment}</Badge>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedExercise(selectedExercise?.id === exercise.id ? null : exercise)}
-                    >
-                      {selectedExercise?.id === exercise.id ? <ChevronRight className="w-4 h-4 rotate-90" /> : <ChevronRight className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">{exercise.description}</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <h4 className="font-medium mb-2 flex items-center gap-2">
-                        <Target className="w-4 h-4 text-blue-500" />
-                        Primary Muscles
-                      </h4>
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                        {exercise.primaryMuscles.map((muscle, i) => (
-                          <li key={i}>{muscle}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium mb-2 flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-green-500" />
-                        Benefits
-                      </h4>
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                        {exercise.benefits.slice(0, 3).map((benefit, i) => (
-                          <li key={i}>{benefit}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {selectedExercise?.id === exercise.id && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-6 border-t pt-6"
-                    >
-                      <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="instructions">
-                          <AccordionTrigger className="text-sm">
-                            <div className="flex items-center gap-2">
-                              <BookOpen className="w-4 h-4 text-blue-500" />
-                              Instructions
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                              {exercise.instructions.map((instruction, i) => (
-                                <li key={i}>{instruction}</li>
-                              ))}
-                            </ol>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="medicinal">
-                          <AccordionTrigger className="text-sm">
-                            <div className="flex items-center gap-2">
-                              <HeartHandshake className="w-4 h-4 text-green-500" />
-                              Health Benefits
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="space-y-4 text-sm">
-                              <div>
-                                <h5 className="font-medium mb-2 flex items-center gap-2">
-                                  <Sparkles className="w-4 h-4 text-green-500" />
-                                  Medicinal Value
-                                </h5>
-                                <p className="text-muted-foreground">{exercise.medicinalValue}</p>
-                              </div>
-                              <div>
-                                <h5 className="font-medium mb-2 flex items-center gap-2">
-                                  <FlameKindling className="w-4 h-4 text-orange-500" />
-                                  Problems Solved
-                                </h5>
-                                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                  {exercise.problemsSolved.map((problem, i) => (
-                                    <li key={i}>{problem}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="safety">
-                          <AccordionTrigger className="text-sm">
-                            <div className="flex items-center gap-2">
-                              <Shield className="w-4 h-4 text-red-500" />
-                              Safety & Tips
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="space-y-4 text-sm">
-                              <div>
-                                <h5 className="font-medium mb-2 flex items-center gap-2">
-                                  <Info className="w-4 h-4 text-blue-500" />
-                                  Tips
-                                </h5>
-                                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                  {exercise.tips.map((tip, i) => (
-                                    <li key={i}>{tip}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                              <div>
-                                <h5 className="font-medium mb-2 flex items-center gap-2 text-red-600">
-                                  <Shield className="w-4 h-4" />
-                                  Contraindications
-                                </h5>
-                                <ul className="list-disc list-inside space-y-1 text-red-600">
-                                  {exercise.contraindications.map((contraindication, i) => (
-                                    <li key={i}>{contraindication}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="variations">
-                          <AccordionTrigger className="text-sm">
-                            <div className="flex items-center gap-2">
-                              <Sparkles className="w-4 h-4 text-purple-500" />
-                              Variations
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              {exercise.variations.map((variation, i) => (
-                                <div key={i} className="p-2 bg-muted/30 rounded text-muted-foreground">
-                                  {variation}
-                                </div>
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </motion.div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <ExerciseLibrary 
+            showDetailsView={true}
+            onAddExercise={(exercise) => {
+              // Could open a detail view or add to a workout
+              console.log(`Selected: ${exercise.name}`);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="achievements" className="space-y-6">
@@ -1389,7 +1231,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
               <div>
                 <h4 className="font-medium mb-2">Exercises</h4>
                 <div className="space-y-2">
-                  {previewRoutine.exercises.map((exercise, index) => (
+                  {previewRoutine.exercises.map((exercise: any, index: number) => (
                     <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
                       <span className="font-medium">{exercise.name}</span>
                       <span className="text-sm text-muted-foreground">

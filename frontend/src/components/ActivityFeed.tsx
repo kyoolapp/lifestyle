@@ -128,6 +128,18 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
   // Mapping function to convert backend activity data to UI format
   const mapActivityToUIFormat = (backendActivity: any, index: number) => {
     const typeConfig: any = {
+      water: {
+        icon: Droplets,
+        iconColor: 'text-blue-500',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200'
+      },
+      workout: {
+        icon: Dumbbell,
+        iconColor: 'text-red-500',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-200'
+      },
       nutrition: {
         icon: ChefHat,
         iconColor: 'text-orange-500',
@@ -233,7 +245,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
     
     const total = reactions.length;
     const topReactions = Object.entries(reactionCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
       .slice(0, 3);
     
     return { total, topReactions, reactions };
@@ -272,6 +284,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
     window.addEventListener('friendAdded', refreshActivities as EventListener);
     window.addEventListener('friendRemoved', refreshActivities as EventListener);
     window.addEventListener('friendRequestAccepted', refreshActivities as EventListener);
+    window.addEventListener('workoutCompleted', refreshActivities as EventListener);
 
     return () => {
       window.removeEventListener('waterIntakeUpdated', refreshActivities as EventListener);
@@ -279,6 +292,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
       window.removeEventListener('friendAdded', refreshActivities as EventListener);
       window.removeEventListener('friendRemoved', refreshActivities as EventListener);
       window.removeEventListener('friendRequestAccepted', refreshActivities as EventListener);
+      window.removeEventListener('workoutCompleted', refreshActivities as EventListener);
     };
   }, [user?.id]);
 
@@ -288,6 +302,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
   const [waterIntake, setWaterIntake] = useState<number>(0);
   const waterGoal = 8;
   const [activeFriendsCount, setActiveFriendsCount] = useState<number>(0);
+  const [friends, setFriends] = useState<any[]>([]);
 
   // Load water intake and friends (online) when user changes
   useEffect(() => {
@@ -303,11 +318,12 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
       }
 
       try {
-        const friends = await userApi.getUserFriends(user.id);
+        const friendsList = await userApi.getUserFriends(user.id);
         if (mounted) {
           // friends may include `online` property from backend; fallback to false
-          const onlineCount = Array.isArray(friends) ? friends.filter((f: any) => !!f.online).length : 0;
+          const onlineCount = Array.isArray(friendsList) ? friendsList.filter((f: any) => !!f.online).length : 0;
           setActiveFriendsCount(onlineCount);
+          setFriends(Array.isArray(friendsList) ? friendsList : []);
         }
       } catch (err) {
         console.error('Failed to load friends:', err);
@@ -439,12 +455,24 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
         currentWorkout={currentWorkout}
         onStartWorkout={onStartWorkout || (() => {})}
         onSetCurrentWorkout={handleSetCurrentWorkout}
+        user={user}
+        friends={friends}
       />
       {/* Header with Quick Stats */}
       <div className="space-y-4 md:space-y-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold">Your Activity</h1>
-          <p className="text-muted-foreground text-sm md:text-base">Your Fitness, Fully Personalized</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold">Your Activity</h1>
+            <p className="text-muted-foreground text-sm md:text-base">Your Fitness, Fully Personalized</p>
+          </div>
+          <Button
+          variant="outline"
+            onClick={() => navigate('/workout/log/standalone')}
+            className="bg-gray-900 hover:bg-gray-800 text-black gap-2"
+          >
+            <Play className="w-4 h-4" />
+            Log Workout
+          </Button>
         </div>
 
         {/* Quick Stats Cards - No animations for better performance */}
@@ -752,7 +780,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                                   <div className="flex items-center gap-1">
                                     {reactionSummary.topReactions.map(([emoji, count]) => (
                                       <span key={emoji} className="flex items-center gap-0.5">
-                                        {emoji}<span>{count}</span>
+                                        {String(emoji)}<span>{String(count)}</span>
                                       </span>
                                     ))}
                                   </div>

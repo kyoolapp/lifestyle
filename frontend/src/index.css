@@ -1661,6 +1661,10 @@
     align-items: stretch;
   }
 
+  .items-right {
+    align-items: right;
+  }
+
   .justify-between {
     justify-content: space-between;
   }
