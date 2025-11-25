@@ -762,128 +762,197 @@ export function WaterTracker({ user }: WaterTrackerProps) {
 
               <div className="flex items-center justify-center mb-3 md:mb-4">
                 <div className="text-center relative">
-                  {/* Glass Tumbler Visualization */}
-                  <div className="relative flex flex-col items-center mb-2 group">
+                  {/* Sport Water Bottle with Handle */}
+                  <div className="relative flex flex-col items-center mb-2">
                     
-                    {/* Glass Tumbler Container */}
-                    <div 
-                      className={`relative overflow-hidden shadow-lg select-none transition-all duration-150 cursor-grab ${
-                        isDragging 
-                          ? 'cursor-grabbing scale-105 shadow-2xl' 
-                          : 'hover:shadow-xl'
-                      }`}
-                      style={{
-                        width: '180px',
-                        height: '180px',
-                        background: 'linear-gradient(to bottom, #f9fafb, #e5e7eb)',
-                        clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
-                        borderRadius: '8px 8px 12px 12px'
-                      }}
-                    >
-                      
-                      {/* Glass outline using SVG for precise control */}
+                    {/* Water Bottle SVG */}
+                    <div className="relative mx-auto" style={{ width: '220px', height: '300px' }}>
                       <svg 
-                        className="absolute inset-0 w-full h-full pointer-events-none z-20" 
-                        viewBox="0 0 180 180"
-                        style={{ overflow: 'visible' }}
-                      >
-                        <path
-                          d="M 36 0 L 144 0 L 135 180 L 45 180 Z"
-                          fill="none"
-                          stroke="black"
-                          strokeWidth="2"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      
-                      {/* Water Fill */}
-                      <div 
-                        className="absolute bottom-0 w-full transition-all duration-1000 ease-out overflow-hidden"
+                        viewBox="0 0 220 300" 
+                        className="w-full h-full"
                         style={{ 
-                          height: `${(todayIntake / dailyGoal) * 100}%`,
-                          clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
-                          borderRadius: '0 0 12px 12px'
+                          filter: 'drop-shadow(0 10px 25px rgba(0,0,0,0.15))',
+                          overflow: 'visible'
                         }}
                       >
-                        {/* Clean water body */}
-                        {todayIntake > 0 && (
-                          <>
-                            {/* Clean cyan water */}
-                            <div 
-                              className="absolute inset-0 w-full h-full"
-                              style={{
-                                background: '#00bcd4',
-                                animation: 'smoothWaterSurface 6s ease-in-out infinite, gentleWaterMovement 4s ease-in-out infinite'
-                              }}
-                            />
-                            
-                            {/* Water surface highlight */}
-                            <div 
-                              className="absolute top-0 left-0 w-full h-2 opacity-50"
-                              style={{
-                                background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0%, transparent 100%)',
-                                clipPath: 'polygon(20% 0%, 80% 0%, 80% 100%, 20% 100%)'
-                              }}
-                            />
-                            
-                            {/* Subtle water shimmer */}
-                            <div 
-                              className="absolute top-2 left-6 w-12 h-0.5 opacity-60"
-                              style={{
-                                background: 'rgba(255, 255, 255, 0.8)',
-                                borderRadius: '2px',
-                                animation: 'subtleShimmer 3s ease-in-out infinite'
-                              }}
-                            />
-                            
-                            {/* Small water bubbles */}
-                            {(todayIntake / dailyGoal) > 0.3 && (
-                              <>
-                                <div 
-                                  className="absolute w-1.5 h-1.5 rounded-full opacity-40"
-                                  style={{
-                                    left: '30%',
-                                    bottom: '25px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                    animation: 'simpleBubbleFloat 4s ease-in-out infinite',
-                                    animationDelay: '0s'
-                                  }}
-                                />
-                                <div 
-                                  className="absolute w-1 h-1 rounded-full opacity-50"
-                                  style={{
-                                    left: '60%',
-                                    bottom: '20px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                                    animation: 'simpleBubbleFloat 5s ease-in-out infinite',
-                                    animationDelay: '1.5s'
-                                  }}
-                                />
-                                <div 
-                                  className="absolute w-1 h-1 rounded-full opacity-30"
-                                  style={{
-                                    left: '45%',
-                                    bottom: '30px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                    animation: 'simpleBubbleFloat 3.5s ease-in-out infinite',
-                                    animationDelay: '2.5s'
-                                  }}
-                                />
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      
-                      {/* Glass rim highlight */}
-                      <div 
-                        className="absolute top-0 left-0 w-full h-1 opacity-30"
-                        style={{
-                          background: 'linear-gradient(to right, transparent 20%, rgba(255,255,255,0.8) 50%, transparent 80%)',
-                          clipPath: 'polygon(20% 0%, 80% 0%, 80% 100%, 20% 100%)'
-                        }}
-                      />
-                      
+                        {/* Bottle Cap with Spout */}
+                        <g>
+                          {/* Spout/Mouthpiece - centered */}
+                          <ellipse cx="110" cy="18" rx="12" ry="6" fill="#00BCD4" />
+                          <rect x="98" y="18" width="24" height="8" fill="#00BCD4" />
+                          <ellipse cx="110" cy="26" rx="12" ry="6" fill="#0097A7" />
+                          
+                          {/* Spout lid */}
+                          <ellipse cx="110" cy="12" rx="14" ry="7" fill="#263238" opacity="0.9" />
+                          <rect x="96" y="12" width="28" height="6" fill="#263238" opacity="0.8" />
+                          
+                          {/* Bottle Cap Top - centered */}
+                          <ellipse cx="110" cy="32" rx="35" ry="10" fill="#546E7A" />
+                          <rect x="75" y="32" width="70" height="20" fill="#546E7A" />
+                          
+                          {/* Cap ridges for grip */}
+                          <line x1="82" y1="34" x2="82" y2="50" stroke="#455A64" strokeWidth="2" />
+                          <line x1="90" y1="34" x2="90" y2="50" stroke="#455A64" strokeWidth="2" />
+                          <line x1="98" y1="34" x2="98" y2="50" stroke="#455A64" strokeWidth="2" />
+                          <line x1="106" y1="34" x2="106" y2="50" stroke="#455A64" strokeWidth="2" />
+                          <line x1="114" y1="34" x2="114" y2="50" stroke="#455A64" strokeWidth="2" />
+                          <line x1="122" y1="34" x2="122" y2="50" stroke="#455A64" strokeWidth="2" />
+                          <line x1="130" y1="34" x2="130" y2="50" stroke="#455A64" strokeWidth="2" />
+                          <line x1="138" y1="34" x2="138" y2="50" stroke="#455A64" strokeWidth="2" />
+                          
+                          {/* Cap ring */}
+                          <ellipse cx="110" cy="52" rx="35" ry="10" fill="#00BCD4" />
+                          <rect x="75" y="52" width="70" height="8" fill="#00BCD4" />
+                          <ellipse cx="110" cy="60" rx="35" ry="10" fill="#0097A7" />
+                        </g>
+
+                        {/* Handle/Loop */}
+                        <g>
+                          {/* Outer handle loop - cyan */}
+                          <path 
+                            d="M 150 80 Q 175 105 175 130 Q 175 155 150 180" 
+                            fill="none" 
+                            stroke="#00BCD4" 
+                            strokeWidth="12"
+                            strokeLinecap="round"
+                          />
+                          {/* Inner handle loop - dark navy */}
+                          <path 
+                            d="M 150 80 Q 169 105 169 130 Q 169 155 150 180" 
+                            fill="none" 
+                            stroke="#263238" 
+                            strokeWidth="8"
+                            strokeLinecap="round"
+                          />
+                        </g>
+
+                        {/* Bottle Body - Main Container - Wider */}
+                        <g>
+                          {/* Navy blue outline/border */}
+                          <path 
+                            d="M 70 65 L 150 65 L 150 250 Q 150 265 132 265 L 88 265 Q 70 265 70 250 Z" 
+                            fill="none" 
+                            stroke="#263238" 
+                            strokeWidth="8"
+                            strokeLinejoin="round"
+                          />
+                          
+                          {/* Light blue bottle body background */}
+                          <path 
+                            d="M 74 68 L 146 68 L 146 250 Q 146 261 132 261 L 88 261 Q 74 261 74 250 Z" 
+                            fill="#B3E5FC"
+                            opacity="0.4"
+                          />
+                          
+                          {/* Glass reflection on left side */}
+                          <path 
+                            d="M 85 75 Q 89 80 89 90 L 89 245 Q 89 250 85 253" 
+                            fill="none" 
+                            stroke="white" 
+                            strokeWidth="14"
+                            opacity="0.6"
+                            strokeLinecap="round"
+                          />
+                          
+                          {/* Animated shimmer */}
+                          <path 
+                            d="M 90 80 L 90 240" 
+                            fill="none" 
+                            stroke="white" 
+                            strokeWidth="8"
+                            opacity="0.5"
+                            strokeLinecap="round"
+                            style={{ animation: 'waterShine 3s ease-in-out infinite' }}
+                          />
+                        </g>
+
+                        {/* Water Level Fill */}
+                        <defs>
+                          <clipPath id="bottleClip">
+                            <path d="M 74 68 L 146 68 L 146 250 Q 146 261 132 261 L 88 261 Q 74 261 74 250 Z" />
+                          </clipPath>
+                          <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#00BCD4" stopOpacity="1" />
+                            <stop offset="50%" stopColor="#0097A7" stopOpacity="0.95" />
+                            <stop offset="100%" stopColor="#00838F" stopOpacity="0.9" />
+                          </linearGradient>
+                        </defs>
+                        
+                        <g clipPath="url(#bottleClip)">
+                          {/* Water fill with gradient */}
+                          <rect 
+                            x="74" 
+                            y={261 - (todayIntake / dailyGoal) * 193}
+                            width="72" 
+                            height={(todayIntake / dailyGoal) * 193}
+                            fill="url(#waterGradient)"
+                            style={{
+                              transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                          />
+                          
+                          {/* Water surface wave */}
+                          <ellipse 
+                            cx="110" 
+                            cy={261 - (todayIntake / dailyGoal) * 193}
+                            rx="36" 
+                            ry="5"
+                            fill="#00BCD4"
+                            opacity="0.7"
+                            style={{
+                              animation: 'smoothWaterSurface 4s ease-in-out infinite',
+                              transition: 'cy 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                          />
+                          
+                          {/* Water surface shine */}
+                          <line 
+                            x1="88" 
+                            y1={261 - (todayIntake / dailyGoal) * 193 + 2}
+                            x2="110" 
+                            y2={261 - (todayIntake / dailyGoal) * 193 + 2}
+                            stroke="white" 
+                            strokeWidth="2"
+                            opacity="0.6"
+                            style={{
+                              transition: 'y1 0.8s cubic-bezier(0.4, 0, 0.2, 1), y2 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                          />
+                          
+                          {/* Animated bubbles */}
+                          {todayIntake > 0 && (
+                            <>
+                              <circle 
+                                cx="100" 
+                                cy={253 - (todayIntake / dailyGoal) * 193}
+                                r="3.5" 
+                                fill="white" 
+                                opacity="0.5"
+                                style={{ animation: 'simpleBubbleFloat 4s ease-in-out infinite' }}
+                              />
+                              <circle 
+                                cx="120" 
+                                cy={250 - (todayIntake / dailyGoal) * 193}
+                                r="3" 
+                                fill="white" 
+                                opacity="0.4"
+                                style={{ animation: 'simpleBubbleFloat 5s ease-in-out infinite 1s' }}
+                              />
+                              <circle 
+                                cx="108" 
+                                cy={255 - (todayIntake / dailyGoal) * 193}
+                                r="2.5" 
+                                fill="white" 
+                                opacity="0.5"
+                                style={{ animation: 'simpleBubbleFloat 4.5s ease-in-out infinite 2s' }}
+                              />
+                            </>
+                          )}
+                        </g>
+
+                        {/* Bottle shadow/base */}
+                        <ellipse cx="110" cy="273" rx="40" ry="8" fill="#B3E5FC" opacity="0.4" />
+                      </svg>
                     </div>
                     
                   </div>
