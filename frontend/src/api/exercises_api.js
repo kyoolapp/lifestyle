@@ -3,7 +3,7 @@
  * Fetches exercises from backend instead of ExerciseDB API
  */
 
-const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/users`;
+const API_BASE = `${import.meta.env.VITE_API_URL}/users`;
 
 // Fallback local data for offline mode
 const FALLBACK_DATA = {
