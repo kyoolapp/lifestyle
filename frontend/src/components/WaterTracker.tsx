@@ -1168,7 +1168,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
               <div className="flex items-center justify-between">
                 <span className="text-sm">Remaining</span>
                 <span className="font-medium">
-                  {Math.max(0, dailyGoal - todayIntake).toFixed(2)} glasses
+                  {getWaterDetailedDisplay(Math.max(0, dailyGoal - todayIntake))}
                 </span>
               </div>
               <div className="border-t pt-4">
@@ -1190,7 +1190,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
               <div className="flex items-center justify-between">
                 <span className="text-sm">Average this week</span>
                 <span className="font-medium">
-                  {(weeklyData.reduce((sum, day) => sum + day.intake, 0) / weeklyData.length).toFixed(1)} glasses
+                  {getWaterDetailedDisplay(weeklyData.reduce((sum, day) => sum + day.intake, 0) / weeklyData.length)}
                 </span>
               </div>
 
@@ -1226,7 +1226,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   />
                 </div>
                 <p className="text-[10px] md:text-xs font-medium mt-1 md:mt-2">
-                  {day.intake}/{day.goal}
+                  {unitSystem === 'metric' ? `${(day.intake * 250).toFixed(0)}ml` : `${(day.intake * 8.45).toFixed(0)}oz`}
                 </p>
               </div>
             ))}
