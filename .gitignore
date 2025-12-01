@@ -44,3 +44,6 @@ code.txt
 
 *.MD
 *.txt
+
+*_exercises.py
+*.png
