@@ -71,6 +71,9 @@ export default function App() {
           </div>
         </BrowserRouter>
       </NotificationProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
     </UnitProvider>
   );
 }
