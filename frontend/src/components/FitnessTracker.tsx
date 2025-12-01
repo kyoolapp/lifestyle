@@ -16,7 +16,7 @@ import { EmojiMoodSelector } from './EmojiMoodSelector';
 import { WorkoutEditor } from './WorkoutEditor';
 import { ExerciseLibrary } from './ExerciseLibrary';
 import { getRoutines, saveRoutine, deleteRoutine as deleteRoutineApi, saveSchedule, getSchedule } from '../api/routines_api';
-import { logWorkout } from '../api/workouts_api';
+import { logWorkout, getWorkoutConsistency, checkTodayWorkout } from '../api/workouts_api';
 import { auth } from '../firebase';
 import { 
   Dumbbell, 
@@ -120,11 +120,16 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
   const [savedRoutines, setSavedRoutines] = useState<any[]>([]);
   const [loadingRoutines, setLoadingRoutines] = useState(false);
   const [nextWorkout, setNextWorkout] = useState<any>(null);
-  const [consistency, setConsistency] = useState(0);
+  const [consistency7day, setConsistency7day] = useState(0);
+  const [consistencyLifetime, setConsistencyLifetime] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [consistencyDailyBreakdown, setConsistencyDailyBreakdown] = useState<any[]>([]);
   const [lastSession, setLastSession] = useState<any>(null);
   const [isRoutineSelectOpen, setIsRoutineSelectOpen] = useState(false);
   const [weeklySchedule, setWeeklySchedule] = useState<Record<string, string>>({}); // day -> routineId
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [workoutCompletedToday, setWorkoutCompletedToday] = useState(false);
+  const [completedWorkoutName, setCompletedWorkoutName] = useState('');
   
   // Temporary routine selection (resets at midnight)
   const [temporaryRoutineForToday, setTemporaryRoutineForToday] = useState<any>(null);
@@ -189,6 +194,35 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
             localStorage.removeItem(`temp_routine_${user.uid}`);
           }
         }
+
+        // Load workout consistency data
+        try {
+          const consistencyData = await getWorkoutConsistency(user.uid, 7);
+          if (consistencyData && consistencyData.data) {
+            setConsistency7day(consistencyData.data.consistency_7day || 0);
+            setConsistencyLifetime(consistencyData.data.lifetime_consistency || 0);
+            setCurrentStreak(consistencyData.data.current_streak || 0);
+            setConsistencyDailyBreakdown(consistencyData.data.daily_breakdown || []);
+          }
+        } catch (error) {
+          console.error('Error loading workout consistency:', error);
+          // Use defaults if fetch fails
+          setConsistency7day(0);
+          setConsistencyLifetime(0);
+          setCurrentStreak(0);
+          setConsistencyDailyBreakdown([]);
+        }
+
+        // Check if today's workout is already logged (persisted state)
+        try {
+          const todayStatus = await checkTodayWorkout(user.uid);
+          if (todayStatus && todayStatus.data && todayStatus.data.has_logged_today) {
+            setWorkoutCompletedToday(true);
+            setCompletedWorkoutName('Today\'s Workout');
+          }
+        } catch (error) {
+          console.error('Error checking today workout status:', error);
+        }
       } catch (error) {
         console.error('Error loading routines:', error);
       } finally {
@@ -247,6 +281,109 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Refresh consistency data
+  const refreshConsistency = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      console.log('Refreshing consistency data...');
+      const consistencyData = await getWorkoutConsistency(user.uid, 7);
+      if (consistencyData && consistencyData.data) {
+        console.log('Consistency data received:', consistencyData.data);
+        setConsistency7day(consistencyData.data.consistency_7day || 0);
+        setConsistencyLifetime(consistencyData.data.lifetime_consistency || 0);
+        setCurrentStreak(consistencyData.data.current_streak || 0);
+        setConsistencyDailyBreakdown(consistencyData.data.daily_breakdown || []);
+        
+        // Check if today has a completed workout
+        const today = new Date().toLocaleDateString('en-US');
+        const todayData = consistencyData.data.daily_breakdown.find((day: any) => {
+          const dayDate = new Date(day.date).toLocaleDateString('en-US');
+          return dayDate === today;
+        });
+        
+        console.log('Today data:', todayData);
+        if (todayData && (todayData.status === 'completed' || todayData.completed)) {
+          console.log('Workout completed today detected!');
+          setWorkoutCompletedToday(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing consistency:', error);
+    }
+  };
+
+  // Refresh consistency data when component comes into focus
+  useEffect(() => {
+    const handleFocus = async () => {
+      console.log('Window focus detected, refreshing consistency');
+      await refreshConsistency();
+      
+      // Check if workout was just completed
+      const user = auth.currentUser;
+      if (user) {
+        const completionData = localStorage.getItem(`workout_completed_today_${user.uid}`);
+        if (completionData) {
+          try {
+            const { workoutName } = JSON.parse(completionData);
+            console.log('Workout completion flag found:', workoutName);
+            setWorkoutCompletedToday(true);
+            setCompletedWorkoutName(workoutName);
+            // Clear the flag after reading it
+            localStorage.removeItem(`workout_completed_today_${user.uid}`);
+          } catch (error) {
+            console.error('Error parsing workout completion flag:', error);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  // Also refresh when page visibility changes (when user comes back to tab)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden) {
+        console.log('Page became visible, refreshing consistency');
+        await refreshConsistency();
+        
+        // Check for workout completion flag
+        const user = auth.currentUser;
+        if (user) {
+          const completionData = localStorage.getItem(`workout_completed_today_${user.uid}`);
+          if (completionData) {
+            try {
+              const { workoutName } = JSON.parse(completionData);
+              console.log('Workout completion flag found on visibility change:', workoutName);
+              setWorkoutCompletedToday(true);
+              setCompletedWorkoutName(workoutName);
+              localStorage.removeItem(`workout_completed_today_${user.uid}`);
+            } catch (error) {
+              console.error('Error parsing workout completion flag:', error);
+            }
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Refresh consistency when workout completion is detected
+  useEffect(() => {
+    if (workoutCompletedToday) {
+      console.log('Workout completed detected, refreshing consistency after 1 second');
+      const timer = setTimeout(() => {
+        refreshConsistency();
+      }, 1000); // Wait 1 second to ensure Firestore has written the data
+      return () => clearTimeout(timer);
+    }
+  }, [workoutCompletedToday]);
 
   const handleDeleteRoutine = async (routineId: string) => {
     try {
@@ -349,8 +486,46 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Hero Card - Next Workout */}
-            {nextWorkout ? (
+            {/* Hero Card - Next Workout or Congratulations */}
+            {workoutCompletedToday ? (
+              <div className="lg:col-span-2 relative bg-gradient-to-br from-green-900 to-green-800 rounded-2xl p-8 text-white shadow-xl border border-green-700 group overflow-hidden">
+                <div className="absolute inset-0 rounded-2xl pointer-events-none">
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-green-600/10 rounded-full blur-3xl -mr-48 -mt-48"></div>
+                </div>
+                <div className="relative z-10 flex flex-col justify-between h-full">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge className="bg-green-500 hover:bg-green-700 text-white text-xs">DONE FOR TODAY</Badge>
+                      <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                    </div>
+                    <h3 className="text-4xl text-green-300 font-bold mb-2">Congrats! 🎉</h3>
+                    <p className="text-slate-100 text-lg mb-2 font-semibold">
+                      You've completed today's workout!
+                    </p>
+                    <p className="text-slate-200 text-sm">
+                      {completedWorkoutName && `Great job on finishing ${completedWorkoutName}!`}
+                      Keep up the amazing consistency!
+                    </p>
+                  </div>
+                  <div className="mt-6 flex gap-3">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={async () => {
+                        // Refresh consistency one more time before dismissing
+                        await refreshConsistency();
+                        setWorkoutCompletedToday(false);
+                        setCompletedWorkoutName('');
+                      }}
+                      className="bg-white hover:bg-slate-100 text-slate-900 font-semibold gap-2 shadow-lg"
+                    >
+                      <Check className="w-5 h-5 fill-slate-900" />
+                      Awesome!
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : nextWorkout ? (
               <div className="lg:col-span-2 relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer border border-slate-700 group overflow-hidden">
                 <div className="absolute inset-0 rounded-2xl pointer-events-none">
                   <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl -mr-48 -mt-48"></div>
@@ -455,38 +630,113 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h4 className="font-bold text-slate-900">Consistency</h4>
-                  <p className="text-xs text-slate-500">Last 7 Days</p>
+                  <p className="text-xs text-slate-500">7-Day Streak</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-slate-900">{consistency}%</div>
-                  <p className="text-xs text-green-600 font-semibold">On Track</p>
+                  <div className="text-3xl font-bold text-slate-900">{consistency7day}%</div>
+                  <p className={`text-xs font-semibold ${consistency7day >= 70 ? 'text-green-600' : consistency7day >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {consistency7day >= 70 ? 'On Track' : consistency7day >= 50 ? 'Improving' : 'Needs Work'}
+                  </p>
                 </div>
               </div>
-              <div className="flex justify-between items-center gap-1">
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
-                  let status = 'gray';
-                  if (idx === 0 || idx === 1 || idx === 3) status = 'green';
-                  if (idx === 2) status = 'red';
-                  if (idx === 4 || idx === 5) status = 'gray';
-                  if (idx === 6) status = 'slate';
 
-                  const bgClass = status === 'green' ? 'bg-green-100 border-green-200 text-green-600' : 
-                                 status === 'red' ? 'bg-red-50 border-red-100 text-red-500' :
-                                 status === 'slate' ? 'bg-slate-50 border-slate-100 text-slate-300' :
-                                 'bg-slate-100 border-slate-200 text-slate-400';
-                  
-                  return (
-                    <div key={idx} className="flex flex-col items-center gap-2">
-                      <div className={`w-8 h-8 rounded-full border flex items-center justify-center ${bgClass}`}>
-                        {status === 'green' && <Check className="w-4 h-4" />}
-                        {status === 'red' && <X className="w-4 h-4" />}
-                        {status === 'gray' && <span className="text-xs">-</span>}
-                        {status === 'slate' && <span className="text-xs">?</span>}
+              {/* Daily Breakdown with correct order (past 3, today, future 3) */}
+              <div className="flex justify-between items-center gap-1 mb-6">
+                {consistencyDailyBreakdown.length > 0 ? (
+                  consistencyDailyBreakdown.map((dayData: any, idx: number) => {
+                    const status = dayData.status || (dayData.completed ? 'completed' : 'missed');
+                    let bgClass, icon, title;
+                    switch (status) {
+                      case 'completed':
+                        bgClass = 'bg-green-100 border-green-200 text-green-600';
+                        icon = <Check className="w-4 h-4" />;
+                        title = `${dayData.date}: Workout completed ✓`;
+                        break;
+                      case 'missed':
+                        bgClass = 'bg-red-50 border-red-100 text-red-500';
+                        icon = <X className="w-4 h-4" />;
+                        title = `${dayData.date}: Missed workout ✗`;
+                        break;
+                      case 'pending':
+                      default:
+                        bgClass = 'bg-slate-100 border-slate-200 text-slate-400';
+                        icon = <span className="text-xs">-</span>;
+                        title = `${dayData.date}: No decision yet`;
+                        break;
+                    }
+                    
+                    return (
+                      <div key={idx} className="flex flex-col items-center gap-2">
+                        <div 
+                          className={`w-8 h-8 rounded-full border flex items-center justify-center ${bgClass}`}
+                          title={title}
+                        >
+                          {icon}
+                        </div>
+                        <span className="text-xs text-slate-400">{dayData.day_of_week}</span>
                       </div>
-                      <span className="text-xs text-slate-400">{day}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                ) : (
+                  // Fallback to mock data if no real data
+                  ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
+                    let status = 'gray';
+                    if (idx === 0 || idx === 1 || idx === 3) status = 'green';
+                    if (idx === 2) status = 'red';
+                    if (idx === 4 || idx === 5) status = 'gray';
+                    if (idx === 6) status = 'slate';
+
+                    const bgClass = status === 'green' ? 'bg-green-100 border-green-200 text-green-600' : 
+                                   status === 'red' ? 'bg-red-50 border-red-100 text-red-500' :
+                                   status === 'slate' ? 'bg-slate-50 border-slate-100 text-slate-300' :
+                                   'bg-slate-100 border-slate-200 text-slate-400';
+                    
+                    return (
+                      <div key={idx} className="flex flex-col items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full border flex items-center justify-center ${bgClass}`}>
+                          {status === 'green' && <Check className="w-4 h-4" />}
+                          {status === 'red' && <X className="w-4 h-4" />}
+                          {status === 'gray' && <span className="text-xs">-</span>}
+                          {status === 'slate' && <span className="text-xs">?</span>}
+                        </div>
+                        <span className="text-xs text-slate-400">{day}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-3 gap-4">
+                {/* Current Streak */}
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Flame className="w-4 h-4 text-orange-600" />
+                    <p className="text-xs text-orange-700 font-semibold">Streak</p>
+                  </div>
+                  <div className="text-2xl font-bold text-orange-900">{currentStreak}</div>
+                  <p className="text-xs text-orange-600 mt-1">{currentStreak === 1 ? 'day' : 'days'}</p>
+                </div>
+
+                {/* 7-Day Consistency */}
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                    <p className="text-xs text-blue-700 font-semibold">7-Day</p>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-900">{consistency7day}%</div>
+                  <p className="text-xs text-blue-600 mt-1">This week</p>
+                </div>
+
+                {/* Lifetime Consistency */}
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Trophy className="w-4 h-4 text-purple-600" />
+                    <p className="text-xs text-purple-700 font-semibold">Lifetime</p>
+                  </div>
+                  <div className="text-2xl font-bold text-purple-900">{consistencyLifetime}%</div>
+                  <p className="text-xs text-purple-600 mt-1">All time</p>
+                </div>
               </div>
             </div>
           </div>

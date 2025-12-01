@@ -107,3 +107,53 @@ export async function getLatestWorkout(userId) {
     throw error;
   }
 }
+
+/**
+ * Get user's workout consistency for the last N days
+ */
+export async function getWorkoutConsistency(userId, days = 7) {
+  try {
+    const authHeaders = await getAuthHeader();
+    const response = await fetch(
+      `${BASE_URL}/users/${userId}/workouts/consistency?days=${days}`,
+      {
+        method: 'GET',
+        headers: authHeaders
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to fetch workout consistency');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in getWorkoutConsistency:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if user has already logged a workout today
+ */
+export async function checkTodayWorkout(userId) {
+  try {
+    const authHeaders = await getAuthHeader();
+    const response = await fetch(`${BASE_URL}/users/${userId}/workouts/today`, {
+      method: 'GET',
+      headers: authHeaders
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to check today workout status');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in checkTodayWorkout:', error);
+    throw error;
+  }
+}
+

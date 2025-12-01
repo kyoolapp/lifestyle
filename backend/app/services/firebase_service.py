@@ -18,11 +18,11 @@ from .timezone_utils import (
 )
 
 
-#key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
+key_path = 'keys/lifestyle-health-kyool-firebase-adminsdk-fbsvc-08bd67c569.json'  # Default path if env var not set
 # Use environment variable for service account key path, default to Cloud Run secret mount path
-secret_keys = os.environ.get("FIREBASE_KEY_PATH")
+#secret_keys = os.environ.get("FIREBASE_KEY_PATH")
 #print(f"Using Firebase key path: {secret_keys}")
-key_path= json.loads(secret_keys) 
+#key_path= json.loads(secret_keys) 
 #print(f"Decoded Firebase key path: {key_path}")
 
 cred = credentials.Certificate(key_path)
@@ -1510,6 +1510,206 @@ class FirestoreUserService:
         except Exception as e:
             print(f"Error retrieving workout history for user {user_id}: {e}")
             return []
+
+    def has_logged_today(self, user_id: str) -> bool:
+        """
+        Check if user has already logged a workout today.
+        
+        Args:
+            user_id: The user's Firebase ID
+            
+        Returns:
+            bool: True if user has logged a workout today, False otherwise
+        """
+        try:
+            # Get user's timezone
+            user_doc = db.collection('users').document(user_id).get()
+            user_data = user_doc.to_dict() if user_doc.exists else {}
+            user_tz = user_data.get('timezone', 'UTC')
+            
+            # Get today's date in user's timezone
+            today_local_dt = get_user_local_datetime(user_tz)
+            today_local = today_local_dt.date()
+            today_str = today_local.strftime('%Y-%m-%d')
+            
+            # Get start and end of today in UTC for database query
+            tz = ZoneInfo(user_tz)
+            start_of_today_local = datetime.combine(today_local, datetime.min.time()).replace(tzinfo=tz)
+            start_of_today_utc = start_of_today_local.astimezone(ZoneInfo('UTC'))
+            
+            end_of_today_local = datetime.combine(today_local, datetime.max.time()).replace(tzinfo=tz)
+            end_of_today_utc = end_of_today_local.astimezone(ZoneInfo('UTC'))
+            
+            # Query for workouts logged today
+            workouts_ref = db.collection('users').document(user_id).collection('workouts')
+            workouts_query = workouts_ref.where('created_at', '>=', start_of_today_utc.isoformat()).where('created_at', '<=', end_of_today_utc.isoformat())
+            workouts = list(workouts_query.stream())
+            
+            return len(workouts) > 0
+            
+        except Exception as e:
+            print(f"Error checking if user {user_id} logged today: {e}")
+            return False
+
+    def get_workout_consistency(self, user_id: str, days: int = 7) -> dict:
+        """
+        Calculate user's workout consistency for a rolling window (past 3, today, future 3).
+        
+        Args:
+            user_id: The user's Firebase ID
+            days: Number of days to analyze (default 7)
+            
+        Returns:
+            dict: Consistency data including daily breakdown, current streak, and lifetime consistency
+                  Status: 'completed' (green), 'missed' (red), 'pending' (grey)
+        """
+        try:
+            # Get user's timezone for accurate date calculations
+            user_doc = db.collection('users').document(user_id).get()
+            user_data = user_doc.to_dict() if user_doc.exists else {}
+            user_tz = user_data.get('timezone', 'UTC')
+            
+            # Get today's date in user's timezone
+            today_local_dt = get_user_local_datetime(user_tz)
+            today_local = today_local_dt.date()
+            
+            # Create a rolling window: past 3 days, today, future 3 days
+            daily_status = {}
+            
+            # Initialize all days as 'pending' by default
+            for i in range(-3, 4):  # -3 to 3 gives us 7 days (past 3, today, future 3)
+                date = today_local + timedelta(days=i)
+                date_str = date.strftime('%Y-%m-%d')
+                
+                daily_status[date_str] = {
+                    'date': date_str,
+                    'day_of_week': date.strftime('%a'),
+                    'status': 'pending',  # All start as pending
+                    'workout_count': 0
+                }
+            
+            # Fetch ALL workouts ever (for lifetime consistency and streak calculation)
+            workouts_ref = db.collection('users').document(user_id).collection('workouts')
+            all_workouts = list(workouts_ref.stream())
+            
+            # Track if we found ANY workouts (to distinguish new user from inactive)
+            has_any_workouts = len(all_workouts) > 0
+            
+            # Get the date of first workout (for lifetime consistency calculation)
+            first_workout_date = None
+            if has_any_workouts:
+                first_workout_dates = []
+                for workout_doc in all_workouts:
+                    workout = workout_doc.to_dict()
+                    created_at = workout.get('created_at', '')
+                    if created_at:
+                        try:
+                            workout_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                            workout_date_local = workout_date.astimezone(ZoneInfo(user_tz)).date()
+                            first_workout_dates.append(workout_date_local)
+                        except:
+                            pass
+                if first_workout_dates:
+                    first_workout_date = min(first_workout_dates)
+            
+            # Mark days with workouts as 'completed' (only for days in the 7-day window)
+            completed_dates_in_window = set()
+            for workout_doc in all_workouts:
+                workout = workout_doc.to_dict()
+                created_at = workout.get('created_at', '')
+                
+                # Parse UTC datetime and convert to user's local date
+                if created_at:
+                    try:
+                        workout_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                        workout_date_local = workout_date.astimezone(ZoneInfo(user_tz)).date()
+                        date_str = workout_date_local.strftime('%Y-%m-%d')
+                        
+                        if date_str in daily_status:
+                            daily_status[date_str]['status'] = 'completed'
+                            daily_status[date_str]['workout_count'] += 1
+                            completed_dates_in_window.add(date_str)
+                    except:
+                        pass
+            
+            # Only mark past days in window as 'missed' if user has logged workouts before
+            # Future days stay 'pending'
+            if has_any_workouts:
+                for date_str, day_data in daily_status.items():
+                    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    # Mark as missed if it's a past day with no workout
+                    if date_obj < today_local and day_data['status'] == 'pending':
+                        day_data['status'] = 'missed'
+            
+            # Calculate 7-day consistency percentage (only count completed vs missed days, not pending)
+            past_days_in_window = [day for day in daily_status.values() if day['status'] != 'pending']
+            completed_in_window = sum(1 for day in past_days_in_window if day['status'] == 'completed')
+            consistency_7day = int((completed_in_window / len(past_days_in_window)) * 100) if len(past_days_in_window) > 0 else 0
+            
+            # Calculate current streak (consecutive completed days going backwards from today)
+            current_streak = 0
+            if has_any_workouts:
+                check_date = today_local
+                while True:
+                    date_str = check_date.strftime('%Y-%m-%d')
+                    if date_str in daily_status and daily_status[date_str]['status'] == 'completed':
+                        current_streak += 1
+                        check_date -= timedelta(days=1)
+                    else:
+                        break
+            
+            # Calculate lifetime consistency score (percentage of days with workouts since first workout)
+            lifetime_consistency = 0
+            lifetime_days = 0
+            if has_any_workouts and first_workout_date:
+                # Count days from first workout to today
+                lifetime_days = (today_local - first_workout_date).days + 1  # +1 to include today
+                
+                # Count all completed days in that range
+                completed_lifetime = sum(1 for day in all_workouts 
+                                        if day.to_dict().get('created_at'))
+                
+                # Get unique dates with workouts
+                unique_workout_dates = set()
+                for workout_doc in all_workouts:
+                    workout = workout_doc.to_dict()
+                    created_at = workout.get('created_at', '')
+                    if created_at:
+                        try:
+                            workout_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                            workout_date_local = workout_date.astimezone(ZoneInfo(user_tz)).date()
+                            unique_workout_dates.add(workout_date_local)
+                        except:
+                            pass
+                
+                completed_lifetime = len(unique_workout_dates)
+                lifetime_consistency = int((completed_lifetime / lifetime_days) * 100) if lifetime_days > 0 else 0
+            
+            # Sort by date (most recent first)
+            sorted_days = sorted(daily_status.values(), key=lambda x: x['date'], reverse=True)
+            
+            return {
+                'days': days,
+                'consistency_7day': consistency_7day,
+                'lifetime_consistency': lifetime_consistency,
+                'current_streak': current_streak,
+                'total_workouts': len(set(completed_dates_in_window)),  # Unique dates with workouts
+                'daily_breakdown': sorted_days
+            }
+            
+        except Exception as e:
+            print(f"Error calculating workout consistency for user {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'days': days,
+                'consistency_7day': 0,
+                'lifetime_consistency': 0,
+                'current_streak': 0,
+                'total_workouts': 0,
+                'daily_breakdown': []
+            }
+
 
     def _get_user_name(self, user_id: str) -> str:
         """Helper to get user's display name for activity feed"""

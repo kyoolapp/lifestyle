@@ -7,7 +7,7 @@ import { Card } from './ui/card';
 import { Separator } from './ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AlertCircle, ArrowLeft, Trash2, Play, Pause, Check } from 'lucide-react';
-import { logWorkout } from '../api/workouts_api';
+import { logWorkout, checkTodayWorkout } from '../api/workouts_api';
 import { auth } from '../firebase';
 import { ExerciseLibrary } from './ExerciseLibrary';
 import { useUnitSystem } from '../context/UnitContext';
@@ -80,6 +80,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alreadyLoggedToday, setAlreadyLoggedToday] = useState(false);
 
   // Real-time timer effect for all workouts (standalone or routine-based)
   useEffect(() => {
@@ -119,6 +120,25 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
 
     return () => clearInterval(interval);
   }, [restTimerActive, restTimerSeconds, activeRestExerciseIndex, exerciseData]);
+
+  // Check if today's workout is already logged on mount
+  useEffect(() => {
+    const checkTodayLoggedStatus = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const response = await checkTodayWorkout(user.uid);
+        if (response && response.data) {
+          setAlreadyLoggedToday(response.data.has_logged_today);
+        }
+      } catch (error) {
+        console.error('Error checking today workout status:', error);
+      }
+    };
+
+    checkTodayLoggedStatus();
+  }, []);
 
   // Format time from seconds
   const formatTime = (seconds: number) => {
@@ -299,6 +319,13 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
         sharedWith: [],
       });
 
+      // Store workout completion flag for FitnessTracker
+      localStorage.setItem(`workout_completed_today_${user.uid}`, JSON.stringify({
+        completed: true,
+        workoutName: routine?.name || 'Standalone Workout',
+        timestamp: new Date().toISOString()
+      }));
+
       // Success feedback and navigate back
       alert(
         `Workout logged successfully!\n${routine?.name || 'Standalone Workout'}\n${formatTime(elapsedSeconds)}`
@@ -388,10 +415,10 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
             <Button
               onClick={handleSubmit}
               variant="outline"
-              disabled={isLoading}
+              disabled={isLoading || alreadyLoggedToday}
               className="bg-black-000 text-white px-6 py-2 rounded-lg"
             >
-              {isLoading ? 'Logging...' : 'Finish Workout'}
+              {alreadyLoggedToday ? 'Already Logged Today' : isLoading ? 'Logging...' : 'Finish Workout'}
             </Button>
           </div>
         </div>

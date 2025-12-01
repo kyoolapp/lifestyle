@@ -105,3 +105,50 @@ async def get_latest_workout(
     except Exception as e:
         print(f"Error fetching latest workout for user {user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{user_id}/workouts/consistency")
+async def get_workout_consistency(
+    user_id: str,
+    days: int = 7,
+    decoded_token: dict = Depends(verify_firebase_token)
+):
+    """
+    Get user's workout consistency for the last N days.
+    Returns daily workout data (whether a workout was completed each day).
+    """
+    try:
+        consistency_data = user_service.get_workout_consistency(user_id, days=days)
+        
+        return {
+            "status": "success",
+            "data": consistency_data
+        }
+        
+    except Exception as e:
+        print(f"Error fetching workout consistency for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{user_id}/workouts/today")
+async def check_today_workout(
+    user_id: str,
+    decoded_token: dict = Depends(verify_firebase_token)
+):
+    """
+    Check if user has already logged a workout today.
+    """
+    try:
+        has_logged = user_service.has_logged_today(user_id)
+        
+        return {
+            "status": "success",
+            "data": {
+                "has_logged_today": has_logged
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error checking today's workout for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
