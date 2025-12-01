@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
+import { useUnitSystem } from '../context/UnitContext';
 import { 
   Plus, 
   ArrowLeft, 
@@ -57,6 +58,7 @@ export function RoutineBuilder({ onClose }: RoutineBuilderProps) {
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
+  const { unitSystem } = useUnitSystem();
 
   // Load routine for editing if passed via location state
   useEffect(() => {
@@ -92,6 +94,13 @@ export function RoutineBuilder({ onClose }: RoutineBuilderProps) {
   const handleRemoveExercise = (index: number) => {
     setExercises(exercises.filter((_, i) => i !== index));
   };
+
+
+  // Get unit label
+  const getWeightLabel = () => {
+    return unitSystem === 'metric' ? 'kg' : 'lbs';
+  };
+
 
   const handleUpdateSet = (exerciseIndex: number, setIndex: number, field: 'reps' | 'weight', value: number) => {
     const updated = [...exercises];
@@ -197,7 +206,7 @@ export function RoutineBuilder({ onClose }: RoutineBuilderProps) {
               onClick={handleSaveRoutine}
               disabled={saving}
               variant="outline"
-              className="bg-blue-600 text-black hover:bg-red-100 px-6 py-2 rounded-lg"
+              className="bg-blue-600 text-black dark:text-white hover:bg-blue-700 px-6 py-2 rounded-lg"
             >
               {saving ? 'Saving...' : isEditing ? 'Update Routine' : 'Save Routine'}
             </Button>
@@ -273,37 +282,39 @@ export function RoutineBuilder({ onClose }: RoutineBuilderProps) {
                             key={setIndex}
                             className="flex items-center gap-3 p-2 bg-muted/30 rounded"
                           >
-                            <span className="text-xs font-medium text-muted-foreground w-12">
+                            <span className="text-xs font-medium text-muted-foreground w-16">
                               Set {setIndex + 1}
-                                </span>
+                            </span>
                             <div className="flex-1 flex gap-2">
                               <Input
                                 type="number"
-                                value={set.weight}
+                                step="0.5"
+                                value={set.weight || ''}
                                 onChange={(e) =>
                                   handleUpdateSet(
                                     exerciseIndex,
                                     setIndex,
                                     'weight',
-                                    parseInt(e.target.value) || 0
+                                    parseFloat(e.target.value) || 0
                                   )
                                 }
-                                placeholder="LBS"
-                                className="h-8 text-sm"
+                                placeholder={getWeightLabel()}
+                                className="h-8 text-sm flex-1"
                               />
                               <Input
                                 type="number"
-                                value={set.reps}
+                                step="0.5"
+                                value={set.reps || ''}
                                 onChange={(e) =>
                                   handleUpdateSet(
                                     exerciseIndex,
                                     setIndex,
                                     'reps',
-                                    parseInt(e.target.value) || 0
+                                    parseFloat(e.target.value) || 0
                                   )
                                 }
-                                placeholder="REPS"
-                                className="h-8 text-sm"
+                                placeholder="Reps"
+                                className="h-8 text-sm flex-1"
                               />
                             </div>
                             {exercise.sets.length > 1 && (

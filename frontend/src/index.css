@@ -2107,6 +2107,8 @@
     background-color: #00000080;
   }
 
+  
+
   @supports (color: color-mix(in lab, red, red)) {
     .bg-black\/50 {
       background-color: color-mix(in oklab, var(--color-black) 50%, transparent);
@@ -2153,6 +2155,9 @@
     background-color: var(--color-blue-500);
   }
 
+  .bg-black-000 {
+    background-color: #000000;
+  }
   .bg-border {
     background-color: var(--border);
   }
@@ -3314,6 +3319,8 @@
   .text-orange-800 {
     color: var(--color-orange-800);
   }
+
+  
 
   .text-popover-foreground {
     color: var(--popover-foreground);

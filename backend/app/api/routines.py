@@ -302,3 +302,67 @@ async def search_exercises(q: str):
     except Exception as e:
         print(f"Error searching exercises: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{user_id}/schedule")
+async def save_schedule(
+    user_id: str,
+    schedule_data: dict = Body(...),
+    decoded_token: dict = Depends(verify_firebase_token)
+):
+    """
+    Save the user's weekly workout schedule.
+    
+    Request body:
+    {
+        "monday": "routine_id_1",
+        "tuesday": "routine_id_2",
+        "wednesday": "routine_id_1",
+        "thursday": "",
+        "friday": "routine_id_3",
+        "saturday": "routine_id_1",
+        "sunday": ""
+    }
+    """
+    print(f"\n[SCHEDULE ENDPOINT HIT] Incoming request")
+    print(f"[DEBUG] User ID: {user_id}")
+    print(f"[DEBUG] Decoded Token: {decoded_token}")
+    print(f"[DEBUG] Schedule Data: {schedule_data}")
+    
+    try:
+        print(f"[DEBUG] Calling user_service.save_schedule({user_id}, {schedule_data})")
+        result = user_service.save_schedule(user_id, schedule_data)
+        print(f"[DEBUG] Schedule saved successfully: {result}")
+        
+        return {
+            "status": "success",
+            "message": "Schedule saved successfully",
+            "data": result
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Error saving schedule for user {user_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{user_id}/schedule")
+async def get_schedule(
+    user_id: str,
+    decoded_token: dict = Depends(verify_firebase_token)
+):
+    """
+    Get the user's weekly workout schedule.
+    """
+    try:
+        schedule = user_service.get_schedule(user_id)
+        
+        return {
+            "status": "success",
+            "data": schedule or {}
+        }
+        
+    except Exception as e:
+        print(f"Error fetching schedule for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
