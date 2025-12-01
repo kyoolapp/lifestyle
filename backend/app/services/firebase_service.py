@@ -1662,3 +1662,66 @@ class FirestoreUserService:
         except Exception as e:
             print(f"Error deleting routine {routine_id} for user {user_id}: {e}")
             raise
+
+    def save_schedule(self, user_id: str, schedule_data: dict) -> dict:
+        """
+        Save the user's weekly workout schedule.
+        
+        Args:
+            user_id: The user's Firebase ID
+            schedule_data: Dictionary mapping day names to routine IDs
+                          Example: {"monday": "routine-id-1", "tuesday": "routine-id-2", ...}
+            
+        Returns:
+            dict: The saved schedule data
+        """
+        try:
+            print(f"[FIREBASE] save_schedule called for user_id={user_id}, data={schedule_data}")
+            schedule_ref = db.collection('users').document(user_id).collection('schedule').document('weekly')
+            
+            schedule_data['updated_at'] = get_utc_now_iso()
+            print(f"[FIREBASE] Setting document at path: users/{user_id}/schedule/weekly")
+            print(f"[FIREBASE] Data to save: {schedule_data}")
+            
+            schedule_ref.set(schedule_data, merge=True)
+            print(f"[FIREBASE] Document set successfully")
+            
+            return schedule_data
+            
+        except Exception as e:
+            print(f"[FIREBASE ERROR] Error saving schedule for user {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+
+    def get_schedule(self, user_id: str) -> dict:
+        """
+        Retrieve the user's weekly workout schedule.
+        
+        Args:
+            user_id: The user's Firebase ID
+            
+        Returns:
+            dict: The schedule data with day names mapped to routine IDs
+                  Returns empty dict if no schedule exists
+        """
+        try:
+            schedule_ref = db.collection('users').document(user_id).collection('schedule').document('weekly')
+            schedule_doc = schedule_ref.get()
+            
+            if schedule_doc.exists:
+                data = schedule_doc.to_dict()
+                # Remove timestamp field for client
+                data.pop('updated_at', None)
+                # Filter out empty strings (no workout days) - only return days with routines
+                cleaned_data = {k: v for k, v in data.items() if v and v != ''}
+                print(f"[FIREBASE DEBUG] Raw schedule data: {data}")
+                print(f"[FIREBASE DEBUG] Cleaned schedule data: {cleaned_data}")
+                return cleaned_data
+            
+            return {}
+            
+        except Exception as e:
+            print(f"Error retrieving schedule for user {user_id}: {e}")
+            return {}
+

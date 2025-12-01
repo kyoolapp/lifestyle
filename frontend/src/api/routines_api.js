@@ -178,3 +178,76 @@ export const deleteRoutine = async (userId, routineId) => {
     throw error;
   }
 };
+
+/**
+ * Save the user's weekly workout schedule
+ * @param {string} userId - User ID
+ * @param {object} schedule - Day names mapped to routine IDs
+ *                           Example: {monday: "routine-id-1", tuesday: "routine-id-2", ...}
+ * @returns {Promise<object>} Saved schedule data
+ */
+export const saveSchedule = async (userId, schedule) => {
+  try {
+    const authHeader = await getAuthHeader();
+    console.log('Sending schedule to backend:', { userId, schedule, url: `${API_URL}/users/${userId}/schedule` });
+    
+    const response = await fetch(
+      `${API_URL}/users/${userId}/schedule`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader
+        },
+        body: JSON.stringify(schedule)
+      }
+    );
+
+    console.log('Schedule save response status:', response.status);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Schedule save error response:', error);
+      throw new Error(error.detail || 'Failed to save schedule');
+    }
+
+    const result = await response.json();
+    console.log('Schedule saved successfully:', result);
+    return result.data;
+  } catch (error) {
+    console.error('Error saving schedule:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get the user's weekly workout schedule
+ * @param {string} userId - User ID
+ * @returns {Promise<object>} Schedule data with day names mapped to routine IDs
+ */
+export const getSchedule = async (userId) => {
+  try {
+    const authHeader = await getAuthHeader();
+    const response = await fetch(
+      `${API_URL}/users/${userId}/schedule`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to fetch schedule');
+    }
+
+    const result = await response.json();
+    return result.data || {};
+  } catch (error) {
+    console.error('Error fetching schedule:', error);
+    throw error;
+  }
+};

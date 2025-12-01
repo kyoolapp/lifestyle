@@ -141,7 +141,7 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
   useEffect(() => {
     if (!user?.id) return;
 
-    let fastInterval: number;
+    let fastInterval: ReturnType<typeof setInterval>;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {

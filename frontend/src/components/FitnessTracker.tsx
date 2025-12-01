@@ -15,7 +15,7 @@ import { AppleWatchRoller } from './AppleWatchRoller';
 import { EmojiMoodSelector } from './EmojiMoodSelector';
 import { WorkoutEditor } from './WorkoutEditor';
 import { ExerciseLibrary } from './ExerciseLibrary';
-import { getRoutines, saveRoutine } from '../api/routines_api';
+import { getRoutines, saveRoutine, deleteRoutine as deleteRoutineApi, saveSchedule, getSchedule } from '../api/routines_api';
 import { logWorkout } from '../api/workouts_api';
 import { auth } from '../firebase';
 import { 
@@ -65,7 +65,15 @@ import {
   Bone,
   Sparkles,
   Filter,
-  Info
+  Info,
+  AlertCircle,
+  BrainCircuit,
+  Utensils,
+  Droplet,
+  PlusCircle,
+  Camera,
+  StretchHorizontal,
+  CircleCheckBig
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -76,331 +84,7 @@ interface FitnessTrackerProps {
 
 export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTrackerProps = {}) {
   const navigate = useNavigate();
-  // Exercise Library - moved to top to avoid temporal dead zone
-  const exerciseLibrary = [
-    {
-      id: 1,
-      name: 'Bench Press',
-      category: 'Chest',
-      equipment: 'Barbell',
-      difficulty: 'Intermediate',
-      primaryMuscles: ['Pectorals', 'Anterior Deltoids', 'Triceps'],
-      secondaryMuscles: ['Core', 'Serratus Anterior'],
-      description: 'A fundamental upper body exercise that involves lying on a bench and pressing a barbell from chest level to full arm extension.',
-      instructions: [
-        'Lie flat on the bench with eyes directly under the barbell',
-        'Grip the bar with hands slightly wider than shoulder-width',
-        'Keep feet flat on the floor and maintain a slight arch in your back',
-        'Lower the bar to your chest with control',
-        'Press the bar back up to starting position'
-      ],
-      benefits: [
-        'Builds upper body strength and muscle mass',
-        'Improves pushing power for daily activities',
-        'Enhances chest, shoulder, and arm definition',
-        'Supports functional movement patterns'
-      ],
-      medicinalValue: 'Strengthens the muscles used in daily pushing activities, improves bone density in the upper body, and can help prevent age-related muscle loss (sarcopenia).',
-      problemsSolved: [
-        'Weak upper body strength affecting daily tasks',
-        'Poor posture from weak chest muscles',
-        'Imbalanced muscle development',
-        'Low bone density in arms and chest'
-      ],
-      contraindications: ['Shoulder impingement', 'Recent chest or shoulder surgery', 'Acute lower back pain'],
-      tips: [
-        'Always use a spotter when lifting heavy weights',
-        'Keep your core engaged throughout the movement',
-        'Don\'t bounce the bar off your chest',
-        'Maintain steady breathing pattern'
-      ],
-      variations: ['Incline Bench Press', 'Decline Bench Press', 'Dumbbell Bench Press', 'Close-Grip Bench Press']
-    },
-    {
-      id: 2,
-      name: 'Squats',
-      category: 'Legs',
-      equipment: 'Barbell',
-      difficulty: 'Beginner',
-      primaryMuscles: ['Quadriceps', 'Glutes', 'Hamstrings'],
-      secondaryMuscles: ['Calves', 'Core', 'Lower Back'],
-      description: 'Known as the "king of exercises," squats are a compound movement that works multiple muscle groups while mimicking natural movement patterns.',
-      instructions: [
-        'Stand with feet shoulder-width apart, toes slightly turned out',
-        'Place barbell on your upper traps (high bar) or rear delts (low bar)',
-        'Keep chest up and core engaged',
-        'Lower by pushing hips back and bending knees',
-        'Descend until thighs are parallel to floor',
-        'Drive through heels to return to starting position'
-      ],
-      benefits: [
-        'Builds functional lower body strength',
-        'Improves mobility and flexibility',
-        'Burns high calories due to muscle mass involved',
-        'Enhances athletic performance',
-        'Strengthens core stability'
-      ],
-      medicinalValue: 'Promotes bone health in the spine and legs, improves balance and reduces fall risk in older adults, enhances metabolic health by building muscle mass.',
-      problemsSolved: [
-        'Weak glutes leading to lower back pain',
-        'Poor knee stability and tracking',
-        'Reduced mobility in hips and ankles',
-        'Overall lower body weakness',
-        'Poor balance and coordination'
-      ],
-      contraindications: ['Severe knee arthritis', 'Recent knee or hip surgery', 'Acute lower back injury'],
-      tips: [
-        'Keep knees in line with toes',
-        'Don\'t let knees cave inward',
-        'Maintain neutral spine throughout',
-        'Start with bodyweight before adding load'
-      ],
-      variations: ['Goblet Squats', 'Front Squats', 'Bulgarian Split Squats', 'Jump Squats']
-    },
-    {
-      id: 3,
-      name: 'Deadlifts',
-      category: 'Full Body',
-      equipment: 'Barbell',
-      difficulty: 'Advanced',
-      primaryMuscles: ['Hamstrings', 'Glutes', 'Erector Spinae'],
-      secondaryMuscles: ['Traps', 'Rhomboids', 'Forearms', 'Core'],
-      description: 'A hip-hinge movement that involves lifting a loaded barbell from the ground to hip level, engaging nearly every muscle in the body.',
-      instructions: [
-        'Stand with feet hip-width apart, bar over mid-foot',
-        'Bend at hips and knees to grip the bar',
-        'Keep chest up and shoulders over the bar',
-        'Drive through heels and extend hips to lift the bar',
-        'Keep bar close to body throughout the movement',
-        'Stand tall at the top, then reverse the movement'
-      ],
-      benefits: [
-        'Develops total-body strength and power',
-        'Improves posterior chain development',
-        'Enhances grip strength significantly',
-        'Builds functional strength for daily activities',
-        'Improves posture and spinal stability'
-      ],
-      medicinalValue: 'Strengthens the entire posterior chain, crucial for spinal health and injury prevention. Builds bone density throughout the body and improves functional movement patterns.',
-      problemsSolved: [
-        'Chronic lower back pain from weak posterior chain',
-        'Poor posture from weak glutes and hamstrings',
-        'Weak grip strength affecting daily tasks',
-        'Overall body weakness and poor athleticism',
-        'Risk of injury during lifting activities'
-      ],
-      contraindications: ['Acute lower back injury', 'Herniated discs', 'Recent spinal surgery'],
-      tips: [
-        'Master the hip hinge pattern first',
-        'Keep the bar close to your body',
-        'Don\'t round your back',
-        'Start with light weight to perfect form'
-      ],
-      variations: ['Romanian Deadlifts', 'Sumo Deadlifts', 'Trap Bar Deadlifts', 'Single-Leg Deadlifts']
-    },
-    {
-      id: 4,
-      name: 'Pull-ups',
-      category: 'Back',
-      equipment: 'Pull-up Bar',
-      difficulty: 'Intermediate',
-      primaryMuscles: ['Latissimus Dorsi', 'Rhomboids', 'Middle Traps'],
-      secondaryMuscles: ['Biceps', 'Rear Delts', 'Core'],
-      description: 'A vertical pulling exercise that involves hanging from a bar and pulling your body weight up until your chin clears the bar.',
-      instructions: [
-        'Hang from a pull-up bar with palms facing away',
-        'Keep hands slightly wider than shoulder-width',
-        'Engage core and keep legs straight or slightly bent',
-        'Pull your body up until chin clears the bar',
-        'Lower yourself with control to full arm extension'
-      ],
-      benefits: [
-        'Builds impressive upper body strength',
-        'Improves functional pulling power',
-        'Develops V-shaped back appearance',
-        'Enhances grip strength and forearm development',
-        'Improves shoulder health and stability'
-      ],
-      medicinalValue: 'Counteracts forward head posture from desk work, strengthens often-neglected pulling muscles, improves shoulder blade stability and reduces upper back pain.',
-      problemsSolved: [
-        'Rounded shoulders from poor posture',
-        'Weak back muscles leading to imbalances',
-        'Poor grip strength',
-        'Upper crossed syndrome',
-        'Lack of functional pulling strength'
-      ],
-      contraindications: ['Shoulder impingement', 'Recent shoulder surgery', 'Acute elbow tendinitis'],
-      tips: [
-        'Start with assisted pull-ups or negatives',
-        'Focus on pulling with your back, not just arms',
-        'Keep shoulders down and back',
-        'Don\'t swing or use momentum'
-      ],
-      variations: ['Chin-ups', 'Wide-Grip Pull-ups', 'Commando Pull-ups', 'Weighted Pull-ups']
-    },
-    {
-      id: 5,
-      name: 'Push-ups',
-      category: 'Chest',
-      equipment: 'Bodyweight',
-      difficulty: 'Beginner',
-      primaryMuscles: ['Pectorals', 'Anterior Deltoids', 'Triceps'],
-      secondaryMuscles: ['Core', 'Serratus Anterior'],
-      description: 'A fundamental bodyweight exercise that builds upper body strength and can be performed anywhere without equipment.',
-      instructions: [
-        'Start in plank position with hands under shoulders',
-        'Keep body in straight line from head to heels',
-        'Lower body until chest nearly touches ground',
-        'Push back up to starting position',
-        'Maintain core engagement throughout'
-      ],
-      benefits: [
-        'Builds functional pushing strength',
-        'Improves core stability and strength',
-        'Requires no equipment - can be done anywhere',
-        'Enhances shoulder stability',
-        'Scalable for all fitness levels'
-      ],
-      medicinalValue: 'Strengthens stabilizing muscles around the shoulder joint, improves wrist and forearm strength, enhances postural muscles supporting the spine.',
-      problemsSolved: [
-        'Weak upper body affecting daily activities',
-        'Poor core stability',
-        'Shoulder instability and weakness',
-        'Lack of accessible exercise options',
-        'Weak stabilizing muscles'
-      ],
-      contraindications: ['Wrist pain or carpal tunnel', 'Recent shoulder surgery', 'Acute lower back pain'],
-      tips: [
-        'Keep your core tight to prevent sagging',
-        'Don\'t let your hips pike up',
-        'Lower yourself slowly and with control',
-        'Modify on knees or incline if needed'
-      ],
-      variations: ['Incline Push-ups', 'Diamond Push-ups', 'Wide-Grip Push-ups', 'Pike Push-ups']
-    },
-    {
-      id: 6,
-      name: 'Plank',
-      category: 'Core',
-      equipment: 'Bodyweight',
-      difficulty: 'Beginner',
-      primaryMuscles: ['Rectus Abdominis', 'Transverse Abdominis', 'Obliques'],
-      secondaryMuscles: ['Shoulders', 'Glutes', 'Back'],
-      description: 'An isometric core exercise that involves maintaining a straight body position, building endurance and stability throughout the torso.',
-      instructions: [
-        'Start in push-up position on forearms',
-        'Keep elbows directly under shoulders',
-        'Maintain straight line from head to heels',
-        'Engage core and breathe normally',
-        'Hold position for desired time'
-      ],
-      benefits: [
-        'Builds core endurance and stability',
-        'Improves posture and spinal alignment',
-        'Reduces risk of back injury',
-        'Enhances overall body awareness',
-        'Transfers to improved performance in other exercises'
-      ],
-      medicinalValue: 'Strengthens deep stabilizing muscles of the spine, helps prevent and alleviate lower back pain, improves postural endurance for desk workers.',
-      problemsSolved: [
-        'Chronic lower back pain',
-        'Poor posture and spinal alignment',
-        'Weak core affecting daily movements',
-        'Lack of body stability and balance',
-        'Sports performance limitations'
-      ],
-      contraindications: ['Acute lower back pain', 'Shoulder impingement', 'Pregnancy (after first trimester)'],
-      tips: [
-        'Don\'t hold your breath',
-        'Keep hips level - don\'t let them sag or pike',
-        'Focus on quality over duration',
-        'Start with shorter holds and build up'
-      ],
-      variations: ['Side Plank', 'Plank to Push-up', 'Plank with Leg Lifts', 'Reverse Plank']
-    },
-    {
-      id: 7,
-      name: 'Lunges',
-      category: 'Legs',
-      equipment: 'Bodyweight',
-      difficulty: 'Beginner',
-      primaryMuscles: ['Quadriceps', 'Glutes', 'Hamstrings'],
-      secondaryMuscles: ['Calves', 'Core', 'Hip Stabilizers'],
-      description: 'A unilateral lower body exercise that builds strength, balance, and coordination while addressing muscle imbalances between legs.',
-      instructions: [
-        'Stand tall with feet hip-width apart',
-        'Step forward with one leg into a lunge position',
-        'Lower hips until both knees are at 90 degrees',
-        'Keep front knee over ankle, not pushed out past toes',
-        'Push back to starting position',
-        'Repeat on other leg'
-      ],
-      benefits: [
-        'Improves balance and coordination',
-        'Builds unilateral leg strength',
-        'Enhances hip mobility and stability',
-        'Functional movement for daily activities',
-        'Helps correct muscle imbalances'
-      ],
-      medicinalValue: 'Improves balance and reduces fall risk in older adults, strengthens hip stabilizers crucial for knee health, enhances functional movement patterns.',
-      problemsSolved: [
-        'Muscle imbalances between legs',
-        'Poor balance and stability',
-        'Weak hip stabilizers leading to knee pain',
-        'Limited hip mobility',
-        'Functional movement deficits'
-      ],
-      contraindications: ['Severe knee arthritis', 'Recent knee surgery', 'Acute hip flexor strain'],
-      tips: [
-        'Keep most of your weight on your front leg',
-        'Don\'t let your front knee cave inward',
-        'Keep your torso upright',
-        'Control the descent and ascent'
-      ],
-      variations: ['Reverse Lunges', 'Walking Lunges', 'Lateral Lunges', 'Curtsy Lunges']
-    },
-    {
-      id: 8,
-      name: 'Overhead Press',
-      category: 'Shoulders',
-      equipment: 'Barbell',
-      difficulty: 'Intermediate',
-      primaryMuscles: ['Anterior Deltoids', 'Medial Deltoids', 'Triceps'],
-      secondaryMuscles: ['Upper Chest', 'Core', 'Upper Back'],
-      description: 'A vertical pressing movement that builds shoulder strength and stability while challenging core stability and full-body coordination.',
-      instructions: [
-        'Stand with feet shoulder-width apart',
-        'Hold barbell at shoulder level with overhand grip',
-        'Keep core tight and chest up',
-        'Press bar straight up overhead',
-        'Lock out arms at the top',
-        'Lower bar back to shoulder level with control'
-      ],
-      benefits: [
-        'Builds shoulder strength and stability',
-        'Improves overhead mobility',
-        'Enhances core stability under load',
-        'Develops functional pressing power',
-        'Improves posture and shoulder health'
-      ],
-      medicinalValue: 'Strengthens often-neglected overhead movement patterns, improves shoulder blade stability, helps prevent shoulder impingement syndrome.',
-      problemsSolved: [
-        'Weak overhead movement patterns',
-        'Poor shoulder stability and mobility',
-        'Rounded shoulders and forward head posture',
-        'Inability to lift objects overhead safely',
-        'Shoulder impingement issues'
-      ],
-      contraindications: ['Shoulder impingement', 'Recent shoulder surgery', 'Cervical spine issues'],
-      tips: [
-        'Keep your core engaged throughout',
-        'Don\'t arch your back excessively',
-        'Press the bar in a straight line',
-        'Start with light weight to master the movement'
-      ],
-      variations: ['Dumbbell Shoulder Press', 'Push Press', 'Arnold Press', 'Pike Push-ups']
-    }
-  ];
+  // REMOVED: Mock exerciseLibrary array - use ExerciseLibrary component and backend data instead
 
   const [activeWorkout, setActiveWorkout] = useState<any>(null);
   const [timer, setTimer] = useState(0);
@@ -435,96 +119,18 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
   // Routine Builder states
   const [savedRoutines, setSavedRoutines] = useState<any[]>([]);
   const [loadingRoutines, setLoadingRoutines] = useState(false);
+  const [nextWorkout, setNextWorkout] = useState<any>(null);
+  const [consistency, setConsistency] = useState(0);
+  const [lastSession, setLastSession] = useState<any>(null);
+  const [isRoutineSelectOpen, setIsRoutineSelectOpen] = useState(false);
+  const [weeklySchedule, setWeeklySchedule] = useState<Record<string, string>>({}); // day -> routineId
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  
+  // Temporary routine selection (resets at midnight)
+  const [temporaryRoutineForToday, setTemporaryRoutineForToday] = useState<any>(null);
+  const [temporaryRoutineDate, setTemporaryRoutineDate] = useState<string>('');
 
-  const [workoutRoutines, setWorkoutRoutines] = useState([
-    {
-      id: 1,
-      name: 'Push Day',
-      exercises: [
-        { id: 'ex-1-1', name: 'Bench Press', sets: 3, reps: '8-12', weight: '80kg', completed: false },
-        { id: 'ex-1-2', name: 'Push Ups', sets: 3, reps: '15-20', weight: 'bodyweight', completed: false },
-        { id: 'ex-1-3', name: 'Dumbbell Flyes', sets: 3, reps: '12-15', weight: '15kg', completed: false },
-        { id: 'ex-1-4', name: 'Inclined Bench Press', sets: 3, reps: '8-10', weight: '70kg', completed: false }
-      ],
-      duration: '45 min',
-      difficulty: 'Intermediate',
-      targetMuscles: ['Chest', 'Shoulders', 'Triceps'],
-      createdBy: 'John Doe',
-      isPublic: true,
-      downloads: 24
-    },
-    {
-      id: 2,
-      name: 'Pull Day',
-      exercises: [
-        { id: 'ex-2-1', name: 'Pull-ups', sets: 3, reps: '8-12', weight: 'bodyweight', completed: false },
-        { id: 'ex-2-2', name: 'Barbell Rows', sets: 3, reps: '10-12', weight: '60kg', completed: false },
-        { id: 'ex-2-3', name: 'Lat Pulldowns', sets: 3, reps: '12-15', weight: '50kg', completed: false }
-      ],
-      duration: '40 min',
-      difficulty: 'Intermediate',
-      targetMuscles: ['Back', 'Biceps'],
-      createdBy: 'John Doe',
-      isPublic: false,
-      downloads: 0
-    }
-  ]);
-
-  const [activeRoutineIndex, setActiveRoutineIndex] = useState(0);
-  const [newRoutine, setNewRoutine] = useState<{
-    name: string;
-    exercises: any[];
-    difficulty: string;
-    targetMuscles: any[];
-    isPublic: boolean;
-  }>({
-    name: '',
-    exercises: [],
-    difficulty: 'Beginner',
-    targetMuscles: [],
-    isPublic: false
-  });
-
-  // Mock real-time data like Fitbit
-  const todayStats = {
-    steps: 8547,
-    distance: 6.8,
-    calories: 387,
-    activeMinutes: 45,
-    heartRate: 72,
-    sleep: 7.2,
-    floors: 12,
-    restingHeartRate: 62
-  };
-
-  const weeklyStats = {
-    totalSteps: 52847,
-    totalDistance: 42.5,
-    totalCalories: 2840,
-    activeMinutes: 267,
-    averageHeartRate: 75,
-    workoutsCompleted: 4
-  };
-
-  const achievements = [
-    { id: 1, title: '10K Steps', description: 'Daily step goal achieved', icon: Trophy, color: 'text-yellow-500', unlocked: true },
-    { id: 2, title: 'Weekend Warrior', description: '3 workouts this weekend', icon: Award, color: 'text-blue-500', unlocked: true },
-    { id: 3, title: 'Consistency King', description: '7 days active streak', icon: Flame, color: 'text-orange-500', unlocked: false },
-    { id: 4, title: 'Cardio Champion', description: '30 min cardio session', icon: Heart, color: 'text-red-500', unlocked: true }
-  ];
-
-  const workoutOptions = [
-    { name: 'Quick Walk', duration: '15 min', icon: Footprints, color: 'bg-green-500' },
-    { name: 'HIIT Training', duration: '20 min', icon: Zap, color: 'bg-orange-500' },
-    { name: 'Strength Training', duration: '45 min', icon: Dumbbell, color: 'bg-blue-500' },
-    { name: 'Yoga Flow', duration: '30 min', icon: Heart, color: 'bg-purple-500' }
-  ];
-
-  const recentActivities = [
-    { id: 1, name: 'Morning Run', type: 'Running', duration: 32, calories: 287, heartRate: 142, date: 'Today, 7:30 AM' },
-    { id: 2, name: 'Strength Training', type: 'Weights', duration: 45, calories: 201, heartRate: 128, date: 'Yesterday, 6:00 PM' },
-    { id: 3, name: 'Evening Walk', type: 'Walking', duration: 28, calories: 134, heartRate: 98, date: 'Yesterday, 8:15 PM' }
-  ];
+  // NOTE: Removed mock routines (Push Day, Pull Day) - use savedRoutines from backend instead
 
   // Timer functions
   React.useEffect(() => {
@@ -547,6 +153,42 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
         setLoadingRoutines(true);
         const routines = await getRoutines(user.uid);
         setSavedRoutines(routines);
+        
+        // Load schedule from Firestore backend
+        try {
+          const schedule = await getSchedule(user.uid);
+          if (schedule && Object.keys(schedule).length > 0) {
+            setWeeklySchedule(schedule as Record<string, string>);
+          }
+        } catch (error) {
+          console.error('Error loading schedule from backend, using empty schedule:', error);
+        }
+        
+        // Load temporary routine if it exists and is still valid for today
+        const tempRoutineData = localStorage.getItem(`temp_routine_${user.uid}`);
+        if (tempRoutineData) {
+          try {
+            const { routineId, date } = JSON.parse(tempRoutineData);
+            const today = new Date().toLocaleDateString('en-US');
+            
+            if (date === today) {
+              // Still valid for today
+              const routine = routines.find((r: any) => r.id === routineId);
+              if (routine) {
+                setTemporaryRoutineForToday(routine);
+                setTemporaryRoutineDate(date);
+              }
+            } else {
+              // Expired, remove it
+              localStorage.removeItem(`temp_routine_${user.uid}`);
+              setTemporaryRoutineForToday(null);
+              setTemporaryRoutineDate('');
+            }
+          } catch (error) {
+            console.error('Error parsing temporary routine:', error);
+            localStorage.removeItem(`temp_routine_${user.uid}`);
+          }
+        }
       } catch (error) {
         console.error('Error loading routines:', error);
       } finally {
@@ -557,35 +199,48 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
     loadRoutines();
   }, []);
 
-  // Handle selectedWorkout from home page
-  React.useEffect(() => {
-    if (selectedWorkout) {
-      // Check if the workout already exists in workoutRoutines
-      const existingIndex = workoutRoutines.findIndex(routine => 
-        routine.name === selectedWorkout.name
-      );
-      
-      if (existingIndex !== -1) {
-        // Start existing workout
-        startWorkoutExecution(existingIndex);
-      } else {
-        // Add the workout to routines and start it
-        const newWorkout = {
-          ...selectedWorkout,
-          id: workoutRoutines.length + 1,
-          createdBy: 'You',
-          isPublic: false,
-          downloads: 0
-        };
-        setWorkoutRoutines(prev => [...prev, newWorkout]);
-        
-        // Start the workout (it will be at the last index)
-        setTimeout(() => {
-          startWorkoutExecution(workoutRoutines.length);
-        }, 100);
+  // Check and reset temporary routine at midnight
+  useEffect(() => {
+    const checkMidnight = () => {
+      if (temporaryRoutineForToday && temporaryRoutineDate) {
+        const today = new Date().toLocaleDateString('en-US');
+        if (today !== temporaryRoutineDate) {
+          // Midnight has passed, reset temporary routine
+          console.log('Resetting temporary routine at midnight');
+          setTemporaryRoutineForToday(null);
+          setTemporaryRoutineDate('');
+          const user = auth.currentUser;
+          if (user) {
+            localStorage.removeItem(`temp_routine_${user.uid}`);
+          }
+        }
       }
+    };
+
+    const interval = setInterval(checkMidnight, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [temporaryRoutineForToday, temporaryRoutineDate]);
+
+  // Get today's scheduled workout (prioritize temporary routine)
+  useEffect(() => {
+    // If there's a temporary routine for today, use that
+    if (temporaryRoutineForToday) {
+      setNextWorkout(temporaryRoutineForToday);
+      return;
     }
-  }, [selectedWorkout]);
+
+    // Otherwise, check the weekly schedule
+    const today = new Date();
+    const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    
+    if (weeklySchedule[dayOfWeek]) {
+      const scheduledRoutineId = weeklySchedule[dayOfWeek];
+      const routine = savedRoutines.find(r => r.id === scheduledRoutineId);
+      setNextWorkout(routine || null);
+    } else {
+      setNextWorkout(null);
+    }
+  }, [weeklySchedule, savedRoutines, temporaryRoutineForToday]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -593,273 +248,89 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Workout management functions
-  const addExerciseToRoutine = (exercise: any) => {
-    setNewRoutine(prev => ({
-      ...prev,
-      exercises: [...prev.exercises, exercise]
-    }));
-  };
-
-  const removeExerciseFromRoutine = (index: number) => {
-    setNewRoutine(prev => ({
-      ...prev,
-      exercises: prev.exercises.filter((_, i) => i !== index)
-    }));
-  };
-
-  const saveWorkoutRoutine = () => {
-    if (newRoutine.name && newRoutine.exercises.length > 0) {
-      const routine = {
-        id: workoutRoutines.length + 1,
-        ...newRoutine,
-        duration: `${newRoutine.exercises.length * 15} min`,
-        createdBy: 'John Doe',
-        downloads: 0
-      };
-      setWorkoutRoutines([...workoutRoutines, routine]);
-      setNewRoutine({
-        name: '',
-        exercises: [],
-        difficulty: 'Beginner',
-        targetMuscles: [],
-        isPublic: false
-      });
-      setIsWorkoutBuilderOpen(false);
+  const handleDeleteRoutine = async (routineId: string) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      if (window.confirm('Are you sure you want to delete this routine?')) {
+        await deleteRoutineApi(user.uid, routineId);
+        setSavedRoutines(savedRoutines.filter(r => r.id !== routineId));
+      }
+    } catch (error) {
+      console.error('Error deleting routine:', error);
+      alert('Failed to delete routine');
     }
   };
 
-  const deleteRoutine = (id: number) => {
-    setWorkoutRoutines(workoutRoutines.filter(routine => routine.id !== id));
-  };
-
-  const duplicateRoutine = (routine: any) => {
-    const duplicated = {
-      ...routine,
-      id: workoutRoutines.length + 1,
-      name: `${routine.name} (Copy)`,
-      downloads: 0
-    };
-    setWorkoutRoutines([...workoutRoutines, duplicated]);
-  };
-
-  const addToWorkoutPlan = (routine: any) => {
-    const duplicated = {
-      ...routine,
-      id: workoutRoutines.length + 1,
-      name: routine.name,
-      downloads: 0,
-      isPublic: false,
-      createdBy: 'You'
-    };
-    setWorkoutRoutines([...workoutRoutines, duplicated]);
+  const handleSaveSchedule = async (newSchedule: Record<string, string>) => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log('No user logged in');
+      return;
+    }
     
-    // Update the original routine's download count
-    setWorkoutRoutines(prev => prev.map(r => 
-      r.id === routine.id ? { ...r, downloads: r.downloads + 1 } : r
-    ));
-  };
-
-  const openPreview = (routine: any) => {
-    setPreviewRoutine(routine);
-    setIsPreviewOpen(true);
-  };
-
-  const editRoutine = (routine: any) => {
-    setEditingRoutine(routine);
-    setIsWorkoutEditorOpen(true);
-  };
-
-  const updateRoutine = (updatedRoutine: any) => {
-    setWorkoutRoutines(prev => prev.map(routine => 
-      routine.id === updatedRoutine.id ? updatedRoutine : routine
-    ));
-  };
-
-  const handleCopyWorkout = (workout: any) => {
-    const newWorkout = {
-      id: workoutRoutines.length + 1,
-      name: `${workout.name} (Copied)`,
-      exercises: workout.exercises.map((ex: any, idx: number) => ({
-        id: `ex-${workoutRoutines.length + 1}-${idx + 1}`,
-        name: ex.name,
-        sets: ex.sets || 3,
-        reps: ex.reps || '8-12',
-        weight: ex.weight || 'bodyweight',
-        completed: false
-      })),
-      duration: workout.duration,
-      difficulty: workout.difficulty,
-      targetMuscles: workout.targetMuscles,
-      createdBy: 'You (Copied)',
-      isPublic: false,
-      downloads: 0,
-      originalCreator: workout.creator.name
-    };
-    
-    setWorkoutRoutines(prev => [...prev, newWorkout]);
-    setIsWorkoutLibraryOpen(false);
-  };
-
-  // Filter exercises based on search and category
-  const filteredExercises = exerciseLibrary.filter(exercise => {
-    const matchesSearch = exercise.name.toLowerCase().includes(exerciseSearchTerm.toLowerCase()) ||
-                         exercise.description.toLowerCase().includes(exerciseSearchTerm.toLowerCase()) ||
-                         exercise.primaryMuscles.some(muscle => muscle.toLowerCase().includes(exerciseSearchTerm.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === 'all' || exercise.category === selectedCategory;
-    const matchesEquipment = selectedEquipment === 'all' || exercise.equipment === selectedEquipment;
-    
-    return matchesSearch && matchesCategory && matchesEquipment;
-  });
-
-  const categories = ['all', ...Array.from(new Set(exerciseLibrary.map(ex => ex.category)))];
-  const equipmentTypes = ['all', ...Array.from(new Set(exerciseLibrary.map(ex => ex.equipment)))];
-
-  // Execution mode functions
-  const startWorkoutExecution = (routineIndex: number) => {
-    setActiveRoutineIndex(routineIndex);
-    setWorkoutMode('execute');
-    setCurrentExerciseIndex(0);
-    setCurrentSetIndex(0);
-    setExecutionData({});
-    setIsRunning(true);
-    setTimer(0);
-  };
-
-  const recordSet = () => {
-    const key = `${currentExerciseIndex}-${currentSetIndex}`;
-    setExecutionData((prev: any) => ({
-      ...prev,
-      [key]: {
-        weight: currentWeight,
-        reps: currentReps,
-        timestamp: Date.now()
-      }
-    }));
-    setShowMoodSelector(true);
-  };
-
-  const handleMoodSelected = (mood: any) => {
-    setShowMoodSelector(false);
-    
-    const currentRoutine = workoutRoutines[activeRoutineIndex];
-    const currentExercise = currentRoutine.exercises[currentExerciseIndex];
-    
-    // Move to next set or exercise
-    if (currentSetIndex < currentExercise.sets - 1) {
-      setCurrentSetIndex(currentSetIndex + 1);
-    } else {
-      // Move to next exercise
-      if (currentExerciseIndex < currentRoutine.exercises.length - 1) {
-        setCurrentExerciseIndex(currentExerciseIndex + 1);
-        setCurrentSetIndex(0);
-      } else {
-        // Workout complete
-        setWorkoutMode('create');
-        setIsRunning(false);
-        if (onWorkoutComplete) {
-          onWorkoutComplete();
-        }
-        alert('Workout Complete! Great job! 🎉');
+    try {
+      console.log('Saving schedule:', newSchedule);
+      setWeeklySchedule(newSchedule);
+      const result = await saveSchedule(user.uid, newSchedule);
+      console.log('Schedule saved successfully:', result);
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+      alert('Failed to save schedule: ' + (error instanceof Error ? error.message : String(error)));
+      // Revert to previous schedule on error
+      const prevSchedule = localStorage.getItem(`workout_schedule_${user.uid}`);
+      if (prevSchedule) {
+        setWeeklySchedule(JSON.parse(prevSchedule));
       }
     }
   };
 
-  // Render workout execution mode
-  if (workoutMode === 'execute') {
-    const currentRoutine = workoutRoutines[activeRoutineIndex];
-    const currentExercise = currentRoutine.exercises[currentExerciseIndex];
-    const progress = ((currentExerciseIndex * currentExercise.sets + currentSetIndex + 1) / 
-                     (currentRoutine.exercises.reduce((acc, ex) => acc + ex.sets, 0))) * 100;
+  const handleSelectTemporaryRoutine = (routine: any) => {
+    const user = auth.currentUser;
+    if (!user) return;
 
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
-        {/* Header with progress */}
-        <div className="max-w-md mx-auto space-y-6">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setWorkoutMode('create');
-                    if (onWorkoutComplete) {
-                      onWorkoutComplete();
-                    }
-                  }}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Exit
-                </Button>
-                <div className="text-2xl font-bold text-blue-600">{formatTime(timer)}</div>
-              </div>
-              <CardTitle className="text-xl">{currentRoutine.name}</CardTitle>
-              <Progress value={progress} className="mt-2" />
-              <p className="text-sm text-muted-foreground">
-                Exercise {currentExerciseIndex + 1} of {currentRoutine.exercises.length}
-              </p>
-            </CardHeader>
-          </Card>
+    try {
+      const today = new Date().toLocaleDateString('en-US');
+      const tempData = { routineId: routine.id, date: today };
+      
+      // Save to localStorage
+      localStorage.setItem(`temp_routine_${user.uid}`, JSON.stringify(tempData));
+      
+      // Update state
+      setTemporaryRoutineForToday(routine);
+      setTemporaryRoutineDate(today);
+      setIsRoutineSelectOpen(false);
+      
+      console.log(`Selected temporary routine for today: ${routine.name}`);
+    } catch (error) {
+      console.error('Error setting temporary routine:', error);
+      alert('Failed to select routine');
+    }
+  };
 
-          {/* Current Exercise */}
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">{currentExercise.name}</CardTitle>
-              <Badge variant="outline" className="text-lg">
-                Set {currentSetIndex + 1} of {currentExercise.sets}
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {!showMoodSelector ? (
-                <>
-                  {/* Weight and Reps Rollers */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <Label>Weight (kg)</Label>
-                      <AppleWatchRoller
-                        value={currentWeight}
-                        min={5}
-                        max={200}
-                        step={2.5}
-                        onChange={setCurrentWeight}
-                        className="mx-auto mt-2"
-                      />
-                    </div>
-                    <div className="text-center">
-                      <Label>Reps</Label>
-                      <AppleWatchRoller
-                        value={currentReps}
-                        min={1}
-                        max={50}
-                        onChange={setCurrentReps}
-                        className="mx-auto mt-2"
-                      />
-                    </div>
-                  </div>
+  const handleClearTemporaryRoutine = () => {
+    const user = auth.currentUser;
+    if (!user) return;
 
-                  {/* Record Set Button */}
-                  <Button
-                    onClick={recordSet}
-                    size="lg"
-                    className="w-full"
-                  >
-                    Record Set
-                  </Button>
-                </>
-              ) : (
-                <EmojiMoodSelector
-                  onSelect={handleMoodSelected}
-                  onSkip={() => setShowMoodSelector(false)}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+    try {
+      // Clear state
+      setTemporaryRoutineForToday(null);
+      setTemporaryRoutineDate('');
+      
+      // Clear from localStorage
+      localStorage.removeItem(`temp_routine_${user.uid}`);
+      
+      console.log('Cleared temporary routine for today');
+    } catch (error) {
+      console.error('Error clearing temporary routine:', error);
+      alert('Failed to remove routine');
+    }
+  };
+  
+  // NOTE: Removed filteredExercises and categories - use ExerciseLibrary component instead
+  
+  // NOTE: Removed startWorkoutExecution and related execution mode functions - these referenced deleted mock routines state
 
   return (
     <div className="space-y-6">
@@ -877,108 +348,228 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Today's Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Steps</CardTitle>
-                <Footprints className="h-4 w-4 text-muted-foreground" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Hero Card - Next Workout */}
+            {nextWorkout ? (
+              <div className="lg:col-span-2 relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer border border-slate-700 group overflow-hidden">
+                <div className="absolute inset-0 rounded-2xl pointer-events-none">
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl -mr-48 -mt-48"></div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge className="bg-purple-500 hover:bg-purple-700 text-white text-xs">NEXT UP</Badge>
+                    <span className="text-xs text-slate-400 font-medium">Scheduled for Today</span>
+                  </div>
+                  <h3 className="text-4xl text-purple-500 font-bold mb-2">{nextWorkout.name}</h3>
+                  <p className="text-slate-300 text-sm mb-6 max-w-lg">
+                    {nextWorkout.notes || 'Ready to crush your workout!'}
+                  </p>
+                  <div className="flex items-center gap-6 mb-8 text-slate-300 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-purple-400" />
+                      <span>{nextWorkout.exercises?.length ? Math.ceil(nextWorkout.exercises.length * 10) : 45} Mins</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Dumbbell className="w-4 h-4 text-purple-400" />
+                      <span>{nextWorkout.exercises?.length || 0} Exercises</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Flame className="w-4 h-4 text-purple-400" />
+                      <span>Est. {Math.ceil((nextWorkout.exercises?.length || 0) * 80)} Cal</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => navigate('/workout/log', { state: { routine: nextWorkout } })}
+                      className="bg-white hover:bg-slate-100 text-slate-900 font-semibold gap-2 shadow-lg group-hover:scale-105 transition-transform"
+                    >
+                      <Play className="w-5 h-5 fill-slate-900" />
+                      Start Workout
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => setIsRoutineSelectOpen(true)}
+                      className="bg-black text-slate-900 font-semibold hover:bg-black-000"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                      Change Routine
+                    </Button>
+                    {temporaryRoutineForToday && (
+                      <Button
+                        size="lg"
+                        variant="destructive"
+                        onClick={handleClearTemporaryRoutine}
+                        className="gap-2"
+                      >
+                        <X className="w-5 h-5" />
+                        Unschedule
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="lg:col-span-2 relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white shadow-xl border border-slate-700 group overflow-hidden flex flex-col justify-between min-h-96">
+                <div className="absolute inset-0 rounded-2xl pointer-events-none">
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl -mr-48 -mt-48"></div>
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-3xl font-semibold mb-2 text-slate-900">Nothing Scheduled for Today</h3>
+                  <p className="text-slate-300 text-sm">Plan your workout for the day or set up a weekly schedule.</p>
+                </div>
+                {loadingRoutines ? (
+                  <div className="relative z-10 flex items-center gap-2 text-slate-300">
+                    <div className="animate-spin rounded-full h-4 w-4 border border-purple-400"></div>
+                    <span className="text-sm">Loading routines...</span>
+                  </div>
+                ) : (
+                  <div className="relative z-10 flex gap-3 w-full">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => setIsRoutineSelectOpen(true)}
+                      className="bg-white hover:bg-slate-900 text-slate-900 font-semibold gap-2 shadow-lg flex-1"
+                    >
+                      <Dumbbell className="w-5 h-5" />
+                      Select Routine
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => setIsScheduleDialogOpen(true)}
+                      className="bg-white hover:bg-slate-900 text-slate-900 gap-2 font-semibold shadow-lg  flex-1"
+                    >
+                      <Calendar className="w-5 h-5" />
+                      Schedule Week
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Consistency Card */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h4 className="font-bold text-slate-900">Consistency</h4>
+                  <p className="text-xs text-slate-500">Last 7 Days</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-slate-900">{consistency}%</div>
+                  <p className="text-xs text-green-600 font-semibold">On Track</p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center gap-1">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
+                  let status = 'gray';
+                  if (idx === 0 || idx === 1 || idx === 3) status = 'green';
+                  if (idx === 2) status = 'red';
+                  if (idx === 4 || idx === 5) status = 'gray';
+                  if (idx === 6) status = 'slate';
+
+                  const bgClass = status === 'green' ? 'bg-green-100 border-green-200 text-green-600' : 
+                                 status === 'red' ? 'bg-red-50 border-red-100 text-red-500' :
+                                 status === 'slate' ? 'bg-slate-50 border-slate-100 text-slate-300' :
+                                 'bg-slate-100 border-slate-200 text-slate-400';
+                  
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-2">
+                      <div className={`w-8 h-8 rounded-full border flex items-center justify-center ${bgClass}`}>
+                        {status === 'green' && <Check className="w-4 h-4" />}
+                        {status === 'red' && <X className="w-4 h-4" />}
+                        {status === 'gray' && <span className="text-xs">-</span>}
+                        {status === 'slate' && <span className="text-xs">?</span>}
+                      </div>
+                      <span className="text-xs text-slate-400">{day}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Bench Press Progress */}
+            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <TrendingUp className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm">Bench Press</CardTitle>
+                      <p className="text-xs text-slate-500">Estimated 1RM</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-50 text-green-700 hover:bg-green-50">+15 lbs</Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{todayStats.steps.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">Goal: 10,000</p>
-                <Progress value={(todayStats.steps / 10000) * 100} className="mt-2" />
+                <div className="flex items-end gap-2 h-24">
+                  {[40, 55, 50, 75].map((height, idx) => (
+                    <div key={idx} className="flex-1 bg-purple-300 rounded-t-sm hover:shadow-lg transition-shadow" style={{ height: `${height}%` }}></div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Calories</CardTitle>
-                <Flame className="h-4 w-4 text-muted-foreground" />
+            {/* Daily Movement */}
+            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-1">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-sm">Daily Movement</CardTitle>
+                  <Badge className="bg-red-100 text-red-600 hover:bg-red-100 animate-pulse">Sedentary!</Badge>
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{todayStats.calories}</div>
-                <p className="text-xs text-muted-foreground">Burned today</p>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-xs mb-2">
+                    <span className="font-semibold text-slate-700">8,547 Steps</span>
+                    <span className="text-slate-500">Goal: 10k</span>
+                  </div>
+                  <Progress value={85} className="h-2" />
+                </div>
+                <div className="flex items-center gap-3 border-t border-slate-100 pt-4">
+                  <div className="p-3 bg-orange-100 rounded-lg text-orange-600">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-semibold text-slate-700">Active Minutes</h5>
+                    <p className="text-xs text-slate-500">Only 12 mins movement</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Minutes</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
+            {/* Last Session */}
+            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle className="text-sm">Last Session</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{todayStats.activeMinutes}</div>
-                <p className="text-xs text-muted-foreground">Goal: 30 min</p>
-                <Progress value={(todayStats.activeMinutes / 30) * 100} className="mt-2" />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Heart Rate</CardTitle>
-                <Heart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{todayStats.heartRate}</div>
-                <p className="text-xs text-muted-foreground">bpm current</p>
+              <CardContent className="space-y-4">
+                <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-semibold text-sm text-slate-700">Pull Day B</span>
+                    <span className="text-xs text-slate-400">Yesterday</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <CircleCheckBig className="w-3 h-3 text-green-500" />
+                    <span>Completed</span>
+                    <span>•</span>
+                    <span>55 Mins</span>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full text-xs" onClick={() => setActiveTab('routines')}>
+                  View History
+                </Button>
               </CardContent>
             </Card>
           </div>
-
-          {/* Quick Workout Options */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Workouts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {workoutOptions.map((workout, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    className="h-24 flex flex-col gap-2"
-                    onClick={() => {
-                      setActiveWorkout(workout);
-                      setIsRunning(true);
-                      setTimer(0);
-                    }}
-                  >
-                    <div className={`w-8 h-8 rounded-full ${workout.color} flex items-center justify-center`}>
-                      <workout.icon className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium text-sm">{workout.name}</div>
-                      <div className="text-xs text-muted-foreground">{workout.duration}</div>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activities */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activities</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{activity.name}</h4>
-                      <p className="text-sm text-muted-foreground">{activity.date}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{activity.duration} min</div>
-                      <div className="text-sm text-muted-foreground">{activity.calories} cal</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="routines" className="space-y-6">
@@ -1006,6 +597,64 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
               </Button>
             </div>
           </div>
+
+          {/* Weekly Schedule Card */}
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <CardTitle>Weekly Schedule</CardTitle>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setIsScheduleDialogOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Edit3 className="w-4 h-4 mr-1" />
+                  {Object.keys(weeklySchedule).length > 0 ? 'Update' : 'Create'} Schedule
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {Object.keys(weeklySchedule).length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No schedule yet. Create one to organize your weekly workouts.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsScheduleDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Schedule
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                    const routineId = weeklySchedule[day.toLowerCase()];
+                    const routine = savedRoutines.find(r => r.id === routineId);
+                    
+                    return (
+                      <div key={day} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-700">{day}</p>
+                          {routine ? (
+                            <p className="text-sm text-blue-600 font-medium">{routine.name}</p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">No workout</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Saved Routines */}
           {loadingRoutines ? (
@@ -1083,6 +732,14 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                         <Edit3 className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 bg-red-50 hover:bg-red-100 text-red-600"
+                        onClick={() => handleDeleteRoutine(routine.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1090,79 +747,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
             </div>
           )}
 
-          {/* Legacy Workout Routines (kept for backwards compatibility) */}
-          {workoutRoutines.length > 0 && (
-            <div>
-              <Separator className="my-6" />
-              <h3 className="text-lg font-semibold mb-4">Library Routines</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {workoutRoutines.map((routine, index) => (
-                  <Card key={routine.id}>
-
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{routine.name}</CardTitle>
-                          <div className="flex gap-2 mt-2">
-                            <Badge variant="outline">{routine.difficulty}</Badge>
-                            <Badge variant="secondary">{routine.duration}</Badge>
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => duplicateRoutine(routine)}
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteRoutine(routine.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Target Muscles:</p>
-                          <p className="text-sm">{routine.targetMuscles.join(', ')}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Exercises ({routine.exercises.length}):</p>
-                          <div className="text-sm">
-                            {routine.exercises.slice(0, 3).map((ex, i) => ex.name).join(', ')}
-                            {routine.exercises.length > 3 && '...'}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => startWorkoutExecution(index)}
-                            className="flex-1"
-                          >
-                            <Play className="w-4 h-4 mr-2" />
-                            Start Workout
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openPreview(routine)}
-                          >
-                            Preview
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* REMOVED: Legacy Library Routines section - this was mock data with hardcoded Push Day/Pull Day routines */}
         </TabsContent>
 
         <TabsContent value="exercises" className="space-y-6">
@@ -1185,75 +770,144 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
             <h2 className="text-2xl font-semibold">Achievements</h2>
             <p className="text-muted-foreground">Track your fitness milestones and accomplishments</p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {achievements.map((achievement) => (
-              <Card key={achievement.id} className={achievement.unlocked ? 'border border-gray-200 dark:border-gray-700' : 'opacity-60 border border-gray-200 dark:border-gray-700'}>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center border ${achievement.unlocked ? 'border-gray-200 dark:border-gray-700' : 'border-gray-200 dark:border-gray-700'}`}>
-                      <achievement.icon className={`w-6 h-6 ${achievement.unlocked ? achievement.color : 'text-gray-400'}`} />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{achievement.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                    </div>
-                    {achievement.unlocked && (
-                      <CheckCircle className="w-6 h-6 text-green-500 ml-auto" />
-                    )}
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+          {/* REMOVED: Mock achievements section - was using mock achievements data */}
         </TabsContent>
       </Tabs>
 
-      {/* Preview Dialog */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+      {/* Routine Selection Dialog */}
+      <Dialog open={isRoutineSelectOpen} onOpenChange={setIsRoutineSelectOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{previewRoutine?.name}</DialogTitle>
+            <DialogTitle>Select a Routine for Today</DialogTitle>
           </DialogHeader>
-          {previewRoutine && (
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <Badge variant="outline">{previewRoutine.difficulty}</Badge>
-                <Badge variant="secondary">{previewRoutine.duration}</Badge>
-                <Badge variant="outline">{previewRoutine.exercises.length} exercises</Badge>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-2">Target Muscles</h4>
-                <p className="text-sm text-muted-foreground">{previewRoutine.targetMuscles.join(', ')}</p>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Exercises</h4>
-                <div className="space-y-2">
-                  {previewRoutine.exercises.map((exercise: any, index: number) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span className="font-medium">{exercise.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {exercise.sets} sets × {exercise.reps} reps
-                      </span>
+          {loadingRoutines ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border border-purple-600"></div>
+            </div>
+          ) : savedRoutines.length === 0 ? (
+            <div className="py-8 text-center">
+              <Dumbbell className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+              <h3 className="font-semibold text-slate-700 mb-2">No Routines Yet</h3>
+              <p className="text-slate-500 text-sm mb-4">Create your first routine to get started</p>
+              <Button 
+                onClick={() => {
+                  setIsRoutineSelectOpen(false);
+                  navigate('/routine/new');
+                }}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Routine
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+              {savedRoutines.map((routine) => (
+                <Card 
+                  key={routine.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow hover:border-purple-400"
+                  onClick={() => {
+                    handleSelectTemporaryRoutine(routine);
+                  }}
+                >
+                  <CardContent className="pt-6">
+                    <h4 className="font-bold text-slate-900 mb-2">{routine.name}</h4>
+                    <div className="space-y-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <Dumbbell className="w-4 h-4 text-purple-600" />
+                        <span>{routine.exercises?.length || 0} exercises</span>
+                      </div>
+                      {routine.notes && (
+                        <div className="text-slate-500 text-xs">{routine.notes}</div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <Button 
+                      size="sm" 
+                      className="w-full mt-4 gap-2"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        handleSelectTemporaryRoutine(routine);
+                      }}
+                    >
+                      <Check className="w-4 h-4" />
+                      Select This
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-              <div className="flex gap-2">
-                <Button onClick={() => {
-                  addToWorkoutPlan(previewRoutine);
-                  setIsPreviewOpen(false);
-                }} className="flex-1">
-                  <Download className="w-4 h-4 mr-2" />
-                  Add to My Routines
-                </Button>
-                <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
-                  Close
-                </Button>
+      {/* Weekly Schedule Dialog */}
+      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Schedule Your Weekly Workouts</DialogTitle>
+          </DialogHeader>
+          {loadingRoutines ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border border-purple-600"></div>
+            </div>
+          ) : savedRoutines.length === 0 ? (
+            <div className="py-8 text-center">
+              <Dumbbell className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+              <h3 className="font-semibold text-slate-700 mb-2">No Routines Yet</h3>
+              <p className="text-slate-500 text-sm mb-4">Create routines first to set up your weekly schedule</p>
+              <Button 
+                onClick={() => {
+                  setIsScheduleDialogOpen(false);
+                  navigate('/routine/new');
+                }}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Routine
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                  <div key={day} className="space-y-2">
+                    <Label className="text-sm font-semibold">{day}</Label>
+                    <Select
+                      value={weeklySchedule[day.toLowerCase()] || 'none'}
+                      onValueChange={(routineId: string) => {
+                        const newSchedule = { ...weeklySchedule };
+                        if (routineId && routineId !== 'none') {
+                          newSchedule[day.toLowerCase()] = routineId;
+                        } else {
+                          // Set to empty string instead of deleting, so Firestore will update the field
+                          newSchedule[day.toLowerCase()] = '';
+                        }
+                        handleSaveSchedule(newSchedule);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="No workout" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No workout</SelectItem>
+                        {savedRoutines.map((routine) => (
+                          <SelectItem key={routine.id} value={routine.id}>
+                            {routine.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
               </div>
+              <Button 
+              variant="outline"
+                onClick={() => setIsScheduleDialogOpen(false)}
+                className="w-full mt-6"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Save Schedule
+              </Button>
             </div>
           )}
         </DialogContent>

@@ -52,7 +52,8 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
 
   // State for standalone mode timer
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
-  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(isStandalone);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false); // Start as false - user must click Start
+  const [workoutStarted, setWorkoutStarted] = useState<boolean>(false); // Track if workout has started
 
   // Rest timer state
   const [restTimerSeconds, setRestTimerSeconds] = useState<number>(0);
@@ -80,16 +81,16 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Real-time timer effect for standalone mode
+  // Real-time timer effect for all workouts (standalone or routine-based)
   useEffect(() => {
-    if (!isStandalone || !isTimerRunning) return;
+    if (!isTimerRunning) return;
 
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isStandalone, isTimerRunning]);
+  }, [isTimerRunning]);
 
   // Rest timer countdown effect
   useEffect(() => {
@@ -139,10 +140,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
 
   // Get actual duration in minutes
   const getActualDuration = () => {
-    if (isStandalone) {
-      return Math.ceil(elapsedSeconds / 60);
-    }
-    return durationMinutes;
+    return Math.ceil(elapsedSeconds / 60);
   };
 
   // Get unit label
@@ -243,6 +241,15 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
     setExerciseData(updated);
   };
 
+  const handleStartWorkout = () => {
+    if (exerciseData.length === 0) {
+      setError('Please add at least one exercise before starting');
+      return;
+    }
+    setWorkoutStarted(true);
+    setIsTimerRunning(true);
+  };
+
   const handleSubmit = async () => {
     try {
       setError(null);
@@ -293,12 +300,8 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
       });
 
       // Success feedback and navigate back
-      const durationDisplay = isStandalone
-        ? formatTime(elapsedSeconds)
-        : `${finalDuration} minutes`;
-      
       alert(
-        `Workout logged successfully!\n${routine?.name || 'Standalone Workout'}\n${durationDisplay}`
+        `Workout logged successfully!\n${routine?.name || 'Standalone Workout'}\n${formatTime(elapsedSeconds)}`
       );
       navigate(-1);
     } catch (err: any) {
@@ -352,49 +355,43 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
               </button>
               <div>
                 <h1 className="text-2xl font-semibold">
-                  {isStandalone ? 'Log Workout' : 'Log Workout'}
+                  Log Workout
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {isStandalone ? 'Real-time tracking' : routine?.name}
+                  {routine?.name || 'Real-time tracking'}
                 </p>
               </div>
-              {isStandalone && (
-                <div className="ml-auto mr-auto text-center">
-                  <div className="text-3xl font-bold font-mono text-blue-600">
-                    {formatTime(elapsedSeconds)}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsTimerRunning(!isTimerRunning)}
-                    className="mt-2"
-                  >
-                    {isTimerRunning ? (
-                      <>
-                        <Pause className="w-4 h-4 mr-1" />
-                        Pause
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 mr-1" />
-                        Resume
-                      </>
-                    )}
-                  </Button>
+              <div className="ml-auto mr-auto text-center">
+                <div className="text-3xl font-bold font-mono text-blue-600">
+                  {formatTime(elapsedSeconds)}
                 </div>
-              )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsTimerRunning(!isTimerRunning)}
+                  className="mt-2"
+                >
+                  {isTimerRunning ? (
+                    <>
+                      <Pause className="w-4 h-4 mr-1" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-1" />
+                      Resume
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
             <Button
               onClick={handleSubmit}
               variant="outline"
               disabled={isLoading}
-              className={`${
-                isStandalone
-                  ? 'bg-green-600 hover:bg-green-700'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              } text-black px-6 py-2 rounded-lg`}
+              className="bg-black-000 text-white px-6 py-2 rounded-lg"
             >
-              {isLoading ? 'Logging...' : isStandalone ? 'Finish Workout' : 'Log Workout'}
+              {isLoading ? 'Logging...' : 'Finish Workout'}
             </Button>
           </div>
         </div>
@@ -408,20 +405,24 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
             </div>
           )}
 
-          {/* Duration Input - Only for routine mode */}
-          {!isStandalone && (
-            <div className="space-y-2">
-              <Label htmlFor="duration" className="text-base font-medium">
-                Workout Duration (minutes)
-              </Label>
-              <Input
-                id="duration"
-                type="number"
-                min="1"
-                value={durationMinutes}
-                onChange={(e: any) => setDurationMinutes(parseInt(e.target.value) || 0)}
-                className="text-lg px-4 py-3 border-2 focus:border-blue-500"
-              />
+          {/* Workout Planning Phase - Before Starting */}
+          {!workoutStarted && exerciseData.length > 0 && (
+            <div className="flex flex-col gap-4">
+              <Card className="p-6 bg-blue-50 border-blue-200">
+                <h2 className="text-xl font-semibold mb-2">Ready to start?</h2>
+                <p className="text-muted-foreground mb-4">
+                  You have {exerciseData.length} exercise{exerciseData.length !== 1 ? 's' : ''} ready. 
+                  Click the button below to begin your workout and start the timer.
+                </p>
+                <Button
+                  onClick={handleStartWorkout}
+                  className="bg-blue-600 hover:bg-blue-700 text-white w-full"
+                  size="lg"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Start Workout
+                </Button>
+              </Card>
             </div>
           )}
 
@@ -430,9 +431,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
             {exerciseData.length === 0 ? (
               <div className="p-8 text-center border-2 border-dashed rounded-lg">
                 <p className="text-muted-foreground">
-                  {isStandalone
-                    ? 'No exercises added yet. Add exercises from the library on the right as you work out.'
-                    : 'No exercises added yet. Add exercises from the library on the right.'}
+                  No exercises added yet. Add exercises from the library on the right as you work out.
                 </p>
               </div>
             ) : (
@@ -601,7 +600,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
                           });
                           setExerciseData(updated);
                         }}
-                        className="text-blue-600 hover:bg-blue-50 text-sm font-medium px-2 py-1 rounded transition-colors"
+                        className="text-white hover:bg-blue-50 text-sm font-medium px-2 py-1 rounded transition-colors"
                       >
                         + Add set
                       </Button>
@@ -636,6 +635,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
                 </Button>
                 <Button
                   onClick={handleSkipRest}
+                  variant="outline"
                   className="flex-1 bg-green-600 hover:bg-green-700"
                   disabled={restTimerSeconds > 10}
                 >

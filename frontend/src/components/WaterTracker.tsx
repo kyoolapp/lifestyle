@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from './ui/badge';
 import { useUnitSystem } from '../context/UnitContext';
 import { 
@@ -238,6 +239,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const [dragStartValue, setDragStartValue] = useState(0);
+  const navigate = useNavigate();
 
   // Water conversion helpers
   const getWaterDisplayValue = (glasses: number) => {
@@ -766,8 +768,10 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   <div className="relative flex flex-col items-center mb-2">
                     
                     {/* Water Bottle SVG */}
-                    <div className="relative mx-auto" style={{ width: '220px', height: '300px' }}>
+                    <div className="relative mx-auto" style={{ width: '220px', height: '300px',cursor: 'pointer' }}>
                       <svg 
+                        onClick={() => setShowDragTumblerModal(true)}
+                    
                         viewBox="0 0 220 300" 
                         className="w-full h-full"
                         style={{ 
