@@ -105,14 +105,9 @@ export const DialogOverlay = React.forwardRef<
     ref={ref}
     data-slot="dialog-overlay"
     className={cn(
-      "fixed inset-0 z-[2147483647] bg-black pointer-events-auto",
+      "fixed inset-0 z-[2147483647] bg-black/95 pointer-events-auto",
       className
     )}
-    style={{
-      backdropFilter: "none",
-      WebkitBackdropFilter: "none",
-      mixBlendMode: "normal",
-    }}
     {...props}
   />
 ));
@@ -133,7 +128,7 @@ export const DialogContent = React.forwardRef<
     <DialogPortal>
       <div
         className={cn(
-          "fixed inset-0 z-[2147483647] isolate bg-white dark:bg-neutral-900",
+          "fixed inset-0 z-[2147483647] isolate",
           "flex items-center justify-center p-4"
         )}
         aria-modal="true"
@@ -148,11 +143,11 @@ export const DialogContent = React.forwardRef<
             "relative z-[2147483648] pointer-events-auto isolate", // Enable pointer events
             "w-full max-w-[calc(100%-2rem)] sm:max-w-2xl",
             "rounded-lg border p-6 shadow-xl",
-            "max-h-[85vh] overflow-y-auto bg-white dark:bg-neutral-900",
+            "max-h-[85vh] overflow-y-auto",
             className
           )}
           style={{
-            backgroundColor: "rgb(255, 255, 255)",
+            backgroundColor: "#ffffff",
             mixBlendMode: "normal",
             backdropFilter: "none",
             WebkitBackdropFilter: "none",
@@ -162,6 +157,11 @@ export const DialogContent = React.forwardRef<
           onClick={(e) => e.stopPropagation()}
           {...props}
         >
+          {/* Solid white background layer */}
+          <div 
+            className="absolute inset-0 bg-white rounded-lg -z-10"
+            style={{ backgroundColor: "#ffffff", opacity: 1 }}
+          />
           {/* HARD RESET: Stop any page blend/blur/opacity leakage */}
           <style
             dangerouslySetInnerHTML={{
@@ -171,8 +171,6 @@ export const DialogContent = React.forwardRef<
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
                 filter: none !important;
-                opacity: 1 !important;
-                background-color: inherit !important;
               }
               body:not(.dialog-open) * {
                 z-index: auto !important;
