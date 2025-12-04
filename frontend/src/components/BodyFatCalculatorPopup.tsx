@@ -170,18 +170,18 @@ export function BodyFatCalculatorPopup({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white text-slate-900">
         <DialogHeader>
-          <DialogTitle>Calculate Body Fat %</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-slate-900">Calculate Body Fat %</DialogTitle>
+          <DialogDescription className="text-slate-600">
             Navy Method using circumference measurements
           </DialogDescription>
         </DialogHeader>
 
         {!calculatedBodyFat ? (
-          <div className="space-y-4">
+          <div className="space-y-4 text-slate-900">
             <div className="space-y-2">
-              <Label htmlFor="height">Height ({unit})</Label>
+              <Label htmlFor="height" className="text-slate-700">Height ({unit})</Label>
               <Input
                 id="height"
                 type="number"
@@ -189,11 +189,12 @@ export function BodyFatCalculatorPopup({
                 value={height}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeight(e.target.value)}
                 disabled={isLoading || localLoading}
+                className="bg-white text-slate-900"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="neck">Neck ({unit})</Label>
+              <Label htmlFor="neck" className="text-slate-700">Neck ({unit})</Label>
               <Input
                 id="neck"
                 type="number"
@@ -201,11 +202,12 @@ export function BodyFatCalculatorPopup({
                 value={neck}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNeck(e.target.value)}
                 disabled={isLoading || localLoading}
+                className="bg-white text-slate-900"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="waist">Waist ({unit})</Label>
+              <Label htmlFor="waist" className="text-slate-700">Waist ({unit})</Label>
               <Input
                 id="waist"
                 type="number"
@@ -213,12 +215,13 @@ export function BodyFatCalculatorPopup({
                 value={waist}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaist(e.target.value)}
                 disabled={isLoading || localLoading}
+                className="bg-white text-slate-900"
               />
             </div>
 
             {isFemale && (
               <div className="space-y-2">
-                <Label htmlFor="hip">Hip ({unit})</Label>
+                <Label htmlFor="hip" className="text-slate-700">Hip ({unit})</Label>
                 <Input
                   id="hip"
                   type="number"
@@ -226,6 +229,7 @@ export function BodyFatCalculatorPopup({
                   value={hip}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHip(e.target.value)}
                   disabled={isLoading || localLoading}
+                  className="bg-white text-slate-900"
                 />
               </div>
             )}

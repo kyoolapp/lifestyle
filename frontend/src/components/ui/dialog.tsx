@@ -144,10 +144,12 @@ export const DialogContent = React.forwardRef<
             "w-full max-w-[calc(100%-2rem)] sm:max-w-2xl",
             "rounded-lg border p-6 shadow-xl",
             "max-h-[85vh] overflow-y-auto",
+            "bg-white text-slate-900",
             className
           )}
           style={{
             backgroundColor: "#ffffff",
+            color: "#0f172a",
             mixBlendMode: "normal",
             backdropFilter: "none",
             WebkitBackdropFilter: "none",
@@ -166,17 +168,19 @@ export const DialogContent = React.forwardRef<
           <style
             dangerouslySetInnerHTML={{
               __html: `
-              .ka-dialog-root, .ka-dialog-root * {
+              .ka-dialog-root {
+                pointer-events: auto !important;
+              }
+              .ka-dialog-root *, .ka-dialog-root input, .ka-dialog-root button {
                 mix-blend-mode: normal !important;
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
                 filter: none !important;
+                color: inherit !important;
+                pointer-events: auto !important;
               }
-              body:not(.dialog-open) * {
-                z-index: auto !important;
-              }
-              body.dialog-open *:not(.ka-dialog-root) {
-                z-index: 0 !important;
+              body.dialog-open > *:not([role="dialog"]) {
+                pointer-events: none;
               }
               `,
             }}
