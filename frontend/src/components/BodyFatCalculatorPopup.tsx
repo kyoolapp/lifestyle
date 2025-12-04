@@ -296,7 +296,10 @@ export function BodyFatCalculatorPopup({
             <DialogFooter className="gap-2">
               <Button
                 variant="outline"
-                onClick={() => setCalculatedBodyFat(null)}
+                onClick={() => {
+                  setCalculatedBodyFat(null);
+                  setError('');
+                }}
                 disabled={isLoading || localLoading}
               >
                 Recalculate
