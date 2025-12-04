@@ -180,7 +180,11 @@ export const DialogContent = React.forwardRef<
                 pointer-events: auto !important;
               }
               body.dialog-open > *:not([role="dialog"]) {
-                pointer-events: none;
+                pointer-events: none !important;
+                user-select: none !important;
+              }
+              body.dialog-open [role="dialog"] {
+                z-index: 2147483647 !important;
               }
               `,
             }}
