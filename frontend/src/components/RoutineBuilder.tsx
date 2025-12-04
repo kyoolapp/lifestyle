@@ -187,7 +187,7 @@ export function RoutineBuilder({ onClose }: RoutineBuilderProps) {
   };
 
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-screen bg-background">
       {/* Main Content */}
       <div className="flex-1 overflow-auto flex flex-col">
         {/* Header */}

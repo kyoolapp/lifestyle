@@ -112,11 +112,11 @@ export function ExerciseLibrary({ onAddExercise, selectedExercises = [], showDet
     <>
       {showDetailsView ? (
         // Split view: Details on left, exercises list on right
-        <div className="flex h-full gap-6">
+        <div className="flex h-full gap-6 p-6">
           {/* Main Content - Exercise Details */}
           <div className="flex-1 overflow-auto">
             {selectedExerciseDetail ? (
-              <div className="space-y-6">
+              <div className="space-y-6 pr-4">
                 {/* Exercise Header */}
                 <div>
                   <h1 className="text-3xl font-bold capitalize">

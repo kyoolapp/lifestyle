@@ -470,21 +470,23 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
   // NOTE: Removed startWorkoutExecution and related execution mode functions - these referenced deleted mock routines state
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="h-full flex flex-col">
+      <div className="p-6 border-b">
         <h1 className="text-3xl font-semibold">Fitness Tracker</h1>
         <p className="text-muted-foreground mt-1">Track workouts, exercises, and fitness goals</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="routines">Routines</TabsTrigger>
-          <TabsTrigger value="exercises">Exercises</TabsTrigger>
-          <TabsTrigger value="achievements">Achievements</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-6 pt-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="routines">Routines</TabsTrigger>
+            <TabsTrigger value="exercises">Exercises</TabsTrigger>
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Hero Card - Next Workout or Congratulations */}
             {workoutCompletedToday ? (
@@ -806,7 +808,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
           </div>
         </TabsContent>
 
-        <TabsContent value="routines" className="space-y-6">
+        <TabsContent value="routines" className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-semibold">Workout Routines</h2>
@@ -984,12 +986,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
           {/* REMOVED: Legacy Library Routines section - this was mock data with hardcoded Push Day/Pull Day routines */}
         </TabsContent>
 
-        <TabsContent value="exercises" className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-semibold">Exercise Library</h2>
-            <p className="text-muted-foreground">Browse exercises from our comprehensive database</p>
-          </div>
-
+        <TabsContent value="exercises" className="flex-1 overflow-hidden">
           <ExerciseLibrary 
             showDetailsView={true}
             onAddExercise={(exercise) => {
@@ -999,7 +996,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
           />
         </TabsContent>
 
-        <TabsContent value="achievements" className="space-y-6">
+        <TabsContent value="achievements" className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
           <div>
             <h2 className="text-2xl font-semibold">Achievements</h2>
             <p className="text-muted-foreground">Track your fitness milestones and accomplishments</p>
