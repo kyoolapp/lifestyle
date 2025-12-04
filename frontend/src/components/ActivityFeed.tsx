@@ -370,7 +370,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
 
   const quickStats = [
     { label: "Today's Steps", value: todaySteps != null ? String(todaySteps) : '0', change: '+0%', icon: Activity, color: 'text-blue-500' },
-    { label: 'Water Intake', value: `${waterIntake}/${waterGoal}`, change: `${Math.round((waterIntake / waterGoal) * 100)}%`, icon: Droplets, color: 'text-cyan-500' },
+    { label: 'Water Intake', value: `${waterIntake.toFixed(2)}/${waterGoal.toFixed(2)}`, change: `${Math.round((waterIntake / waterGoal) * 100)}%`, icon: Droplets, color: 'text-cyan-500' },
     { label: "Today's Calories", value: todayCalories != null ? String(todayCalories) : '0', change: '+0%', icon: Target, color: 'text-blue-500' },
     { label: 'Active Friends', value: String(activeFriendsCount), change: activeFriendsCount > 0 ? `+${activeFriendsCount}` : '+0', icon: Users, color: 'text-purple-500' }
   ];
