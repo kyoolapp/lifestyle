@@ -9,10 +9,11 @@ import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
-import { Heart, Scale, Calculator, TrendingUp, Activity } from 'lucide-react';
+import { Heart, Scale, Calculator, TrendingUp, Activity, Edit } from 'lucide-react';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 import { BodyFatCalculatorPopup } from './BodyFatCalculatorPopup';
 import { useBodyFat } from '../hooks/useBodyFat';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 interface HealthMetricsProps {
   user: any;
@@ -24,6 +25,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   const { unitSystem } = useUnitSystem();
   const [weightLogs, setWeightLogs] = useState([]);
   const [bodyFatPopupOpen, setBodyFatPopupOpen] = useState(false);
+  const [weightDialogOpen, setWeightDialogOpen] = useState(false);
   const { bodyFat, logBodyFat, loading: bodyFatLoading } = useBodyFat(user.id, true);
   const [metrics, setMetrics] = useState({
     height: user.height,
@@ -173,110 +175,65 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
       </div>
 
       {/* Input Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <Calculator className="w-4 h-4 md:w-5 md:h-5" />
-            Update Your Metrics
+      <div className="max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between text-lg md:text-xl">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-4 h-4 md:w-5 md:h-5" />
+                Update Your Metrics
+              </div>
+              <Dialog open={weightDialogOpen} onOpenChange={setWeightDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Edit className="w-4 h-4" />
+                  Update Weight
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Weight</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label htmlFor="dialog-weight">Weight ({unitSystem === 'metric' ? 'kg' : 'lbs'})</Label>
+                    <Input
+                      id="dialog-weight"
+                      type="number"
+                      step="0.1"
+                      value={displayWeight}
+                      onChange={(e) => {
+                        const displayValue = parseFloat(e.target.value) || 0;
+                        setDisplayWeight(displayValue);
+                        const metricValue = unitSystem === 'metric' ? displayValue : weightConversions.displayToDb(displayValue, 'imperial');
+                        setMetrics({ ...metrics, weight: metricValue });
+                      }}
+                    />
+                  </div>
+                  <Button 
+                    variant="destructive"
+                    onClick={async () => {
+                      await handleSave();
+                      setWeightDialogOpen(false);
+                    }} 
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  {error && <div className="text-red-500 text-sm">{error}</div>}
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 md:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {unitSystem === 'metric' ? (
-              <div>
-                <Label htmlFor="height">Height (cm)</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  step="0.1"
-                  value={displayHeight}
-                  onChange={(e) => {
-                    const cmValue = parseFloat(e.target.value) || 0;
-                    setDisplayHeight(cmValue);
-                    setMetrics({ ...metrics, height: cmValue });
-                  }}
-                />
-              </div>
-            ) : (
-              <>
-                <div>
-                  <Label htmlFor="height-feet">Height - Feet</Label>
-                  <Input
-                    id="height-feet"
-                    type="number"
-                    min={3}
-                    max={8}
-                    placeholder="Feet"
-                    value={displayHeightFeet}
-                    onChange={(e) => {
-                      const feet = parseFloat(e.target.value) || 0;
-                      setDisplayHeightFeet(feet);
-                      const cmValue = heightConversions.displayToDb(0, 'imperial', feet, displayHeightInches);
-                      setMetrics({ ...metrics, height: cmValue });
-                    }}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="height-inches">Height - Inches</Label>
-                  <Input
-                    id="height-inches"
-                    type="number"
-                    min={0}
-                    max={11}
-                    placeholder="Inches"
-                    value={displayHeightInches}
-                    onChange={(e) => {
-                      const inches = parseFloat(e.target.value) || 0;
-                      setDisplayHeightInches(inches);
-                      const cmValue = heightConversions.displayToDb(0, 'imperial', displayHeightFeet, inches);
-                      setMetrics({ ...metrics, height: cmValue });
-                    }}
-                  />
-                </div>
-              </>
-            )}
-            <div>
-              <Label htmlFor="weight">Weight ({unitSystem === 'metric' ? 'kg' : 'lbs'})</Label>
-              <Input
-                id="weight"
-                type="number"
-                step="0.1"
-                value={displayWeight}
-                onChange={(e) => {
-                  const displayValue = parseFloat(e.target.value) || 0;
-                  setDisplayWeight(displayValue);
-                  // Convert to metric for storage in metrics state
-                  const metricValue = unitSystem === 'metric' ? displayValue : weightConversions.displayToDb(displayValue, 'imperial');
-                  setMetrics({ ...metrics, weight: metricValue });
-                }}
-              />
-            </div>
-            <div>
-              <Label htmlFor="age">Age</Label>
-              <Input
-                id="age"
-                type="number"
-                value={metrics.age}
-                onChange={(e) => setMetrics({ ...metrics, age: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            {/*<div>
-              <Label htmlFor="bodyFat">Body Fat (%)</Label>
-              <Input
-                id="bodyFat"
-                type="number"
-                value={metrics.bodyFat}
-                onChange={(e) => setMetrics({ ...metrics, bodyFat: parseFloat(e.target.value) || 0 })}
-              />
-            </div>*/}
+          <div className="text-center py-3 text-muted-foreground text-sm">
+            Click "Update Weight" to log your current weight
           </div>
-          <Button type="button" onClick={handleSave} className="mt-4" disabled={loading}>
-            {loading ? 'Saving...' : 'Save Changes'}
-          </Button>
-        
-          {error && <div className="text-red-500 mt-2">{error}</div>}
         </CardContent>
       </Card>
+      </div>
 
       {/* Calculated Metrics */}
       {/* Weight Progress Graph */}
