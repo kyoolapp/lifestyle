@@ -1021,6 +1021,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
               <h3 className="font-semibold text-slate-700 mb-2">No Routines Yet</h3>
               <p className="text-slate-500 text-sm mb-4">Create your first routine to get started</p>
               <Button 
+                variant="destructive"
                 onClick={() => {
                   setIsRoutineSelectOpen(false);
                   navigate('/routine/new');
@@ -1053,6 +1054,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                       )}
                     </div>
                     <Button 
+                      variant="destructive"
                       size="sm" 
                       className="w-full mt-4 gap-2"
                       onClick={(e: React.MouseEvent) => {
@@ -1087,6 +1089,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
               <h3 className="font-semibold text-slate-700 mb-2">No Routines Yet</h3>
               <p className="text-slate-500 text-sm mb-4">Create routines first to set up your weekly schedule</p>
               <Button 
+                variant="destructive"
                 onClick={() => {
                   setIsScheduleDialogOpen(false);
                   navigate('/routine/new');
@@ -1132,7 +1135,6 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                 ))}
               </div>
               <Button 
-              variant="outline"
                 onClick={() => setIsScheduleDialogOpen(false)}
                 className="w-full mt-6"
               >
