@@ -1265,7 +1265,42 @@ class FirestoreUserService:
             except Exception as e:
                 print(f"Error fetching friend activities: {e}")
             
-            # ===== 4. STREAK ACTIVITIES =====
+            # ===== 4. WORKOUT ACTIVITIES =====
+            try:
+                activities_ref = db.collection('users').document(user_id).collection('activities')
+                activities_docs = activities_ref.limit(50).stream()
+                
+                for activity_doc in activities_docs:
+                    activity_data = activity_doc.to_dict()
+                    activity_type = activity_data.get('type', '')
+                    
+                    if activity_type == 'workout':
+                        routine_name = activity_data.get('routine_name', 'Workout')
+                        exercises_count = activity_data.get('exercises_count', 0)
+                        duration_minutes = activity_data.get('duration_minutes', 0)
+                        calories_burned = activity_data.get('calories_burned', 0)
+                        timestamp = activity_data.get('timestamp', '')
+                        
+                        if timestamp:
+                            # Format description
+                            exercises_word = 'exercise' if exercises_count == 1 else 'exercises'
+                            description = f'{exercises_count} {exercises_word}, {duration_minutes}m, {int(calories_burned)} cal'
+                            
+                            activities.append({
+                                'type': 'fitness',
+                                'title': f'You completed {routine_name}',
+                                'description': description,
+                                'timestamp': timestamp,
+                                'user': {
+                                    'name': user_name,
+                                    'avatar': user_avatar
+                                },
+                                'icon_type': 'workout'
+                            })
+            except Exception as e:
+                print(f"Error fetching workout activities: {e}")
+            
+            # ===== 5. STREAK ACTIVITIES =====
             try:
                 streaks_ref = db.collection('users').document(user_id).collection('streaks')
                 streaks = streaks_ref.stream()
@@ -1300,7 +1335,7 @@ class FirestoreUserService:
             except Exception as e:
                 print(f"Error fetching streak activities: {e}")
             
-            # ===== 5. SORT BY TIMESTAMP AND LIMIT =====
+            # ===== 6. SORT BY TIMESTAMP AND LIMIT =====
             # Convert all timestamps to ISO strings for consistent sorting
             activities_with_normalized_timestamps = []
             for activity in activities:

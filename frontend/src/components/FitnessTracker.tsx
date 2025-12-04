@@ -496,32 +496,16 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Badge className="bg-green-500 hover:bg-green-700 text-white text-xs">DONE FOR TODAY</Badge>
-                      <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                      <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
                     </div>
-                    <h3 className="text-4xl text-green-300 font-bold mb-2">Congrats! 🎉</h3>
-                    <p className="text-slate-100 text-lg mb-2 font-semibold">
+                    <h3 className="text-4xl text-slate-900 font-bold mb-2">Congrats! 🎉</h3>
+                    <p className="text-slate-700 text-lg mb-2 font-semibold">
                       You've completed today's workout!
                     </p>
-                    <p className="text-slate-200 text-sm">
+                    <p className="text-slate-500 text-sm">
                       {completedWorkoutName && `Great job on finishing ${completedWorkoutName}!`}
                       Keep up the amazing consistency!
                     </p>
-                  </div>
-                  <div className="mt-6 flex gap-3">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      onClick={async () => {
-                        // Refresh consistency one more time before dismissing
-                        await refreshConsistency();
-                        setWorkoutCompletedToday(false);
-                        setCompletedWorkoutName('');
-                      }}
-                      className="bg-white hover:bg-slate-100 text-slate-900 font-semibold gap-2 shadow-lg"
-                    >
-                      <Check className="w-5 h-5 fill-slate-900" />
-                      Awesome!
-                    </Button>
                   </div>
                 </div>
               </div>

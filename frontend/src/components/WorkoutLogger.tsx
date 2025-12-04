@@ -326,6 +326,16 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
         timestamp: new Date().toISOString()
       }));
 
+      // Dispatch event for ActivityFeed to refresh
+      window.dispatchEvent(new CustomEvent('workoutCompleted', {
+        detail: {
+          userId: user.uid,
+          workoutName: routine?.name || 'Standalone Workout',
+          duration: finalDuration,
+          timestamp: new Date().toISOString()
+        }
+      }));
+
       // Success feedback and navigate back
       alert(
         `Workout logged successfully!\n${routine?.name || 'Standalone Workout'}\n${formatTime(elapsedSeconds)}`
