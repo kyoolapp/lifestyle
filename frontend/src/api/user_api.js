@@ -76,6 +76,19 @@ export async function createOrUpdateUser(userId, userData) {
   return res.json();
 }
 
+export async function updateUser(userId, userData) {
+  const res = await fetch(`${BASE_URL}/users/${userId}`, {
+    method: "PUT",  // Use PUT for updates
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || 'Failed to update user');
+  }
+  return res.json();
+}
+
 export async function getUser(userId) {
   const res = await fetch(`${BASE_URL}/users/${userId}`);
   return res.json();

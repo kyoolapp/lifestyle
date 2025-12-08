@@ -88,6 +88,22 @@ function AppRoutes() {
   // Initialize user heartbeat to track online status
   useUserHeartbeat();
 
+  // Persist current location to localStorage whenever it changes
+  useEffect(() => {
+    // Don't persist login/signup/landing pages
+    if (!["/", "/login", "/signup"].includes(location.pathname)) {
+      sessionStorage.setItem('lastLocation', location.pathname + location.search + location.hash);
+    }
+  }, [location.pathname, location.search, location.hash]);
+
+  // Restore location on app load
+  useEffect(() => {
+    const lastLocation = sessionStorage.getItem('lastLocation');
+    if (isAuthenticated && isAppUser && lastLocation && location.pathname === '/dashboard') {
+      navigate(lastLocation);
+    }
+  }, [isAuthenticated, isAppUser]); // Only run once after auth is ready
+
   // ===== Home (Landing) from old App.tsx =====
   const features = [
     {
@@ -633,14 +649,19 @@ function AppRoutes() {
     }
   }, [location.pathname]);
 
-  // After login + backend check, go to dashboard if on /, /login, or /signup
+  // After login + backend check, go to last location or dashboard if on /, /login, or /signup
   useEffect(() => {
     if (
       isAuthenticated &&
       isAppUser &&
       ["/", "/login", "/signup"].includes(location.pathname)
     ) {
-      navigate("/dashboard");
+      const lastLocation = sessionStorage.getItem('lastLocation');
+      if (lastLocation) {
+        navigate(lastLocation);
+      } else {
+        navigate("/dashboard");
+      }
     }
   }, [isAuthenticated, isAppUser, location.pathname, navigate]);
 

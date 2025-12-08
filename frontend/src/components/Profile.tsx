@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
-import { createOrUpdateUser, getUserOnlineStatus, getUserFriends } from '../api/user_api';
+import { createOrUpdateUser, updateUser, getUserOnlineStatus, getUserFriends } from '../api/user_api';
 import { useUnitSystem } from '../context/UnitContext';
 import { weightConversions, heightConversions } from '../utils/unitConversion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -353,7 +353,11 @@ export function Profile({ user, setUser }: ProfileProps) {
         <p className="text-muted-foreground mt-1 text-sm md:text-base">Manage your account and view your health journey</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+      <Tabs value={activeTab} onValueChange={(newTab: string) => {
+        setActiveTab(newTab);
+        // Update URL to persist the tab selection
+        navigate(`?tab=${newTab}`, { replace: true });
+      }} className="space-y-4 md:space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="text-xs md:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="goals" className="text-xs md:text-sm">Goals</TabsTrigger>
@@ -1262,9 +1266,9 @@ export function Profile({ user, setUser }: ProfileProps) {
                         // Update unit system in context (this persists to database and localStorage)
                         await setUnitSystem(newUnit);
                         
-                        // Update user in backend with new unit_system
+                        // Update user in backend with new unit_system using PUT
                         const updatedUser = { ...user, unit_system: newUnit };
-                        await createOrUpdateUser(user.id || user.uid, updatedUser);
+                        await updateUser(user.id || user.uid, updatedUser);
                         
                         // Update local user state
                         setUser(updatedUser);
