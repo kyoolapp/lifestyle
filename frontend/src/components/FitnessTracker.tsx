@@ -16,7 +16,7 @@ import { EmojiMoodSelector } from './EmojiMoodSelector';
 import { WorkoutEditor } from './WorkoutEditor';
 import { ExerciseLibrary } from './ExerciseLibrary';
 import { getRoutines, saveRoutine, deleteRoutine as deleteRoutineApi, saveSchedule, getSchedule } from '../api/routines_api';
-import { logWorkout, getWorkoutConsistency, checkTodayWorkout } from '../api/workouts_api';
+import { logWorkout, getWorkoutConsistency, checkTodayWorkout, checkAndSaveWeeklyProgress, getWeeklyWorkoutHistory } from '../api/workouts_api';
 import { auth } from '../firebase';
 import { 
   Dumbbell, 
@@ -130,6 +130,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [workoutCompletedToday, setWorkoutCompletedToday] = useState(false);
   const [completedWorkoutName, setCompletedWorkoutName] = useState('');
+  const [weeklyHistory, setWeeklyHistory] = useState<any[]>([]);
   
   // Temporary routine selection (resets at midnight)
   const [temporaryRoutineForToday, setTemporaryRoutineForToday] = useState<any>(null);
@@ -203,6 +204,18 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
             setConsistencyLifetime(consistencyData.data.lifetime_consistency || 0);
             setCurrentStreak(consistencyData.data.current_streak || 0);
             setConsistencyDailyBreakdown(consistencyData.data.daily_breakdown || []);
+            
+            // Check if today is a rest day or has a completed workout
+            const today = new Date().toLocaleDateString('en-US');
+            const todayData = consistencyData.data.daily_breakdown.find((day: any) => {
+              const dayDate = new Date(day.date).toLocaleDateString('en-US');
+              return dayDate === today;
+            });
+            
+            if (todayData && todayData.status === 'rest') {
+              setWorkoutCompletedToday(true);
+              setCompletedWorkoutName('Rest Day');
+            }
           }
         } catch (error) {
           console.error('Error loading workout consistency:', error);
@@ -222,6 +235,26 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
           }
         } catch (error) {
           console.error('Error checking today workout status:', error);
+        }
+
+        // Check and save weekly progress if it's Monday
+        try {
+          const weeklyResult = await checkAndSaveWeeklyProgress(user.uid);
+          if (weeklyResult && weeklyResult.data && weeklyResult.data.saved) {
+            console.log('Weekly progress saved:', weeklyResult.data);
+          }
+        } catch (error) {
+          console.error('Error checking weekly progress:', error);
+        }
+
+        // Load weekly history
+        try {
+          const historyResult = await getWeeklyWorkoutHistory(user.uid, 12);
+          if (historyResult && historyResult.data) {
+            setWeeklyHistory(historyResult.data);
+          }
+        } catch (error) {
+          console.error('Error loading weekly history:', error);
         }
       } catch (error) {
         console.error('Error loading routines:', error);
@@ -268,8 +301,16 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
     const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     
     if (weeklySchedule[dayOfWeek]) {
-      const scheduledRoutineId = weeklySchedule[dayOfWeek];
-      const routine = savedRoutines.find(r => r.id === scheduledRoutineId);
+      const scheduledValue = weeklySchedule[dayOfWeek];
+      
+      // If it's a rest day, don't set a workout
+      if (scheduledValue === 'rest') {
+        setNextWorkout(null);
+        return;
+      }
+      
+      // Otherwise, it's a routine ID
+      const routine = savedRoutines.find(r => r.id === scheduledValue);
       setNextWorkout(routine || null);
     } else {
       setNextWorkout(null);
@@ -297,7 +338,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
         setCurrentStreak(consistencyData.data.current_streak || 0);
         setConsistencyDailyBreakdown(consistencyData.data.daily_breakdown || []);
         
-        // Check if today has a completed workout
+        // Check if today has a completed workout or is a rest day
         const today = new Date().toLocaleDateString('en-US');
         const todayData = consistencyData.data.daily_breakdown.find((day: any) => {
           const dayDate = new Date(day.date).toLocaleDateString('en-US');
@@ -305,9 +346,13 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
         });
         
         console.log('Today data:', todayData);
-        if (todayData && (todayData.status === 'completed' || todayData.completed)) {
-          console.log('Workout completed today detected!');
+        if (todayData && (todayData.status === 'completed' || todayData.status === 'rest' || todayData.completed)) {
+          console.log('Workout completed or rest day today detected!');
           setWorkoutCompletedToday(true);
+          // Set appropriate message for rest day
+          if (todayData.status === 'rest') {
+            setCompletedWorkoutName('Rest Day');
+          }
         }
       }
     } catch (error) {
@@ -412,6 +457,19 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
       setWeeklySchedule(newSchedule);
       const result = await saveSchedule(user.uid, newSchedule);
       console.log('Schedule saved successfully:', result);
+      
+      // Refresh consistency data to update the card with new rest day information
+      try {
+        const consistencyData = await getWorkoutConsistency(user.uid, 7);
+        if (consistencyData && consistencyData.data) {
+          setConsistency7day(consistencyData.data.consistency_7day || 0);
+          setConsistencyLifetime(consistencyData.data.lifetime_consistency || 0);
+          setCurrentStreak(consistencyData.data.current_streak || 0);
+          setConsistencyDailyBreakdown(consistencyData.data.daily_breakdown || []);
+        }
+      } catch (error) {
+        console.error('Error refreshing consistency data after schedule save:', error);
+      }
     } catch (error) {
       console.error('Error saving schedule:', error);
       alert('Failed to save schedule: ' + (error instanceof Error ? error.message : String(error)));
@@ -500,14 +558,28 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                       <Badge className="bg-green-500 hover:bg-green-700 text-white text-xs">DONE FOR TODAY</Badge>
                       <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
                     </div>
-                    <h3 className="text-4xl text-slate-900 font-bold mb-2">Congrats! 🎉</h3>
-                    <p className="text-slate-700 text-lg mb-2 font-semibold">
-                      You've completed today's workout!
-                    </p>
-                    <p className="text-slate-500 text-sm">
-                      {completedWorkoutName && `Great job on finishing ${completedWorkoutName}!`}
-                      Keep up the amazing consistency!
-                    </p>
+                    {completedWorkoutName === 'Rest Day' ? (
+                      <>
+                        <h3 className="text-4xl text-slate-900 font-bold mb-2">Rest Well! 😴</h3>
+                        <p className="text-slate-700 text-lg mb-2 font-semibold">
+                          Today is your rest day
+                        </p>
+                        <p className="text-slate-500 text-sm">
+                          Recovery is part of the journey. Come back refreshed tomorrow!
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-4xl text-slate-900 font-bold mb-2">Congrats! 🎉</h3>
+                        <p className="text-slate-700 text-lg mb-2 font-semibold">
+                          You've completed today's workout!
+                        </p>
+                        <p className="text-slate-500 text-sm">
+                          {completedWorkoutName && `Great job on finishing ${completedWorkoutName}!`}
+                          Keep up the amazing consistency!
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -626,10 +698,11 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                 </div>
               </div>
 
-              {/* Daily Breakdown with correct order (past 3, today, future 3) */}
+              {/* Daily Breakdown - Fixed Weekly View (Monday through Sunday) */}
               <div className="flex justify-between items-center gap-1 mb-6">
                 {consistencyDailyBreakdown.length > 0 ? (
-                  consistencyDailyBreakdown.map((dayData: any, idx: number) => {
+                  // Sort by date to ensure Monday-Sunday order
+                  [...consistencyDailyBreakdown].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((dayData: any, idx: number) => {
                     const status = dayData.status || (dayData.completed ? 'completed' : 'missed');
                     let bgClass, icon, title;
                     switch (status) {
@@ -643,6 +716,11 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                         icon = <X className="w-4 h-4" />;
                         title = `${dayData.date}: Missed workout ✗`;
                         break;
+                      case 'rest':
+                        bgClass = 'bg-blue-100 border-blue-200 text-blue-600';
+                        icon = <Check className="w-4 h-4" />;
+                        title = `${dayData.date}: Rest day ✓`;
+                        break;
                       case 'pending':
                       default:
                         bgClass = 'bg-slate-100 border-slate-200 text-slate-400';
@@ -652,7 +730,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                     }
                     
                     return (
-                      <div key={idx} className="flex flex-col items-center gap-2">
+                      <div key={dayData.date} className="flex flex-col items-center gap-2">
                         <div 
                           className={`w-8 h-8 rounded-full border flex items-center justify-center ${bgClass}`}
                           title={title}
@@ -834,64 +912,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
             </div>
           </div>
 
-          {/* Weekly Schedule Card */}
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  <CardTitle>Weekly Schedule</CardTitle>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => setIsScheduleDialogOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Edit3 className="w-4 h-4 mr-1" />
-                  {Object.keys(weeklySchedule).length > 0 ? 'Update' : 'Create'} Schedule
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {Object.keys(weeklySchedule).length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    No schedule yet. Create one to organize your weekly workouts.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsScheduleDialogOpen(true)}
-                    className="gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create Schedule
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
-                    const routineId = weeklySchedule[day.toLowerCase()];
-                    const routine = savedRoutines.find(r => r.id === routineId);
-                    
-                    return (
-                      <div key={day} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-700">{day}</p>
-                          {routine ? (
-                            <p className="text-sm text-blue-600 font-medium">{routine.name}</p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground italic">No workout</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+          
           {/* Saved Routines */}
           {loadingRoutines ? (
             <div className="text-center py-8">
@@ -908,6 +929,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                 <Button 
                   onClick={() => navigate('/routine/new')}
                   className="gap-2"
+                  variant="outline"
                 >
                   <Plus className="w-4 h-4" />
                   Create First Routine
@@ -983,6 +1005,65 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
             </div>
           )}
 
+          {/* Weekly Schedule Card */}
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <CardTitle>Weekly Schedule</CardTitle>
+                </div>
+                <Button
+                  size="sm"
+                  variant = "outline"
+                  onClick={() => setIsScheduleDialogOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Edit3 className="w-4 h-4 mr-1" />
+                  {Object.keys(weeklySchedule).length > 0 ? 'Update' : 'Create'} Schedule
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {Object.keys(weeklySchedule).length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No schedule yet. Create one to organize your weekly workouts.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsScheduleDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Schedule
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                    const routineId = weeklySchedule[day.toLowerCase()];
+                    const routine = savedRoutines.find(r => r.id === routineId);
+                    
+                    return (
+                      <div key={day} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-700">{day}</p>
+                          {routine ? (
+                            <p className="text-sm text-blue-600 font-medium">{routine.name}</p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">No workout</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* REMOVED: Legacy Library Routines section - this was mock data with hardcoded Push Day/Pull Day routines */}
         </TabsContent>
 
@@ -1021,7 +1102,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
               <h3 className="font-semibold text-slate-700 mb-2">No Routines Yet</h3>
               <p className="text-slate-500 text-sm mb-4">Create your first routine to get started</p>
               <Button 
-                variant="destructive"
+                variant="outline"
                 onClick={() => {
                   setIsRoutineSelectOpen(false);
                   navigate('/routine/new');
@@ -1089,7 +1170,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
               <h3 className="font-semibold text-slate-700 mb-2">No Routines Yet</h3>
               <p className="text-slate-500 text-sm mb-4">Create routines first to set up your weekly schedule</p>
               <Button 
-                variant="destructive"
+                variant="outline"
                 onClick={() => {
                   setIsScheduleDialogOpen(false);
                   navigate('/routine/new');
@@ -1108,12 +1189,12 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                     <Label className="text-sm font-semibold">{day}</Label>
                     <Select
                       value={weeklySchedule[day.toLowerCase()] || 'none'}
-                      onValueChange={(routineId: string) => {
+                      onValueChange={(value: string) => {
                         const newSchedule = { ...weeklySchedule };
-                        if (routineId && routineId !== 'none') {
-                          newSchedule[day.toLowerCase()] = routineId;
+                        if (value && value !== 'none') {
+                          newSchedule[day.toLowerCase()] = value;
                         } else {
-                          // Set to empty string instead of deleting, so Firestore will update the field
+                          // Set to empty string for unscheduled days
                           newSchedule[day.toLowerCase()] = '';
                         }
                         handleSaveSchedule(newSchedule);
@@ -1124,6 +1205,9 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">No workout</SelectItem>
+                        <SelectItem value="rest" className="text-blue-600 font-semibold">
+                          🔵 Rest Day
+                        </SelectItem>
                         {savedRoutines.map((routine) => (
                           <SelectItem key={routine.id} value={routine.id}>
                             {routine.name}
@@ -1135,6 +1219,7 @@ export function FitnessTracker({ selectedWorkout, onWorkoutComplete }: FitnessTr
                 ))}
               </div>
               <Button 
+                variant="outline"
                 onClick={() => setIsScheduleDialogOpen(false)}
                 className="w-full mt-6"
               >

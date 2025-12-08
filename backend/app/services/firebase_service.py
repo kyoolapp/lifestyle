@@ -1267,36 +1267,37 @@ class FirestoreUserService:
             
             # ===== 4. WORKOUT ACTIVITIES =====
             try:
-                activities_ref = db.collection('users').document(user_id).collection('activities')
-                activities_docs = activities_ref.limit(50).stream()
+                workouts_ref = db.collection('users').document(user_id).collection('workouts')
+                workouts_docs = list(workouts_ref.stream())
                 
-                for activity_doc in activities_docs:
-                    activity_data = activity_doc.to_dict()
-                    activity_type = activity_data.get('type', '')
+                # Sort by document ID (date) in reverse order (newest first)
+                workouts_docs.sort(key=lambda x: x.id, reverse=True)
+                
+                for workout_doc in workouts_docs[:50]:  # Limit to 50 most recent
+                    workout_data = workout_doc.to_dict()
+                    routine_name = workout_data.get('routine_name', 'Workout')
+                    exercises_count = workout_data.get('exercises_completed', [])
+                    exercises_count = len(exercises_count) if exercises_count else 0
+                    duration_minutes = workout_data.get('duration_minutes', 0)
+                    calories_burned = workout_data.get('calories_burned', 0)
+                    timestamp = workout_data.get('created_at', '')
                     
-                    if activity_type == 'workout':
-                        routine_name = activity_data.get('routine_name', 'Workout')
-                        exercises_count = activity_data.get('exercises_count', 0)
-                        duration_minutes = activity_data.get('duration_minutes', 0)
-                        calories_burned = activity_data.get('calories_burned', 0)
-                        timestamp = activity_data.get('timestamp', '')
+                    if timestamp:
+                        # Format description
+                        exercises_word = 'exercise' if exercises_count == 1 else 'exercises'
+                        description = f'{exercises_count} {exercises_word}, {int(duration_minutes)}m, {int(calories_burned)} cal'
                         
-                        if timestamp:
-                            # Format description
-                            exercises_word = 'exercise' if exercises_count == 1 else 'exercises'
-                            description = f'{exercises_count} {exercises_word}, {duration_minutes}m, {int(calories_burned)} cal'
-                            
-                            activities.append({
-                                'type': 'fitness',
-                                'title': f'You completed {routine_name}',
-                                'description': description,
-                                'timestamp': timestamp,
-                                'user': {
-                                    'name': user_name,
-                                    'avatar': user_avatar
-                                },
-                                'icon_type': 'workout'
-                            })
+                        activities.append({
+                            'type': 'fitness',
+                            'title': f'You completed {routine_name}',
+                            'description': description,
+                            'timestamp': timestamp,
+                            'user': {
+                                'name': user_name,
+                                'avatar': user_avatar
+                            },
+                            'icon_type': 'workout'
+                        })
             except Exception as e:
                 print(f"Error fetching workout activities: {e}")
             
@@ -1445,7 +1446,8 @@ class FirestoreUserService:
     def log_workout(self, user_id: str, routine_name: str, exercises_completed: list, 
                    duration_minutes: float, shared_with: list = None) -> dict:
         """
-        Log a completed workout for the user and create activity entries for selected friends.
+        Log a completed workout for the user using date as the document ID.
+        One workout per day maximum (updates if already logged today).
         
         Args:
             user_id: The user's Firebase ID
@@ -1461,12 +1463,22 @@ class FirestoreUserService:
             shared_with = []
         
         try:
+            # Get user's timezone for accurate date
+            user_doc = db.collection('users').document(user_id).get()
+            user_data = user_doc.to_dict() if user_doc.exists else {}
+            user_tz = user_data.get('timezone', 'UTC')
+            
+            # Get today's date in user's timezone
+            today_local_dt = get_user_local_datetime(user_tz)
+            today_local = today_local_dt.date()
+            today_str = today_local.strftime('%Y-%m-%d')
+            
             now_utc_iso = get_utc_now_iso()
             
             # Calculate calories burned
             calories_burned = self.calculate_calories_burned(user_id, exercises_completed, duration_minutes)
             
-            # Create workout document
+            # Create workout document with date as ID
             workout_data = {
                 'routine_name': routine_name,
                 'exercises_completed': exercises_completed,
@@ -1476,38 +1488,15 @@ class FirestoreUserService:
                 'shared_with': shared_with
             }
             
-            # Store workout in user's workouts collection
+            # Store workout with date as document ID (one per day)
             workouts_ref = db.collection('users').document(user_id).collection('workouts')
-            workout_doc = workouts_ref.add(workout_data)
+            workouts_ref.document(today_str).set(workout_data, merge=True)
             
             # Update workout streak
             streak_data = self.update_streak(user_id, 'workout')
             
-            # Create activity entries for user and selected friends
-            activity_data = {
-                'type': 'workout',
-                'user_id': user_id,
-                'routine_name': routine_name,
-                'exercises_count': len(exercises_completed),
-                'duration_minutes': duration_minutes,
-                'calories_burned': calories_burned,
-                'timestamp': now_utc_iso,
-                'emoji': '💪'
-            }
-            
-            # Add to user's own activity feed
-            db.collection('users').document(user_id).collection('activities').add(activity_data)
-            
-            # Add to selected friends' activity feeds
-            for friend_id in shared_with:
-                friend_activity = {
-                    **activity_data,
-                    'friend_name': self._get_user_name(user_id),  # Show who did the workout
-                }
-                db.collection('users').document(friend_id).collection('activities').add(friend_activity)
-            
             return {
-                'workout_id': workout_doc[1].id,
+                'workout_id': today_str,
                 'calories_burned': calories_burned,
                 'streak': streak_data.get('current_streak', 0),
                 'timestamp': now_utc_iso
@@ -1588,15 +1577,16 @@ class FirestoreUserService:
 
     def get_workout_consistency(self, user_id: str, days: int = 7) -> dict:
         """
-        Calculate user's workout consistency for a rolling window (past 3, today, future 3).
+        Calculate user's workout consistency for the current week (Monday-Sunday).
+        Handles rest days scheduled in the weekly schedule.
         
         Args:
             user_id: The user's Firebase ID
             days: Number of days to analyze (default 7)
             
         Returns:
-            dict: Consistency data including daily breakdown, current streak, and lifetime consistency
-                  Status: 'completed' (green), 'missed' (red), 'pending' (grey)
+            dict: Consistency data including weekly breakdown, current streak, and lifetime consistency
+                  Status: 'completed' (green), 'missed' (red), 'pending' (grey), 'rest' (blue)
         """
         try:
             # Get user's timezone for accurate date calculations
@@ -1604,24 +1594,75 @@ class FirestoreUserService:
             user_data = user_doc.to_dict() if user_doc.exists else {}
             user_tz = user_data.get('timezone', 'UTC')
             
+            # Get account creation date in user's timezone
+            account_creation_str = user_data.get('created_at', '')
+            account_creation_date = None
+            if account_creation_str:
+                try:
+                    # Parse ISO format timestamp (e.g., "2025-12-06T10:30:45Z")
+                    account_creation_dt = datetime.fromisoformat(account_creation_str.replace('Z', '+00:00'))
+                    # Convert to user's timezone and get date
+                    account_creation_tz = account_creation_dt.astimezone(ZoneInfo(user_tz))
+                    account_creation_date = account_creation_tz.date()
+                except:
+                    account_creation_date = None
+            
             # Get today's date in user's timezone
             today_local_dt = get_user_local_datetime(user_tz)
             today_local = today_local_dt.date()
             
-            # Create a rolling window: past 3 days, today, future 3 days
+            # Calculate Monday of this week (0 = Monday, 6 = Sunday)
+            days_since_monday = today_local.weekday()
+            monday_this_week = today_local - timedelta(days=days_since_monday)
+            
+            # Fetch user's weekly schedule to identify rest days
+            schedule_ref = db.collection('users').document(user_id).collection('schedule').document('weekly')
+            schedule_doc = schedule_ref.get()
+            weekly_schedule = {}
+            if schedule_doc.exists:
+                weekly_schedule = schedule_doc.to_dict()
+                weekly_schedule.pop('updated_at', None)
+            
+            # Create a fixed weekly view: Monday through Sunday
             daily_status = {}
             
-            # Initialize all days as 'pending' by default
-            for i in range(-3, 4):  # -3 to 3 gives us 7 days (past 3, today, future 3)
-                date = today_local + timedelta(days=i)
+            # Initialize all days of the week as 'pending' by default
+            for i in range(7):  # 0-6 = Monday to Sunday
+                date = monday_this_week + timedelta(days=i)
                 date_str = date.strftime('%Y-%m-%d')
                 
-                daily_status[date_str] = {
-                    'date': date_str,
-                    'day_of_week': date.strftime('%a'),
-                    'status': 'pending',  # All start as pending
-                    'workout_count': 0
-                }
+                day_name = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][i]
+                day_abbrev = day_name[:3]
+                
+                # Check if this day is before account creation
+                is_before_account_creation = account_creation_date and date < account_creation_date
+                
+                if is_before_account_creation:
+                    # Days before account creation should be marked as pending, not rest
+                    daily_status[date_str] = {
+                        'date': date_str,
+                        'day_of_week': day_abbrev,
+                        'status': 'pending',  # Pre-account days are always pending
+                        'workout_count': 0,
+                        'is_scheduled_rest': False
+                    }
+                else:
+                    # Check if this day is scheduled as a rest day
+                    is_rest_day_scheduled = weekly_schedule.get(day_name.lower()) == 'rest'
+                    
+                    # Only mark as 'rest' (blue) if:
+                    # 1. The day is today (user completed their rest day for today), OR
+                    # 2. The day is in the past AND user had the account on that day (already happened)
+                    # Future scheduled rest days remain 'pending' until they arrive
+                    is_rest_day_active = is_rest_day_scheduled and date == today_local
+                    
+                    daily_status[date_str] = {
+                        'date': date_str,
+                        'day_of_week': day_abbrev,
+                        'status': 'rest' if is_rest_day_active else 'pending',  # Only rest if it's today
+                        'workout_count': 0,
+                        'is_scheduled_rest': is_rest_day_scheduled  # Keep track of what's scheduled
+                    }
             
             # Fetch ALL workouts ever (for lifetime consistency and streak calculation)
             workouts_ref = db.collection('users').document(user_id).collection('workouts')
@@ -1635,93 +1676,114 @@ class FirestoreUserService:
             if has_any_workouts:
                 first_workout_dates = []
                 for workout_doc in all_workouts:
-                    workout = workout_doc.to_dict()
-                    created_at = workout.get('created_at', '')
-                    if created_at:
-                        try:
-                            workout_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                            workout_date_local = workout_date.astimezone(ZoneInfo(user_tz)).date()
-                            first_workout_dates.append(workout_date_local)
-                        except:
-                            pass
+                    # Document ID is the date (YYYY-MM-DD)
+                    doc_id = workout_doc.id
+                    try:
+                        workout_date = datetime.strptime(doc_id, '%Y-%m-%d').date()
+                        first_workout_dates.append(workout_date)
+                    except:
+                        pass
                 if first_workout_dates:
                     first_workout_date = min(first_workout_dates)
             
             # Mark days with workouts as 'completed' (only for days in the 7-day window)
             completed_dates_in_window = set()
             for workout_doc in all_workouts:
-                workout = workout_doc.to_dict()
-                created_at = workout.get('created_at', '')
+                # Document ID is the date (YYYY-MM-DD)
+                date_str = workout_doc.id
                 
-                # Parse UTC datetime and convert to user's local date
-                if created_at:
-                    try:
-                        workout_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                        workout_date_local = workout_date.astimezone(ZoneInfo(user_tz)).date()
-                        date_str = workout_date_local.strftime('%Y-%m-%d')
-                        
-                        if date_str in daily_status:
-                            daily_status[date_str]['status'] = 'completed'
-                            daily_status[date_str]['workout_count'] += 1
-                            completed_dates_in_window.add(date_str)
-                    except:
-                        pass
+                # Check if this date is in the 7-day window
+                try:
+                    workout_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    if date_str in daily_status:
+                        daily_status[date_str]['status'] = 'completed'
+                        daily_status[date_str]['workout_count'] = 1  # Always 1 since one per day
+                        completed_dates_in_window.add(date_str)
+                except:
+                    pass
             
             # Only mark past days in window as 'missed' if user has logged workouts before
-            # Future days stay 'pending'
+            # BUT: Do NOT mark rest days as missed, and do NOT mark pre-account days as missed
+            # Future days and rest days stay as is
             if has_any_workouts:
                 for date_str, day_data in daily_status.items():
                     date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
-                    # Mark as missed if it's a past day with no workout
-                    if date_obj < today_local and day_data['status'] == 'pending':
+                    is_before_account = account_creation_date and date_obj < account_creation_date
+                    
+                    # Mark as missed if it's a past day with no workout AND not a rest day AND not before account creation
+                    if date_obj < today_local and day_data['status'] == 'pending' and not day_data['is_scheduled_rest'] and not is_before_account:
                         day_data['status'] = 'missed'
             
-            # Calculate 7-day consistency percentage (only count completed vs missed days, not pending)
-            past_days_in_window = [day for day in daily_status.values() if day['status'] != 'pending']
-            completed_in_window = sum(1 for day in past_days_in_window if day['status'] == 'completed')
-            consistency_7day = int((completed_in_window / len(past_days_in_window)) * 100) if len(past_days_in_window) > 0 else 0
+            # Calculate 7-day consistency percentage
+            # Formula: (Logged Workouts + Rest Days) / number of days in window
+            # Rest days and logged workouts count as "completed"
+            # Pending and missed days do NOT count as completed
+            # Number of days = 7, UNLESS account was created less than 7 days ago
+            
+            completed_count = 0
+            for day in daily_status.values():
+                if day['status'] == 'completed' or day['status'] == 'rest':
+                    completed_count += 1
+            
+            # Calculate the denominator: number of days from account creation to today (or 7, whichever is smaller)
+            denominator = 7
+            if account_creation_date:
+                days_since_creation = (today_local - account_creation_date).days + 1  # +1 to include creation day
+                # Cap at 7 days for a week view, but use actual days if account is newer
+                denominator = min(7, days_since_creation)
+            
+            # Only calculate percentage if we have days to count
+            consistency_7day = int((completed_count / denominator) * 100) if denominator > 0 else 0
             
             # Calculate current streak (consecutive completed days going backwards from today)
+            # IMPORTANT: Streak should NOT break on rest days, only on missed days
             current_streak = 0
             if has_any_workouts:
                 check_date = today_local
                 while True:
                     date_str = check_date.strftime('%Y-%m-%d')
-                    if date_str in daily_status and daily_status[date_str]['status'] == 'completed':
-                        current_streak += 1
-                        check_date -= timedelta(days=1)
+                    if date_str in daily_status:
+                        day_status = daily_status[date_str]['status']
+                        if day_status == 'completed':
+                            current_streak += 1
+                            check_date -= timedelta(days=1)
+                        elif day_status == 'rest':
+                            # Skip rest days, don't break streak
+                            check_date -= timedelta(days=1)
+                        else:
+                            # Break on missed or pending
+                            break
                     else:
+                        # Date outside window, stop
                         break
             
             # Calculate lifetime consistency score (percentage of days with workouts since first workout)
+            # Rest days should not affect lifetime consistency
             lifetime_consistency = 0
             lifetime_days = 0
             if has_any_workouts and first_workout_date:
                 # Count days from first workout to today
                 lifetime_days = (today_local - first_workout_date).days + 1  # +1 to include today
                 
-                # Count all completed days in that range
-                completed_lifetime = sum(1 for day in all_workouts 
-                                        if day.to_dict().get('created_at'))
-                
-                # Get unique dates with workouts
+                # Get unique dates with workouts (document IDs are dates)
                 unique_workout_dates = set()
                 for workout_doc in all_workouts:
-                    workout = workout_doc.to_dict()
-                    created_at = workout.get('created_at', '')
-                    if created_at:
-                        try:
-                            workout_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                            workout_date_local = workout_date.astimezone(ZoneInfo(user_tz)).date()
-                            unique_workout_dates.add(workout_date_local)
-                        except:
-                            pass
+                    date_str = workout_doc.id
+                    try:
+                        workout_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        unique_workout_dates.add(workout_date)
+                    except:
+                        pass
                 
                 completed_lifetime = len(unique_workout_dates)
                 lifetime_consistency = int((completed_lifetime / lifetime_days) * 100) if lifetime_days > 0 else 0
             
-            # Sort by date (most recent first)
-            sorted_days = sorted(daily_status.values(), key=lambda x: x['date'], reverse=True)
+            # Sort by date (oldest to newest for display)
+            sorted_days = sorted(daily_status.values(), key=lambda x: x['date'])
+            
+            # Remove the internal 'is_scheduled_rest' field before returning
+            for day in sorted_days:
+                day.pop('is_scheduled_rest', None)
             
             return {
                 'days': days,
@@ -1900,12 +1962,13 @@ class FirestoreUserService:
 
     def save_schedule(self, user_id: str, schedule_data: dict) -> dict:
         """
-        Save the user's weekly workout schedule.
+        Save the user's weekly workout schedule, including rest days.
         
         Args:
             user_id: The user's Firebase ID
-            schedule_data: Dictionary mapping day names to routine IDs
-                          Example: {"monday": "routine-id-1", "tuesday": "routine-id-2", ...}
+            schedule_data: Dictionary mapping day names to routine IDs or 'rest' for rest days
+                          Example: {"monday": "routine-id-1", "tuesday": "rest", "wednesday": "", ...}
+                          Empty string means no workout/no rest day scheduled
             
         Returns:
             dict: The saved schedule data
@@ -1931,13 +1994,13 @@ class FirestoreUserService:
 
     def get_schedule(self, user_id: str) -> dict:
         """
-        Retrieve the user's weekly workout schedule.
+        Retrieve the user's weekly workout schedule, including rest days.
         
         Args:
             user_id: The user's Firebase ID
             
         Returns:
-            dict: The schedule data with day names mapped to routine IDs
+            dict: The schedule data with day names mapped to routine IDs or 'rest' for rest days
                   Returns empty dict if no schedule exists
         """
         try:
@@ -1948,7 +2011,8 @@ class FirestoreUserService:
                 data = schedule_doc.to_dict()
                 # Remove timestamp field for client
                 data.pop('updated_at', None)
-                # Filter out empty strings (no workout days) - only return days with routines
+                # Return all days, including rest days
+                # But filter out empty strings (completely unscheduled days)
                 cleaned_data = {k: v for k, v in data.items() if v and v != ''}
                 print(f"[FIREBASE DEBUG] Raw schedule data: {data}")
                 print(f"[FIREBASE DEBUG] Cleaned schedule data: {cleaned_data}")
@@ -1959,4 +2023,181 @@ class FirestoreUserService:
         except Exception as e:
             print(f"Error retrieving schedule for user {user_id}: {e}")
             return {}
+
+    def get_week_number(self, date: datetime.date, user_id: str) -> int:
+        """
+        Calculate the week number since the user created their account.
+        Week 1 = the week in which the user created their account.
+        
+        Args:
+            date: The date to get the week number for
+            user_id: The user's Firebase ID
+            
+        Returns:
+            int: The week number (1-indexed)
+        """
+        try:
+            user_doc = db.collection('users').document(user_id).get()
+            if not user_doc.exists:
+                return 1
+            
+            user_data = user_doc.to_dict()
+            created_at = user_data.get('created_at', '')
+            
+            if not created_at:
+                return 1
+            
+            # Parse creation date
+            try:
+                creation_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                user_tz = user_data.get('timezone', 'UTC')
+                creation_date = creation_dt.astimezone(ZoneInfo(user_tz)).date()
+            except:
+                return 1
+            
+            # Calculate Monday of creation week
+            days_since_monday = creation_date.weekday()
+            creation_week_monday = creation_date - timedelta(days=days_since_monday)
+            
+            # Calculate Monday of given date week
+            days_since_monday_current = date.weekday()
+            current_week_monday = date - timedelta(days=days_since_monday_current)
+            
+            # Week number = weeks between + 1
+            weeks_diff = (current_week_monday - creation_week_monday).days // 7
+            return weeks_diff + 1
+            
+        except Exception as e:
+            print(f"Error calculating week number for user {user_id}: {e}")
+            return 1
+
+    def save_weekly_workout_progress(self, user_id: str, consistency_7day: int, date_range_start: datetime.date, date_range_end: datetime.date) -> dict:
+        """
+        Save the weekly workout progress summary (called at end of Sunday).
+        
+        Args:
+            user_id: The user's Firebase ID
+            consistency_7day: The 7-day consistency percentage (0-100)
+            date_range_start: Monday of the week (YYYY-MM-DD)
+            date_range_end: Sunday of the week (YYYY-MM-DD)
+            
+        Returns:
+            dict: The saved weekly progress data
+        """
+        try:
+            # Get week number
+            week_number = self.get_week_number(date_range_end, user_id)
+            
+            # Create summary document
+            summary_data = {
+                'week_number': week_number,
+                'year': date_range_end.year,
+                'percentage': consistency_7day,
+                'date_range': f"{date_range_start.strftime('%Y-%m-%d')} to {date_range_end.strftime('%Y-%m-%d')}",
+                'start_date': date_range_start.strftime('%Y-%m-%d'),
+                'end_date': date_range_end.strftime('%Y-%m-%d'),
+                'saved_at': get_utc_now_iso()
+            }
+            
+            # Save to weekly_workout_progress collection with document ID as date range
+            doc_id = f"week_{week_number}_{date_range_end.year}"
+            progress_ref = db.collection('users').document(user_id).collection('weekly_workout_progress').document(doc_id)
+            progress_ref.set(summary_data, merge=True)
+            
+            print(f"[FIREBASE] Saved weekly progress for user {user_id}: week {week_number}, {consistency_7day}%")
+            
+            return summary_data
+            
+        except Exception as e:
+            print(f"[FIREBASE ERROR] Error saving weekly workout progress for user {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+
+    def get_weekly_workout_history(self, user_id: str, limit: int = 12) -> list:
+        """
+        Retrieve historical weekly workout progress summaries.
+        
+        Args:
+            user_id: The user's Firebase ID
+            limit: Maximum number of weeks to retrieve (default 12, ~3 months)
+            
+        Returns:
+            list: List of weekly summaries sorted by week number (newest first)
+        """
+        try:
+            progress_ref = db.collection('users').document(user_id).collection('weekly_workout_progress')
+            summaries = list(progress_ref.order_by('week_number', direction=firestore.Query.DESCENDING).limit(limit).stream())
+            
+            result = []
+            for summary_doc in summaries:
+                data = summary_doc.to_dict()
+                result.append(data)
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error retrieving weekly workout history for user {user_id}: {e}")
+            return []
+
+    def check_and_save_weekly_progress(self, user_id: str) -> dict:
+        """
+        Check if it's Sunday and save weekly progress if needed.
+        This is called when user opens the app or at scheduled intervals.
+        
+        Args:
+            user_id: The user's Firebase ID
+            
+        Returns:
+            dict: Result indicating if progress was saved
+        """
+        try:
+            user_doc = db.collection('users').document(user_id).get()
+            if not user_doc.exists:
+                return {'saved': False, 'reason': 'User not found'}
+            
+            user_data = user_doc.to_dict()
+            user_tz = user_data.get('timezone', 'UTC')
+            
+            # Get today's date in user's timezone
+            today_local_dt = get_user_local_datetime(user_tz)
+            today_local = today_local_dt.date()
+            
+            # Check if today is Monday (meaning yesterday was Sunday, end of week)
+            if today_local.weekday() != 0:  # 0 = Monday
+                return {'saved': False, 'reason': 'Not Monday, no weekly save needed'}
+            
+            # Calculate the Sunday that just ended
+            sunday_last_week = today_local - timedelta(days=1)
+            monday_last_week = sunday_last_week - timedelta(days=6)  # Go back 6 days to get Monday
+            
+            # Check if we already saved progress for this week
+            week_number = self.get_week_number(sunday_last_week, user_id)
+            doc_id = f"week_{week_number}_{sunday_last_week.year}"
+            
+            progress_ref = db.collection('users').document(user_id).collection('weekly_workout_progress').document(doc_id)
+            existing = progress_ref.get()
+            
+            if existing.exists:
+                return {'saved': False, 'reason': 'Weekly progress already saved'}
+            
+            # Get the consistency data for last week
+            consistency_data = self.get_workout_consistency(user_id, days=7)
+            
+            # Save the weekly summary
+            summary = self.save_weekly_workout_progress(
+                user_id, 
+                consistency_data['consistency_7day'],
+                monday_last_week,
+                sunday_last_week
+            )
+            
+            return {'saved': True, 'week_number': week_number, 'percentage': consistency_data['consistency_7day'], 'summary': summary}
+            
+        except Exception as e:
+            print(f"Error checking and saving weekly progress for user {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'saved': False, 'error': str(e)}
+
 

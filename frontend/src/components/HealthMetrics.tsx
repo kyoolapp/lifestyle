@@ -211,7 +211,8 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
                     />
                   </div>
                   <Button 
-                    variant="destructive"
+                    variant="outline"
+                    
                     onClick={async () => {
                       await handleSave();
                       setWeightDialogOpen(false);

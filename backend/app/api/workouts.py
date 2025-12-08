@@ -152,3 +152,50 @@ async def check_today_workout(
         print(f"Error checking today's workout for user {user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post("/{user_id}/workouts/check-weekly-progress")
+async def check_and_save_weekly_progress(
+    user_id: str,
+    decoded_token: dict = Depends(verify_firebase_token)
+):
+    """
+    Check if it's Monday and automatically save the previous week's progress.
+    This endpoint should be called when the user opens the app.
+    If it's Monday and the week hasn't been saved yet, it saves it.
+    """
+    try:
+        result = user_service.check_and_save_weekly_progress(user_id)
+        
+        return {
+            "status": "success",
+            "data": result
+        }
+        
+    except Exception as e:
+        print(f"Error checking weekly progress for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{user_id}/workouts/weekly-history")
+async def get_weekly_workout_history(
+    user_id: str,
+    limit: int = 12,
+    decoded_token: dict = Depends(verify_firebase_token)
+):
+    """
+    Retrieve the user's historical weekly workout progress.
+    
+    Query parameters:
+    - limit: Maximum number of weeks to retrieve (default 12, ~3 months)
+    """
+    try:
+        history = user_service.get_weekly_workout_history(user_id, limit=limit)
+        
+        return {
+            "status": "success",
+            "data": history
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving weekly history for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

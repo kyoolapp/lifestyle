@@ -157,3 +157,49 @@ export async function checkTodayWorkout(userId) {
   }
 }
 
+/**
+ * Check and save weekly progress (called on app open)
+ * Automatically saves the previous week's progress if it's Monday
+ */
+export async function checkAndSaveWeeklyProgress(userId) {
+  try {
+    const authHeaders = await getAuthHeader();
+    const response = await fetch(`${BASE_URL}/users/${userId}/workouts/check-weekly-progress`, {
+      method: 'POST',
+      headers: authHeaders
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to check weekly progress');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in checkAndSaveWeeklyProgress:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get user's weekly workout history
+ */
+export async function getWeeklyWorkoutHistory(userId, limit = 12) {
+  try {
+    const authHeaders = await getAuthHeader();
+    const response = await fetch(`${BASE_URL}/users/${userId}/workouts/weekly-history?limit=${limit}`, {
+      method: 'GET',
+      headers: authHeaders
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to fetch weekly history');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in getWeeklyWorkoutHistory:', error);
+    throw error;
+  }
+}

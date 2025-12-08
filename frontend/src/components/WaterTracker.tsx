@@ -1161,18 +1161,18 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Daily Goal</span>
-                <span className="font-medium">{dailyGoal} glasses</span>
+                <span className="font-medium">{dailyGoal} glasses ({getWaterDetailedDisplay(dailyGoal)})</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Today's Intake</span>
                 <span className="font-medium">
-                  {getWaterDetailedDisplay(todayIntake)} ({todayIntake.toFixed(2)} glasses)
+                  {todayIntake.toFixed(2)} glasses ({getWaterDetailedDisplay(todayIntake)})
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Remaining</span>
                 <span className="font-medium">
-                  {getWaterDetailedDisplay(Math.max(0, dailyGoal - todayIntake))}
+                  {(Math.max(0,dailyGoal-todayIntake))} glasses ({getWaterDetailedDisplay(Math.max(0, dailyGoal - todayIntake))})
                 </span>
               </div>
               <div className="border-t pt-4">
@@ -1194,7 +1194,8 @@ export function WaterTracker({ user }: WaterTrackerProps) {
               <div className="flex items-center justify-between">
                 <span className="text-sm">Average this week</span>
                 <span className="font-medium">
-                  {getWaterDetailedDisplay(weeklyData.reduce((sum, day) => sum + day.intake, 0) / weeklyData.length)}
+                  {(weeklyData.reduce((sum, day) => sum + day.intake, 0) / weeklyData.length).toFixed(2)} glasses 
+                  ({getWaterDetailedDisplay(weeklyData.reduce((sum, day) => sum + day.intake, 0) / weeklyData.length)})
                 </span>
               </div>
 
