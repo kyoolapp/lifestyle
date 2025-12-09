@@ -69,8 +69,8 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
       id: ex.id || Math.random().toString(),
       name: ex.name,
       target: ex.target || 'general',
-      sets: (ex.sets || [{ reps: 10, weight: 0 }]).map((s: any) => ({
-        reps: s.reps || 10,
+      sets: (ex.sets || [{ reps: 0, weight: 0 }]).map((s: any) => ({
+        reps: s.reps || 0,
         weight: s.weight || 0,
       })),
       restTimer: ex.restTimer || '02:00',
@@ -171,7 +171,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
   const handleAddExerciseFromLibrary = (exercise: Exercise) => {
     const newExercise: WorkoutExercise = {
       ...exercise,
-      sets: [{ reps: 10, weight: 0 }],
+      sets: [{ reps: 0, weight: 0 }],
       restTimer: '02:00',
       completedSets: [],
       currentSetIndex: 0,
@@ -444,7 +444,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
 
           {/* Workout Planning Phase - Before Starting */}
           {!workoutStarted && exerciseData.length > 0 && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <Card className="p-6 bg-blue-50 border-blue-200">
                 <h2 className="text-xl font-semibold mb-2">Ready to start?</h2>
                 <p className="text-muted-foreground mb-4">
@@ -453,8 +453,8 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
                 </p>
                 <Button
                   onClick={handleStartWorkout}
-                  className="bg-blue-600 hover:bg-blue-700 text-white w-full"
-                  size="lg"
+                  variant="outline"
+                  className="bg-blue-600 hover:bg-blue-700 text-slate-900"
                 >
                   <Play className="w-4 h-4 mr-2" />
                   Start Workout
@@ -527,7 +527,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
                     </div>
 
                     {/* Sets Summary */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 border-solid">
                       <p className="text-sm font-medium">Sets</p>
                       <div className="space-y-2">
                         {exercise.sets.map((set: LoggedSet, setIndex: number) => {
@@ -548,9 +548,10 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
                             >
                               <span className="text-xs font-medium text-muted-foreground w-16">
                                 Set {setIndex + 1}
+                                
                               </span>
-                              <div className="flex-1 flex gap-2">
-                                <div className="flex-1">
+                              <div className="flex-1 flex gap-6">
+                                <div className="flex-1 relative">
                                   <Input
                                     type="number"
                                     step="0.5"
@@ -563,11 +564,14 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
                                       }
                                     }}
                                     readOnly={isCompleted}
-                                    placeholder={getWeightLabel()}
-                                    className="h-8 text-sm"
+                                    placeholder="0"
+                                    className="h-8 text-sm pr-10"
                                   />
+                                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                    {unitPreferences.weight}
+                                  </span>
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 relative">
                                   <Input
                                     type="number"
                                     step="0.5"
@@ -580,9 +584,12 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
                                       }
                                     }}
                                     readOnly={isCompleted}
-                                    placeholder="Reps"
-                                    className="h-8 text-sm"
+                                    placeholder="0"
+                                    className="h-8 text-sm pr-10"
                                   />
+                                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                    reps
+                                  </span>
                                 </div>
                               </div>
 
@@ -632,8 +639,8 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
                         onClick={() => {
                           const updated = [...exerciseData];
                           updated[exerciseIndex].sets.push({ 
-                            reps: exercise.sets[exercise.sets.length - 1]?.reps || 10, 
-                            weight: exercise.sets[exercise.sets.length - 1]?.weight || 0 
+                            reps: exercise.sets[exercise.sets.length - 1]?.reps || '', 
+                            weight: exercise.sets[exercise.sets.length - 1]?.weight || '' 
                           });
                           setExerciseData(updated);
                         }}

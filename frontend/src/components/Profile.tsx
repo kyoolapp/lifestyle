@@ -367,10 +367,10 @@ export function Profile({ user, setUser }: ProfileProps) {
         // Update URL to persist the tab selection
         navigate(`?tab=${newTab}`, { replace: true });
       }} className="space-y-4 md:space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview" className="text-xs md:text-sm">Overview</TabsTrigger>
-          <TabsTrigger value="goals" className="text-xs md:text-sm">Goals</TabsTrigger>
-          <TabsTrigger value="activity" className="text-xs md:text-sm">Activity Feed</TabsTrigger>
+          {/*<TabsTrigger value="goals" className="text-xs md:text-sm">Goals</TabsTrigger>
+          <TabsTrigger value="activity" className="text-xs md:text-sm">Activity Feed</TabsTrigger>*/}
           <TabsTrigger value="settings" className="text-xs md:text-sm">Settings</TabsTrigger>
         </TabsList>
 
