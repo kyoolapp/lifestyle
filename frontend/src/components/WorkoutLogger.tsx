@@ -45,7 +45,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
   const navigate = useNavigate();
   const location = useLocation();
   const routine = initialRoutine || location.state?.routine;
-  const { unitSystem } = useUnitSystem();
+  const { unitSystem, unitPreferences } = useUnitSystem();
   
   // Determine if this is standalone mode (no routine)
   const isStandalone = !routine;
@@ -165,7 +165,7 @@ export function WorkoutLogger({ routine: initialRoutine }: WorkoutLoggerProps = 
 
   // Get unit label
   const getWeightLabel = () => {
-    return unitSystem === 'metric' ? 'kg' : 'lbs';
+    return unitPreferences.weight;
   };
 
   const handleAddExerciseFromLibrary = (exercise: Exercise) => {

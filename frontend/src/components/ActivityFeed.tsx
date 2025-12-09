@@ -6,6 +6,8 @@ import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { WorkoutListDialog } from './WorkoutListDialog';
 import { QuickWalkTimer } from './QuickWalkTimer';
+import { useUnitSystem } from '../context/UnitContext';
+import { waterConversions, energyConversions } from '../utils/unitConversion';
 import { 
   Heart, 
   Droplets, 
@@ -38,6 +40,7 @@ interface ActivityFeedProps {
 export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends, onStartWorkout }: ActivityFeedProps) {
   const navigate = useNavigate();
   const { goals } = useGoals();
+  const { unitPreferences } = useUnitSystem();
   const [isWorkoutListOpen, setIsWorkoutListOpen] = useState(false);
   const [currentWorkout, setCurrentWorkout] = useState<any>(null);
   const [visibleActivities, setVisibleActivities] = useState(5);
@@ -370,8 +373,14 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
 
   const quickStats = [
     { label: "Today's Steps", value: todaySteps != null ? String(todaySteps) : '0', change: '+0%', icon: Activity, color: 'text-blue-500' },
-    { label: 'Water Intake', value: `${waterIntake.toFixed(2)}/${waterGoal.toFixed(2)} glasses`, change: `${Math.round((waterIntake / waterGoal) * 100)}%`, icon: Droplets, color: 'text-cyan-500' },
-    { label: "Today's Calories", value: todayCalories != null ? String(todayCalories) : '0', change: '+0%', icon: Target, color: 'text-blue-500' },
+    { 
+      label: 'Water Intake', 
+      value: `${waterConversions.dbToDisplay(waterIntake * 250, unitPreferences.water).toFixed(2)}/${waterConversions.dbToDisplay(waterGoal * 250, unitPreferences.water).toFixed(2)} ${waterConversions.getUnit(unitPreferences.water)}`, 
+      change: `${Math.round((waterIntake / waterGoal) * 100)}%`, 
+      icon: Droplets, 
+      color: 'text-cyan-500' 
+    },
+    { label: "Today's Calories", value: todayCalories != null ? `${energyConversions.dbToDisplay(todayCalories, unitPreferences.energy).toFixed(0)} ${energyConversions.getUnit(unitPreferences.energy)}` : '0', change: '+0%', icon: Target, color: 'text-blue-500' },
     { label: 'Active Friends', value: String(activeFriendsCount), change: activeFriendsCount > 0 ? `+${activeFriendsCount}` : '+0', icon: Users, color: 'text-purple-500' }
   ];
 

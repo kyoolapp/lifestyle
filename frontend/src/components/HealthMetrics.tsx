@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { addWeightLog, getWeightLogs } from '../api/user_api';
 import { useUnitSystem } from '../context/UnitContext';
 import { weightConversions, heightConversions, heightInFeetInchesFromCm } from '../utils/unitConversion';
@@ -22,7 +22,7 @@ interface HealthMetricsProps {
 
 export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   // console.log('HealthMetrics component rendered');
-  const { unitSystem } = useUnitSystem();
+  const { unitSystem, unitPreferences } = useUnitSystem();
   const [weightLogs, setWeightLogs] = useState([]);
   const [bodyFatPopupOpen, setBodyFatPopupOpen] = useState(false);
   const [weightDialogOpen, setWeightDialogOpen] = useState(false);
@@ -39,14 +39,14 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
   
   // Display values for inputs (converted to user's preferred unit)
   const [displayWeight, setDisplayWeight] = useState(
-    unitSystem === 'metric' ? user.weight : weightConversions.dbToDisplay(user.weight, 'imperial')
+    weightConversions.dbToDisplay(user.weight, unitPreferences.weight)
   );
   const [displayHeight, setDisplayHeight] = useState(user.height);
   const [displayHeightFeet, setDisplayHeightFeet] = useState(
-    unitSystem === 'metric' ? user.height : heightInFeetInchesFromCm(user.height).feet
+    unitPreferences.height === 'ft_in' ? heightInFeetInchesFromCm(user.height).feet : user.height
   );
   const [displayHeightInches, setDisplayHeightInches] = useState(
-    unitSystem === 'metric' ? 0 : heightInFeetInchesFromCm(user.height).inches
+    unitPreferences.height === 'ft_in' ? heightInFeetInchesFromCm(user.height).inches : 0
   );
 
   const [loading, setLoading] = useState(false);
@@ -91,20 +91,18 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
     fetchLogs();
   }, [user.id]);
 
-  // Sync display values when unitSystem changes
-  React.useEffect(() => {
-    if (unitSystem === 'metric') {
-      setDisplayWeight(metrics.weight);
-      setDisplayHeight(metrics.height);
-      setDisplayHeightFeet(0);
-      setDisplayHeightInches(0);
-    } else {
-      setDisplayWeight(weightConversions.dbToDisplay(metrics.weight, 'imperial'));
+  // Sync display values when unit preferences change
+  useEffect(() => {
+    setDisplayWeight(weightConversions.dbToDisplay(metrics.weight, unitPreferences.weight));
+    if (unitPreferences.height === 'ft_in') {
       const { feet, inches } = heightInFeetInchesFromCm(metrics.height);
       setDisplayHeightFeet(feet);
       setDisplayHeightInches(inches);
+    } else {
+      setDisplayHeightFeet(metrics.height);
+      setDisplayHeightInches(0);
     }
-  }, [unitSystem]);
+  }, [unitPreferences.weight, unitPreferences.height]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -240,14 +238,14 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
       {/* Weight Progress Graph */}
       <Card>
         <CardHeader>
-          <CardTitle>Weight Progress ({unitSystem === 'metric' ? 'kg' : 'lbs'})</CardTitle>
+          <CardTitle>Weight Progress ({unitPreferences.weight})</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart 
               data={weightLogs && Array.isArray(weightLogs) ? weightLogs.map((log: any) => ({
                 ...log,
-                displayWeight: unitSystem === 'metric' ? log.weight : weightConversions.dbToDisplay(log.weight, 'imperial')
+                displayWeight: weightConversions.dbToDisplay(log.weight, unitPreferences.weight)
               })) : []} 
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
@@ -256,7 +254,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
               <YAxis domain={['auto', 'auto']} />
               <Tooltip 
                 labelFormatter={date => new Date(date).toLocaleString()}
-                formatter={(value: any) => typeof value === 'number' ? value.toFixed(2) : value}
+                formatter={(value: any) => typeof value === 'number' ? `${value.toFixed(2)} ${unitPreferences.weight}` : value}
               />
               <Line type="monotone" dataKey="displayWeight" stroke="#8884d8" dot={true} />
             </LineChart>

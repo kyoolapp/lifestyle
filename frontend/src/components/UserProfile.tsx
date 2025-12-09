@@ -21,7 +21,7 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
   const userId = propUserId || paramUserId;
   const navigate = useNavigate();
   const [currentUser] = useAuthState(auth);
-  const { unitSystem } = useUnitSystem();
+  const { unitSystem, unitPreferences } = useUnitSystem();
   
   const [user, setUser] = useState<any>(null);
   const [isOnline, setIsOnline] = useState(false);
@@ -329,13 +329,13 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
                 {user.height && (
                   <div>
                     <span className="text-gray-500">Height</span>
-                    <div className="font-medium">{heightConversions.format(user.height, unitSystem)}</div>
+                    <div className="font-medium">{heightConversions.format(user.height, unitPreferences.height)}</div>
                   </div>
                 )}
                 {user.weight && (
                   <div>
                     <span className="text-gray-500">Weight</span>
-                    <div className="font-medium">{weightConversions.dbToDisplay(user.weight, unitSystem).toFixed(1)} {weightConversions.getUnit(unitSystem)}</div>
+                    <div className="font-medium">{weightConversions.dbToDisplay(user.weight, unitPreferences.weight).toFixed(1)} {unitPreferences.weight}</div>
                   </div>
                 )}
               </div>

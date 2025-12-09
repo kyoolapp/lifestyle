@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 import { createOrUpdateUser, updateUser, getUserOnlineStatus, getUserFriends } from '../api/user_api';
-import { useUnitSystem } from '../context/UnitContext';
-import { weightConversions, heightConversions } from '../utils/unitConversion';
+import { useUnitSystem, UnitPreferences } from '../context/UnitContext';
+import { weightConversions, heightConversions, weightUnits, heightUnits, distanceUnits, energyUnits, waterUnits } from '../utils/unitConversion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -53,9 +53,18 @@ interface ProfileProps {
 export function Profile({ user, setUser }: ProfileProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { unitSystem, setUnitSystem } = useUnitSystem();
+  const { unitSystem, setUnitSystem, unitPreferences, updateUnitPreference, updateAllUnitPreferences } = useUnitSystem();
   const [selectedUnitSystem, setSelectedUnitSystem] = useState<'metric' | 'imperial'>(
     user.unit_system || 'metric'
+  );
+  const [unitPrefs, setUnitPrefs] = useState<UnitPreferences>(
+    user.unit_preferences || {
+      weight: 'kg',
+      height: 'cm',
+      distance: 'km',
+      energy: 'kcal',
+      water: 'ml',
+    }
   );
   
   // Initialize activeTab with URL parameter if it exists
@@ -1247,62 +1256,167 @@ export function Profile({ user, setUser }: ProfileProps) {
             </CardContent>
           </Card>
 
-          {/* Privacy Settings */}
+          {/* Measurement Units Settings */}
           <Card>
             <CardHeader>
               <CardTitle>Measurement Units</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Weight Unit Preference */}
                 <div>
-                  <Label>Unit System Preference</Label>
-                  <p className="text-sm text-muted-foreground mb-3">Choose how you want to see your health metrics</p>
+                  <Label htmlFor="weight-unit">Weight Unit</Label>
+                  <p className="text-sm text-muted-foreground mb-3">Choose your preferred weight unit</p>
                   <Select 
-                    value={selectedUnitSystem} 
-                    onValueChange={async (newUnit: 'metric' | 'imperial') => {
+                    value={unitPrefs.weight} 
+                    onValueChange={async (newUnit: string) => {
                       try {
-                        setSelectedUnitSystem(newUnit);
-                        
-                        // Update unit system in context (this persists to database and localStorage)
-                        await setUnitSystem(newUnit);
-                        
-                        // Update user in backend with new unit_system using PUT
-                        const updatedUser = { ...user, unit_system: newUnit };
+                        setUnitPrefs({ ...unitPrefs, weight: newUnit as any });
+                        await updateUnitPreference('weight', newUnit);
+                        const updatedUser = { ...user, unit_preferences: { ...unitPrefs, weight: newUnit as any } };
                         await updateUser(user.id || user.uid, updatedUser);
-                        
-                        // Update local user state
                         setUser(updatedUser);
-                        
-                        console.log(`Unit system changed to ${newUnit} and saved to database`);
+                        console.log(`Weight unit changed to ${newUnit} and saved`);
                       } catch (error) {
-                        console.error('Failed to update unit system:', error);
-                        // Revert the selection on error
-                        setSelectedUnitSystem(user.unit_system || 'metric');
+                        console.error('Failed to update weight unit:', error);
+                        setUnitPrefs({ ...unitPrefs, weight: user.unit_preferences?.weight || 'kg' });
                       }
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="weight-unit">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="metric">Metric (kg, cm)</SelectItem>
-                      <SelectItem value="imperial">Imperial (lbs, ft/in)</SelectItem>
+                      {weightUnits.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>{unit.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
-                {/* COMMENTED OUT - Dark theme disabled
+
+                {/* Height Unit Preference */}
                 <div>
-                  <Label>Theme Preference</Label>
-                  <p className="text-sm text-muted-foreground mb-3">Choose your preferred color theme</p>
-                  <div className="flex items-center gap-2">
-                    <ThemeToggle />
-                    <span className="text-sm text-muted-foreground">
-                      Switch between light, dark, and system themes
-                    </span>
-                  </div>
+                  <Label htmlFor="height-unit">Height Unit</Label>
+                  <p className="text-sm text-muted-foreground mb-3">Choose your preferred height unit</p>
+                  <Select 
+                    value={unitPrefs.height} 
+                    onValueChange={async (newUnit: string) => {
+                      try {
+                        setUnitPrefs({ ...unitPrefs, height: newUnit as any });
+                        await updateUnitPreference('height', newUnit);
+                        const updatedUser = { ...user, unit_preferences: { ...unitPrefs, height: newUnit as any } };
+                        await updateUser(user.id || user.uid, updatedUser);
+                        setUser(updatedUser);
+                        console.log(`Height unit changed to ${newUnit} and saved`);
+                      } catch (error) {
+                        console.error('Failed to update height unit:', error);
+                        setUnitPrefs({ ...unitPrefs, height: user.unit_preferences?.height || 'cm' });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="height-unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {heightUnits.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>{unit.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                */}
+
+                {/* Distance Unit Preference */}
+                <div>
+                  <Label htmlFor="distance-unit">Distance Unit</Label>
+                  <p className="text-sm text-muted-foreground mb-3">Choose your preferred distance unit</p>
+                  <Select 
+                    value={unitPrefs.distance} 
+                    onValueChange={async (newUnit: string) => {
+                      try {
+                        setUnitPrefs({ ...unitPrefs, distance: newUnit as any });
+                        await updateUnitPreference('distance', newUnit);
+                        const updatedUser = { ...user, unit_preferences: { ...unitPrefs, distance: newUnit as any } };
+                        await updateUser(user.id || user.uid, updatedUser);
+                        setUser(updatedUser);
+                        console.log(`Distance unit changed to ${newUnit} and saved`);
+                      } catch (error) {
+                        console.error('Failed to update distance unit:', error);
+                        setUnitPrefs({ ...unitPrefs, distance: user.unit_preferences?.distance || 'km' });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="distance-unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {distanceUnits.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>{unit.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Energy Unit Preference */}
+                <div>
+                  <Label htmlFor="energy-unit">Energy Unit</Label>
+                  <p className="text-sm text-muted-foreground mb-3">Choose your preferred energy unit</p>
+                  <Select 
+                    value={unitPrefs.energy} 
+                    onValueChange={async (newUnit: string) => {
+                      try {
+                        setUnitPrefs({ ...unitPrefs, energy: newUnit as any });
+                        await updateUnitPreference('energy', newUnit);
+                        const updatedUser = { ...user, unit_preferences: { ...unitPrefs, energy: newUnit as any } };
+                        await updateUser(user.id || user.uid, updatedUser);
+                        setUser(updatedUser);
+                        console.log(`Energy unit changed to ${newUnit} and saved`);
+                      } catch (error) {
+                        console.error('Failed to update energy unit:', error);
+                        setUnitPrefs({ ...unitPrefs, energy: user.unit_preferences?.energy || 'kcal' });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="energy-unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {energyUnits.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>{unit.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Water Unit Preference */}
+                <div>
+                  <Label htmlFor="water-unit">Water Unit</Label>
+                  <p className="text-sm text-muted-foreground mb-3">Choose your preferred water volume unit</p>
+                  <Select 
+                    value={unitPrefs.water} 
+                    onValueChange={async (newUnit: string) => {
+                      try {
+                        setUnitPrefs({ ...unitPrefs, water: newUnit as any });
+                        await updateUnitPreference('water', newUnit);
+                        const updatedUser = { ...user, unit_preferences: { ...unitPrefs, water: newUnit as any } };
+                        await updateUser(user.id || user.uid, updatedUser);
+                        setUser(updatedUser);
+                        console.log(`Water unit changed to ${newUnit} and saved`);
+                      } catch (error) {
+                        console.error('Failed to update water unit:', error);
+                        setUnitPrefs({ ...unitPrefs, water: user.unit_preferences?.water || 'ml' });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="water-unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {waterUnits.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>{unit.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
                 <div className="pt-4 border-t">
                   <p className="text-sm font-medium mb-2">Your measurements</p>
@@ -1310,13 +1424,13 @@ export function Profile({ user, setUser }: ProfileProps) {
                     <div>
                       <p className="text-xs text-muted-foreground">Height</p>
                       <p className="text-sm font-medium">
-                        {heightConversions.format(user.height, selectedUnitSystem)}
+                        {heightConversions.format(user.height, unitPrefs.height)}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Weight</p>
                       <p className="text-sm font-medium">
-                        {weightConversions.dbToDisplay(user.weight, selectedUnitSystem)} {weightConversions.getUnit(selectedUnitSystem)}
+                        {weightConversions.dbToDisplay(user.weight, unitPrefs.weight)} {unitPrefs.weight}
                       </p>
                     </div>
                   </div>
