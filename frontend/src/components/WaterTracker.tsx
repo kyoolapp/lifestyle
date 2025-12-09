@@ -1024,7 +1024,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                       }}
                       disabled={loading || todayIntake >= 8}
                       className="w-12 h-12 rounded-full bg-cyan-100 hover:bg-cyan-200 transition-colors flex items-center justify-center disabled:opacity-50 shadow-sm"
-                      title="Quick add 250ml"
+                      title="Quick add 1 glass"
                     >
                       <div className="flex flex-col items-center text-xs justify-center gap-0">
                         <Droplets className="w-3 h-3 text-cyan-600" />
@@ -1046,7 +1046,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                       }}
                       disabled={loading || todayIntake <= 0}
                       className="w-12 h-12 rounded-full bg-red-100 hover:bg-red-200 transition-colors flex items-center justify-center disabled:opacity-50 shadow-sm"
-                      title="Remove 250ml"
+                      title="Remove 1 glass"
                     >
                       <div className="flex flex-col items-center text-xs justify-center gap-0">
                         <Droplets className="w-3 h-3 text-red-600" />

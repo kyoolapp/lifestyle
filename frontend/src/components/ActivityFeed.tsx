@@ -375,7 +375,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
     { label: "Today's Steps", value: todaySteps != null ? String(todaySteps) : '0', change: '+0%', icon: Activity, color: 'text-blue-500' },
     { 
       label: 'Water Intake', 
-      value: `${waterConversions.dbToDisplay(waterIntake * 250, unitPreferences.water).toFixed(2)}/${waterConversions.dbToDisplay(waterGoal * 250, unitPreferences.water).toFixed(2)} ${waterConversions.getUnit(unitPreferences.water)}`, 
+      value: `${waterConversions.dbToDisplay(waterIntake * 250, unitPreferences.water).toFixed(1)}/${waterConversions.dbToDisplay(waterGoal * 250, unitPreferences.water).toFixed(1)} ${waterConversions.getUnit(unitPreferences.water)}`, 
       change: `${Math.round((waterIntake / waterGoal) * 100)}%`, 
       icon: Droplets, 
       color: 'text-cyan-500' 
