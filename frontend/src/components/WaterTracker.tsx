@@ -750,10 +750,10 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             <CardContent>
               <div className="text-center mb-4 md:mb-6">
                 <div className="text-4xl md:text-6xl font-bold text-blue-500 mb-2">
-                  {getWaterDisplayValue(todayIntake)}
+                  {todayIntake.toFixed(1)} bottles ({getWaterDetailedDisplay(todayIntake)})
                 </div>
                 <p className="text-xs md:text-sm text-muted-foreground">
-                  {getWaterDetailedDisplay(todayIntake)} of {getWaterGoalDetailed(dailyGoal)}
+                  Today's Intake: {todayIntake.toFixed(1)} bottles
                 </p>
               </div>
 
@@ -1161,7 +1161,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Daily Goal</span>
-                <span className="font-medium">{dailyGoal} glasses ({getWaterDetailedDisplay(dailyGoal)})</span>
+                <span className="font-medium">{dailyGoal} glasses ({(dailyGoal * 8.45).toFixed(1)} fl oz)</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Today's Intake</span>
@@ -1172,7 +1172,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
               <div className="flex items-center justify-between">
                 <span className="text-sm">Remaining</span>
                 <span className="font-medium">
-                  {(Math.max(0,dailyGoal-todayIntake))} glasses ({getWaterDetailedDisplay(Math.max(0, dailyGoal - todayIntake))})
+                  {(Math.max(0,dailyGoal-todayIntake)).toFixed(2)} glasses ({getWaterDetailedDisplay(Math.max(0, dailyGoal - todayIntake))})
                 </span>
               </div>
               <div className="border-t pt-4">
