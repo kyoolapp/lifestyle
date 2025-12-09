@@ -774,7 +774,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             <CardContent>
               <div className="text-center mb-4 md:mb-6">
                 <div className="text-4xl md:text-6xl font-bold text-blue-500 mb-2">
-                  {todayIntake} glasses
+                  {todayIntake.toFixed(2)} glasses
                   <div className= "text-lg md:text-xl font-semibold text-slate-600">{getWaterDetailedDisplay(todayIntake)} of {getWaterDetailedDisplay(dailyGoal)}</div>
                 </div>
                 {/*<p className="text-xs md:text-sm text-muted-foreground">
