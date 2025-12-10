@@ -244,8 +244,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
   // Water conversion helpers
   const getWaterDisplayValue = (glasses: number) => {
     switch (unitPreferences.water) {
-      case 'cup':
-        return (glasses * 0.25).toFixed(2); // 1 glass (250ml) = 0.25 cup
       case 'fl_oz':
         return (glasses * 8.45).toFixed(1); // 1 glass = 8.45 fl oz
       case 'ml':
@@ -256,8 +254,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
 
   const getWaterDisplayUnit = () => {
     switch (unitPreferences.water) {
-      case 'cup':
-        return 'cup';
       case 'fl_oz':
         return 'fl oz';
       case 'ml':
@@ -268,8 +264,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
 
   const getWaterGoalDisplay = (glasses: number) => {
     switch (unitPreferences.water) {
-      case 'cup':
-        return (glasses * 0.25).toFixed(2) + ' cup'; // 8 glasses = 2 cup
       case 'fl_oz':
         return Math.round(glasses * 8.45) + ' fl oz'; // 8 glasses = ~67.6 fl oz
       case 'ml':
@@ -280,8 +274,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
 
   const getWaterButtonLabel = (glasses: number) => {
     switch (unitPreferences.water) {
-      case 'cup':
-        return `${(glasses * 0.25).toFixed(2)} cup`;
       case 'fl_oz':
         return `${(glasses * 8.45).toFixed(1)} fl oz`;
       case 'ml':
@@ -292,8 +284,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
 
   const getWaterDetailedDisplay = (glasses: number) => {
     switch (unitPreferences.water) {
-      case 'cup':
-        return `${(glasses * 0.25).toFixed(2)} cup`; // 1 glass = 0.25 cup
       case 'fl_oz':
         return `${(glasses * 8.45).toFixed(1)} fl oz`; // 1 glass = 8.45 fl oz
       case 'ml':
@@ -774,8 +764,10 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             <CardContent>
               <div className="text-center mb-4 md:mb-6">
                 <div className="text-4xl md:text-6xl font-bold text-blue-500 mb-2">
-                  {todayIntake.toFixed(2)} glasses
-                  <div className= "text-lg md:text-xl font-semibold text-slate-600">{getWaterDetailedDisplay(todayIntake)} of {getWaterDetailedDisplay(dailyGoal)}</div>
+                  {getWaterDetailedDisplay(todayIntake)}
+                  <div className="text-lg md:text-xl font-semibold text-slate-600">
+                    You're at {((todayIntake / dailyGoal) * 100).toFixed(0)}% of your daily hydration goal
+                  </div>
                 </div>
                 {/*<p className="text-xs md:text-sm text-muted-foreground">
                   {getWaterDetailedDisplay(todayIntake)} of {getWaterGoalDetailed(dailyGoal)}
@@ -1060,12 +1052,6 @@ export function WaterTracker({ user }: WaterTrackerProps) {
 
 
               <div className="text-center">
-                <Badge 
-                  variant={todayIntake >= dailyGoal ? 'default' : 'secondary'}
-                  className="mb-2"
-                >
-                  {((todayIntake / dailyGoal) * 100).toFixed(0)}% Complete
-                </Badge>
                 <p className="text-sm text-muted-foreground">
                   {getMotivationMessage()}
                 </p>
@@ -1186,7 +1172,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Daily Goal</span>
-                <span className="font-medium">{dailyGoal} glasses ({(dailyGoal * 8.45).toFixed(1)} fl oz)</span>
+                <span className="font-medium">{dailyGoal} glasses ({getWaterDetailedDisplay(dailyGoal)})</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Today's Intake</span>

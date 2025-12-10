@@ -10,7 +10,7 @@ export interface UnitPreferences {
   height: 'cm' | 'ft_in';
   distance: 'km' | 'mi';
   energy: 'kcal' | 'kj';
-  water: 'ml' | 'cup' | 'fl_oz';
+  water: 'ml' | 'fl_oz';
 }
 
 const defaultPreferences: UnitPreferences = {

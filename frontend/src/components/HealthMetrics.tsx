@@ -139,6 +139,12 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
       const updatedLogs = await getWeightLogs(user.id);
       setWeightLogs(updatedLogs);
       
+      // Update metrics state to trigger re-render
+      setMetrics({ ...metrics, weight: metrics.weight });
+      
+      // Reset displayWeight to reflect the new saved value
+      setDisplayWeight(weightConversions.dbToDisplay(metrics.weight, unitPreferences.weight));
+      
       console.log('Weight logs refreshed from backend, graph should update now:', updatedLogs);
     } catch (err) {
       console.error('Failed to save changes:', err);
@@ -194,7 +200,7 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div>
-                    <Label htmlFor="dialog-weight">Weight ({unitSystem === 'metric' ? 'kg' : 'lbs'})</Label>
+                    <Label htmlFor="dialog-weight">Weight ({unitPreferences.weight})</Label>
                     <Input
                       id="dialog-weight"
                       type="number"
@@ -203,10 +209,11 @@ export function HealthMetrics({ user, setUser }: HealthMetricsProps) {
                       onChange={(e) => {
                         const displayValue = parseFloat(e.target.value) || 0;
                         setDisplayWeight(displayValue);
-                        const metricValue = unitSystem === 'metric' ? displayValue : weightConversions.displayToDb(displayValue, 'imperial');
+                        const metricValue = weightConversions.displayToDb(displayValue, unitPreferences.weight);
                         setMetrics({ ...metrics, weight: metricValue });
                       }}
                     />
+                    
                   </div>
                   <Button 
                     variant="outline"

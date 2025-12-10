@@ -243,14 +243,12 @@ export const waterConversions = {
   /**
    * Convert ml (database) to user's preferred unit
    * @param ml - Volume in milliliters
-   * @param unit - 'ml', 'cup', or 'fl_oz'
+   * @param unit - 'ml' or 'fl_oz'
    * @returns Volume in the specified unit
    */
   dbToDisplay: (ml: number, unit: string = 'ml'): number => {
     if (!ml) return 0;
     switch (unit) {
-      case 'cup':
-        return +(ml * ML_TO_CUP).toFixed(2);
       case 'fl_oz':
         return +(ml * ML_TO_FL_OZ).toFixed(2);
       case 'ml':
@@ -262,14 +260,12 @@ export const waterConversions = {
   /**
    * Convert user's input to ml (database format)
    * @param value - Volume in user's preferred unit
-   * @param unit - 'ml', 'cup', or 'fl_oz'
+   * @param unit - 'ml' or 'fl_oz'
    * @returns Volume in milliliters
    */
   displayToDb: (value: number, unit: string = 'ml'): number => {
     if (!value) return 0;
     switch (unit) {
-      case 'cup':
-        return +(value * CUP_TO_ML).toFixed(2);
       case 'fl_oz':
         return +(value * FL_OZ_TO_ML).toFixed(2);
       case 'ml':
@@ -283,8 +279,6 @@ export const waterConversions = {
    */
   getUnit: (unit: string): string => {
     switch (unit) {
-      case 'cup':
-        return 'cup';
       case 'fl_oz':
         return 'fl oz';
       case 'ml':
@@ -387,6 +381,5 @@ export const energyUnits = [
  */
 export const waterUnits = [
   { value: 'ml', label: 'Milliliters (ml)' },
-  { value: 'cup', label: 'Cups' },
   { value: 'fl_oz', label: 'Fluid Ounces (fl oz)' },
 ];
