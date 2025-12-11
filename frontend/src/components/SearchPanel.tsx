@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { X, Search, UserPlus, UserMinus, UserCheck, Clock, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import FriendRequests from './FriendRequests';
 
 interface User {
   id: string;
@@ -178,77 +179,18 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
 
   const renderActionButton = (targetUser: User) => {
     const isFriend = friendshipStatus[targetUser.id];
-    const status = requestStatus[targetUser.id];
-    const isLoading = friendshipLoading[targetUser.id];
-
-    if (isLoading) {
-      return (
-        <Button disabled size="sm" className="h-7">
-          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-        </Button>
-      );
-    }
-
+    
+    // Only show friend indicator, no action buttons in search
     if (isFriend) {
       return (
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => handleRemoveFriend(targetUser.id)}
-          className="h-7 text-xs"
-        >
-          <UserMinus className="w-3 h-3 mr-1" />
-          Remove
-        </Button>
+        <Badge variant="secondary" className="text-xs">
+        <Users> </Users>
+          
+        </Badge>
       );
     }
-
-    if (status === 'outgoing') {
-      return (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleRevokeRequest(targetUser.id)}
-          className="h-7 text-xs"
-        >
-          <Clock className="w-3 h-3 mr-1" />
-          Pending
-        </Button>
-      );
-    }
-
-    if (status === 'incoming') {
-      return (
-        <div className="flex gap-1">
-          <Button
-            size="sm"
-            onClick={() => handleAcceptRequest(targetUser.id)}
-            className="h-7 text-xs px-2"
-          >
-            <UserCheck className="w-3 h-3" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleRejectRequest(targetUser.id)}
-            className="h-7 text-xs px-2"
-          >
-            <X className="w-3 h-3" />
-          </Button>
-        </div>
-      );
-    }
-
-    return (
-      <Button
-        size="sm"
-        onClick={() => handleSendFriendRequest(targetUser.id)}
-        className="h-7 text-xs"
-      >
-        <UserPlus className="w-3 h-3 mr-1" />
-        Add
-      </Button>
-    );
+    
+    return null;
   };
 
   // Reset search when panel closes
@@ -357,14 +299,9 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
                       </div>
                       
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleViewProfile(targetUser.id)}>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate hover:text-primary transition-colors">
-                            {targetUser.name}
-                          </p>
-                          {friendshipStatus[targetUser.id] && (
-                            <Badge variant="secondary" className="text-xs">Friends</Badge>
-                          )}
-                        </div>
+                        <p className="text-sm font-medium truncate hover:text-primary transition-colors">
+                          {targetUser.name}
+                        </p>
                         <p className="text-xs text-muted-foreground truncate">@{targetUser.username}</p>
                       </div>
                       

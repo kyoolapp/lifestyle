@@ -1024,7 +1024,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                       </div>  
                     </button>
 
-                    <button
+                    {/*<button
                       onClick={async () => {
                         if (loading || todayIntake <= 0) return;
                         const glassesEquivalent = 250 / glassSize;
@@ -1044,7 +1044,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                         <Droplets className="w-3 h-3 text-red-600" />
                         <div className="text-[2 px] text-red-600 leading-[0.6rem]">-1 glass</div>
                       </div>  
-                    </button>
+                    </button>*/}
                   </div>  
                 </div>
               </div>
@@ -1242,7 +1242,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                   />
                 </div>
                 <p className="text-[10px] md:text-xs font-medium mt-1 md:mt-2">
-                  {unitSystem === 'metric' ? `${(day.intake * 250).toFixed(0)}ml` : `${(day.intake * 8.45).toFixed(0)}oz`}
+                  {unitPreferences.water === 'fl_oz' ? `${(day.intake * 8.45).toFixed(0)} fl oz` : `${(day.intake * 250).toFixed(0)}ml`}
                 </p>
               </div>
             ))}
@@ -1250,7 +1250,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
         </CardContent>
       </Card>
 
-      {/* Hydration Reminders */}
+      {/* Hydration Reminders 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -1274,7 +1274,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
             ))}
           </div>
         </CardContent>
-      </Card>
+      </Card>*/}
 
       {/* Tips */}
       <Card>
@@ -1326,23 +1326,23 @@ export function WaterTracker({ user }: WaterTrackerProps) {
               {/* Amount input with styled container */}
               <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Amount ({unitSystem === 'metric' ? 'ml' : 'fl oz'})
+                  Amount ({unitPreferences.water === 'fl_oz' ? 'fl oz' : 'ml'})
                 </label>
                 <div className="relative">
                   <input
                     type="number"
-                    placeholder={unitSystem === 'metric' ? '500' : '16'}
+                    placeholder={unitPreferences.water === 'fl_oz' ? '16' : '500'}
                     value={customAmountMl}
                     onChange={(e) => setCustomAmountMl(e.target.value)}
                     onKeyPress={handleCustomAmountKeyPress}
                     min="1"
-                    max={unitSystem === 'metric' ? '2500' : '200'}
+                    max={unitPreferences.water === 'fl_oz' ? '200' : '2500'}
                     step="1"
                     className="w-full px-6 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all placeholder-gray-400 text-center"
                     autoFocus
                   />
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-medium">
-                    {unitSystem === 'metric' ? 'ml' : 'fl oz'}
+                    {unitPreferences.water === 'fl_oz' ? 'fl oz' : 'ml'}
                   </div>
                 </div>
               </div>
@@ -1351,28 +1351,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-gray-700">Quick amounts</p>
                 <div className="grid grid-cols-3 gap-3">
-                  {unitSystem === 'metric' ? (
-                    <>
-                      <button 
-                        onClick={() => setCustomAmountMl('250')}
-                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
-                      >
-                        250ml
-                      </button>
-                      <button 
-                        onClick={() => setCustomAmountMl('500')}
-                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
-                      >
-                        500ml
-                      </button>
-                      <button 
-                        onClick={() => setCustomAmountMl('750')}
-                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
-                      >
-                        750ml
-                      </button>
-                    </>
-                  ) : (
+                  {unitPreferences.water === 'fl_oz' ? (
                     <>
                       <button 
                         onClick={() => setCustomAmountMl('8')}
@@ -1391,6 +1370,27 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                         className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
                       >
                         24 fl oz
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => setCustomAmountMl('250')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        250ml
+                      </button>
+                      <button 
+                        onClick={() => setCustomAmountMl('500')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        500ml
+                      </button>
+                      <button 
+                        onClick={() => setCustomAmountMl('750')}
+                        className="py-3 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors"
+                      >
+                        750ml
                       </button>
                     </>
                   )}
@@ -1415,7 +1415,7 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                     if (amount && amount > 0) {
                       let amountMl = amount;
                       // Convert from user's unit to ml
-                      if (unitSystem === 'imperial') {
+                      if (unitPreferences.water === 'fl_oz') {
                         amountMl = amount * 29.5735;
                       }
                       // Convert ml to glasses
@@ -1450,16 +1450,13 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                 </svg>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Add Water</h3>
-              <p className="text-gray-600 font-medium">Drag to set amount</p>
+              <p className="text-gray-600 font-medium">Drag to adjust</p>
             </div>
 
             <div className="space-y-6">
               {/* Interactive Tumbler Section */}
               <div className="relative">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  {showBigTumbler ? 'Choose your glass size' : 'Drag the glass to adjust amount'}
-                </label>
-                
+                                
                 {!showBigTumbler ? (
                   // Single Glass Display
                   <div>
@@ -1576,101 +1573,24 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                     {/* Amount Display */}
                     <div className="text-center mb-4">
                       <div className="text-lg font-medium text-gray-600 mb-1">
-                        Current amount: <span className="font-bold text-blue-600">{Math.round(dragTumblerAmount * glassSize)}ml</span>
+                        Current amount: <span className="font-bold text-blue-600">
+                          {unitPreferences.water === 'fl_oz' 
+                            ? `${(dragTumblerAmount * glassSize * 0.033814).toFixed(1)} fl oz`
+                            : `${Math.round(dragTumblerAmount * glassSize)}ml`
+                          }
+                        </span>
                       </div>
                       <div className="text-sm text-gray-500">
-                        {dragTumblerAmount.toFixed(1)} glasses (250ml each)
+                        {dragTumblerAmount.toFixed(1)} glasses ({unitPreferences.water === 'fl_oz' ? '8.45 fl oz' : '250ml'} each)
                       </div>
                     </div>
                   </div>
                 ) : (
-                  // Dual Glass Display
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Small Glass */}
-                    <div className="text-center">
-                      <p className="text-xs font-medium text-gray-600 mb-2">Small (250ml)</p>
-                      <div className="flex justify-center mb-2">
-                        <div 
-                          className="relative overflow-hidden shadow-lg cursor-grab hover:shadow-xl transition-all duration-200 border-2 border-gray-700"
-                          style={{
-                            width: '70px',
-                            height: '90px',
-                            background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)',
-                            clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
-                            borderRadius: '4px 4px 8px 8px',
-                            boxShadow: '0 6px 15px rgba(0,0,0,0.1)'
-                          }}
-                          onMouseDown={(e) => {
-                            const startY = e.clientY;
-                            const startAmount = dragTumblerAmount;
-                            
-                            const handleMouseMove = (moveEvent: MouseEvent) => {
-                              const deltaY = startY - moveEvent.clientY;
-                              // Extremely sensitive: 1 pixel = 1ml movement
-                              const mlChange = deltaY;
-                              const glassChange = mlChange / 250; // Convert ml to glasses
-                              const newAmount = Math.max(0, Math.min(1, startAmount + glassChange));
-                              
-                              // Round to nearest ml (1/250 of a glass)
-                              const roundedAmount = Math.round(newAmount * 250) / 250;
-                              setDragTumblerAmount(roundedAmount);
-                            };
-                            
-                            const handleMouseUp = () => {
-                              document.removeEventListener('mousemove', handleMouseMove);
-                              document.removeEventListener('mouseup', handleMouseUp);
-                            };
-                            
-                            document.addEventListener('mousemove', handleMouseMove);
-                            document.addEventListener('mouseup', handleMouseUp);
-                            e.preventDefault();
-                          }}
-                          onTouchStart={(e) => {
-                            const startY = e.touches[0].clientY;
-                            const startAmount = dragTumblerAmount;
-                            
-                            const handleTouchMove = (moveEvent: TouchEvent) => {
-                              const deltaY = startY - moveEvent.touches[0].clientY;
-                              // Extremely sensitive: 1 pixel = 1ml movement
-                              const mlChange = deltaY;
-                              const glassChange = mlChange / 250;
-                              const newAmount = Math.max(0, Math.min(1, startAmount + glassChange));
-                              
-                              const roundedAmount = Math.round(newAmount * 250) / 250;
-                              setDragTumblerAmount(roundedAmount);
-                              moveEvent.preventDefault();
-                            };
-                            
-                            const handleTouchEnd = () => {
-                              document.removeEventListener('touchmove', handleTouchMove);
-                              document.removeEventListener('touchend', handleTouchEnd);
-                            };
-                            
-                            document.addEventListener('touchmove', handleTouchMove, { passive: false });
-                            document.addEventListener('touchend', handleTouchEnd);
-                            e.preventDefault();
-                          }}
-                        >
-                          <div 
-                            className="absolute bottom-0 w-full transition-all duration-300"
-                            style={{ 
-                              height: `${(dragTumblerAmount / 1) * 100}%`,
-                              background: 'linear-gradient(180deg, #22d3ee 0%, #0891b2 70%, #0e7490 100%)',
-                              clipPath: 'polygon(20% 0%, 80% 0%, 75% 100%, 25% 100%)',
-                              borderRadius: '0 0 8px 8px'
-                            }}
-                          />
-                          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 70 90">
-                            <path d="M 14 0 L 56 0 L 52.5 90 L 17.5 90 Z" fill="none" stroke="black" strokeWidth="2"/>
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500">{Math.round(dragTumblerAmount * glassSize)}ml</div>
-                    </div>
-
+                  // Large Glass Only Display
+                  <div className="flex flex-col items-center gap-4">
                     {/* Large Glass */}
                     <div className="text-center">
-                      <p className="text-xs font-medium text-gray-600 mb-2">Large (1000ml)</p>
+                      <p className="text-xs font-medium text-gray-600 mb-2">Large ({unitPreferences.water === 'fl_oz' ? '33.8 fl oz' : '1000ml'})</p>
                       <div className="flex justify-center mb-2">
                         <div 
                           className="relative overflow-hidden shadow-lg cursor-grab hover:shadow-xl transition-all duration-200 border-2 border-gray-700"
@@ -1747,22 +1667,25 @@ export function WaterTracker({ user }: WaterTrackerProps) {
                           </svg>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500">{Math.round(dragBigTumblerAmount * glassSize)}ml</div>
+                      <div className="text-xs text-gray-500">
+                        {unitPreferences.water === 'fl_oz' 
+                          ? `${(dragBigTumblerAmount * glassSize * 0.033814).toFixed(0)} fl oz`
+                          : `${Math.round(dragBigTumblerAmount * glassSize)}ml`
+                        }
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Add Large Glass Option Button */}
-                {!showBigTumbler && (
-                  <div className="text-center mt-4">
-                    <button 
-                      onClick={() => setShowBigTumbler(true)}
-                      className="py-2 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors text-sm"
-                    >
-                      + Add Large Glass Option
-                    </button>
-                  </div>
-                )}
+                {/* Toggle Large Glass Option Button */}
+                <div className="text-center mt-4">
+                  <button 
+                    onClick={() => setShowBigTumbler(!showBigTumbler)}
+                    className="py-2 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-blue-700 font-medium transition-colors text-sm"
+                  >
+                    {showBigTumbler ? '\u2190 Back to Small Glass' : '+ Add Large Glass'}
+                  </button>
+                </div>
               </div>
               
               {/* Action buttons */}

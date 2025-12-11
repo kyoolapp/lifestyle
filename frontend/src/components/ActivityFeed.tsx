@@ -375,7 +375,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
     { label: "Today's Steps", value: todaySteps != null ? String(todaySteps) : '0', change: '+0%', icon: Activity, color: 'text-blue-500' },
     { 
       label: 'Water Intake', 
-      value: `${waterConversions.dbToDisplay(waterIntake * 250, unitPreferences.water).toFixed(1)}/${waterConversions.dbToDisplay(waterGoal * 250, unitPreferences.water).toFixed(1)} ${waterConversions.getUnit(unitPreferences.water)}`, 
+      value: `${waterConversions.dbToDisplay(waterIntake * 250, unitPreferences.water).toFixed(0)}/${waterConversions.dbToDisplay(waterGoal * 250, unitPreferences.water).toFixed(0)} ${waterConversions.getUnit(unitPreferences.water)}`, 
       change: `${Math.round((waterIntake / waterGoal) * 100)}%`, 
       icon: Droplets, 
       color: 'text-cyan-500' 
@@ -655,7 +655,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
         {/* Social Health Community Section */}
         <div className="lg:col-span-2">
           <div className="grid lg:grid-cols-2 gap-3 md:gap-6">
-            <Card className="lg:col-span-1">
+           {/* <Card className="lg:col-span-1">
           <CardContent className="p-4 md:p-6">
             <div className="space-y-4">
               <div>
@@ -690,9 +690,9 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card>*/}
         
-        <Card className="lg:col-span-1">
+        {/*<Card className="lg:col-span-1">
           <CardContent className="p-6">
             <div className="w-full h-48 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
               <div className="space-y-4 text-center text-white">
@@ -706,7 +706,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card>*/}
           </div>
         </div>
       </div>
@@ -769,10 +769,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
                           </div>
                         </div>
 
-                        {/* Activity Type Badge */}
-                        <Badge variant="secondary" className="text-xs">
-                          {activity.type}
-                        </Badge>
+                        
                       </div>
 
                       {/* Reactions Section */}

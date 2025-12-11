@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { ArrowLeft, User, MessageCircle, UserPlus, CheckCircle, X, Users } from 'lucide-react';
+import { ArrowLeft, MessageCircle, UserPlus, CheckCircle, X, Users, Flame, Dumbbell, Clock, Target, Trophy, Heart } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
 
@@ -155,22 +155,27 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
     }
   };
 
-  const renderActionButton = () => {
+  const renderActionButtons = () => {
     switch (friendshipStatus) {
       case 'friends':
         return (
-          <div className="flex gap-12">
-            <Users className="w-4 h-4" />
+          <>
+            <Button 
+              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white"
+              size="sm"
+            >
+              ⚔️ Challenge
+            </Button>
             <Button 
               variant="outline"
               onClick={handleUnfriend}
               disabled={actionLoading}
-              className="flex items-center gap-2"
+              className="gap-2"
+              size="sm"
             >
-              
               {actionLoading ? 'Removing...' : 'Unfriend'}
             </Button>
-          </div>
+          </>
         );
       case 'sent':
         return (
@@ -178,9 +183,9 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
             variant="outline" 
             onClick={handleRevokeFriendRequest}
             disabled={actionLoading}
-            className="flex items-center gap-2"
+            className="gap-2"
+            size="sm"
           >
-            <Users className="w-4 h-4" />
             {actionLoading ? 'Removing...' : 'Request Sent'}
           </Button>
         );
@@ -190,48 +195,55 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
             <Button 
               onClick={handleAcceptFriendRequest}
               disabled={actionLoading}
-              className="flex items-center gap-2"
+              className="gap-2"
+              size="sm"
             >
-              <CheckCircle className="w-4 h-4" />
               {actionLoading ? 'Accepting...' : 'Accept'}
             </Button>
             <Button 
               variant="outline"
               onClick={handleRejectFriendRequest}
               disabled={actionLoading}
-              className="flex items-center gap-2"
+              className="gap-2"
+              size="sm"
             >
-              <X className="w-4 h-4" />
               {actionLoading ? 'Declining...' : 'Decline'}
             </Button>
           </div>
         );
       default:
         return (
-          <Button 
-            onClick={handleSendFriendRequest}
-            disabled={actionLoading}
-            className="flex items-center gap-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            {actionLoading ? 'Sending...' : 'Add Friend'}
-          </Button>
+          <>
+            <Button 
+              onClick={handleSendFriendRequest}
+              disabled={actionLoading}
+              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white"
+              size="sm"
+            >
+              <UserPlus className="w-4 h-4" />
+              {actionLoading ? 'Sending...' : 'Add Friend'}
+            </Button>
+          </>
         );
     }
   };
 
+  // Get workout count for current user
+  const [currentUserWorkoutCount, setCurrentUserWorkoutCount] = useState(0);
+  const [userWorkoutCount, setUserWorkoutCount] = useState(0);
+
+  useEffect(() => {
+    // Set mock data for now
+    setCurrentUserWorkoutCount(Math.floor(Math.random() * 30));
+    setUserWorkoutCount(user?.workouts_count || Math.floor(Math.random() * 30));
+  }, [user]);
+
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        </div>
-        <div className="text-center py-8">
-          <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-2" />
-          <p className="text-gray-500">Loading profile...</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-3 border-purple-300 border-t-purple-600 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-slate-600">Loading profile...</p>
         </div>
       </div>
     );
@@ -239,175 +251,352 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
 
   if (!user) {
     return (
-      <div className="p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-slate-500 text-lg">User not found</p>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)} 
+            className="mt-4"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            Go Back
           </Button>
-        </div>
-        <div className="text-center py-8">
-          <p className="text-gray-500">User not found</p>
         </div>
       </div>
     );
   }
 
-  // Calculate health metrics if available
-  const bmi = user.weight && user.height ? calculateBMI(user.weight, user.height) : null;
-  const bmr = user.weight && user.height && user.age ? calculateBMR(user.weight, user.height, user.age, user.gender || 'male') : null;
-  const tdee = bmr ? calculateTDEE(bmr, user.activityLevel || 'sedentary') : null;
+  const currentUserPercentage = currentUserWorkoutCount / (currentUserWorkoutCount + userWorkoutCount) * 100 || 0;
+  const userPercentage = userWorkoutCount / (currentUserWorkoutCount + userWorkoutCount) * 100 || 0;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Back button */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
+    <div className="min-h-screen bg-slate-50">
+      {/* Back Button */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 h-16 flex items-center px-8">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate(-1)} 
+          className="gap-2 text-slate-600 hover:text-slate-900"
+        >
+          <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
       </div>
 
-      {/* Profile Header */}
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="relative">
-              <Avatar className="w-24 h-24">
-                <AvatarImage src={user.avatar} />
-                <AvatarFallback className="text-2xl">
-                  {user.name?.charAt(0).toUpperCase() || user.username?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className={`absolute bottom-1 right-2-5 w-3 h-3 rounded-full border-4 border-white ${
-                isOnline ? 'bg-green-500' : 'bg-gray-400'
-              }`} />
-            </div>
-            
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-                <div>
-                  <h3 className="text-2xl font-bold">@{user.username}</h3>
-                  <p className="text-gray-600">{user.name}</p>
+      <div className="bg-slate-50">
+        {/* Profile Header Card */}
+        <div className="bg-white rounded-xl overflow-hidden mb-6 shadow-sm mx-8 mt-8">
+          {/* Banner */}
+          <div 
+            className="relative"
+            style={{ 
+              height: '100px',
+              background: 'linear-gradient(to right, #6366F1, #EC4899)'
+            }}
+          />
+          
+          {/* Avatar and Info Section */}
+          <div className="px-8 pb-6">
+            <div className="flex items-end justify-between" style={{ marginTop: '-64px' }}>
+              {/* Avatar Group */}
+              <div className="flex items-end gap-6">
+                <div className="relative">
+                  <Avatar 
+                    className="flex items-center justify-center flex-shrink-0"
+                    style={{ 
+                      width: '128px', 
+                      height: '128px',
+                      border: '4px solid white'
+                    }}
+                  >
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback className="bg-gray-200 text-gray-400 text-5xl w-full h-full flex items-center justify-center">
+                      {user.name?.charAt(0).toUpperCase() || user.username?.charAt(0).toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Status Indicator */}
+                  <div 
+                    className={`absolute bottom-3 right-4 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}
+                    style={{ 
+                      width: '20px', 
+                      height: '20px',
+                      border: '3px solid white'
+                    }}
+                  />
                 </div>
-                <div className="flex items-center gap-3">
-                  
-                  {/*<Badge variant={isOnline ? "default" : "secondary"}>
-                    {isOnline ? "Online" : "Offline"}
-                  </Badge>*/}
-                  {friendshipStatus === 'received' && (
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
-                      📨 Friend Request Received
-                    </Badge>
-                  )}
-                  {friendshipStatus === 'sent' && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                      ⏳ Friend Request Sent
-                    </Badge>
-                  )}
-                  {renderActionButton()}
+                
+                {/* User Info */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-2xl font-bold" style={{ color: '#0F172A' }}>
+                      {user.name}
+                    </h2>
+                    {user.is_verified && (
+                      <span className="text-yellow-500 text-2xl">👑</span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 font-medium">@{user.username}</p>
                 </div>
               </div>
               
-              {user.bio && (
-                <p className="text-gray-700 mb-4">{user.bio}</p>
-              )}
-              
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                {user.age && (
-                  <div>
-                    <span className="text-gray-500">Age</span>
-                    <div className="font-medium">{user.age} years</div>
-                  </div>
-                )}
-                {user.location && (
-                  <div>
-                    <span className="text-gray-500">Location</span>
-                    <div className="font-medium">{user.location}</div>
-                  </div>
-                )}
-                {user.height && (
-                  <div>
-                    <span className="text-gray-500">Height</span>
-                    <div className="font-medium">{heightConversions.format(user.height, unitPreferences.height)}</div>
-                  </div>
-                )}
-                {user.weight && (
-                  <div>
-                    <span className="text-gray-500">Weight</span>
-                    <div className="font-medium">{weightConversions.dbToDisplay(user.weight, unitPreferences.weight).toFixed(1)} {unitPreferences.weight}</div>
-                  </div>
-                )}
+              {/* Action Buttons */}
+              <div className="flex gap-3 mb-4">
+                {renderActionButtons()}
+                <Button 
+                  className="flex items-center gap-2"
+                  style={{ 
+                    backgroundColor: 'white', 
+                    color: '#6B7280',
+                    border: '1px solid #D1D5DB'
+                  }}
+                >
+                  <MessageCircle size={18} />
+                  <span>Message</span>
+                </Button>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Health Metrics - Only show if user has shared this info */}
-      {(bmi || bmr || tdee) && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Health Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {bmi && (
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{bmi.toFixed(1)}</div>
-                  <div className="text-sm text-gray-600">BMI</div>
-                </div>
-              )}
-              {bmr && (
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{Math.round(bmr)}</div>
-                  <div className="text-sm text-gray-600">BMR (cal/day)</div>
-                </div>
-              )}
-              {tdee && (
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{Math.round(tdee)}</div>
-                  <div className="text-sm text-gray-600">TDEE (cal/day)</div>
-                </div>
-              )}
+        {/* Social Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 mx-8">
+          {/* Day Streak */}
+          <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <Flame size={24} className="text-orange-500" />
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Day Streak</p>
+                <p className="text-2xl font-bold" style={{ color: '#0F172A' }}>
+                  {user.current_streak || 0}
+                </p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Activity Level & Goals */}
-      {(user.activityLevel || user.fitnessGoals?.length > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Fitness & Goals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {user.activityLevel && (
-                <div>
-                  <span className="text-gray-500 text-sm">Activity Level</span>
-                  <div className="font-medium capitalize">{user.activityLevel.replace('_', ' ')}</div>
+          </div>
+          
+          {/* Workouts */}
+          <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Dumbbell size={24} className="text-blue-500" />
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Workouts</p>
+                <p className="text-2xl font-bold" style={{ color: '#0F172A' }}>
+                  {userWorkoutCount}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Active Minutes */}
+          <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Clock size={24} className="text-green-500" />
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Active Mins</p>
+                <p className="text-2xl font-bold" style={{ color: '#0F172A' }}>
+                  {user.active_minutes || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Shared Goal */}
+          {user.fitness_goals?.[0] && (
+            <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <Target size={24} className="text-purple-500" />
                 </div>
-              )}
-              {user.fitnessGoals?.length > 0 && (
                 <div>
-                  <span className="text-gray-500 text-sm">Fitness Goals</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {user.fitnessGoals.map((goal: string, index: number) => (
-                      <Badge key={index} variant="outline">
-                        {goal.replace('_', ' ')}
-                      </Badge>
-                    ))}
+                  <p className="text-gray-500 text-sm">Shared Goal</p>
+                  <p className="text-2xl font-bold" style={{ color: '#0F172A', textTransform: 'capitalize' }}>
+                    {user.fitness_goals[0].replace(/_/g, ' ')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Main Content - Two Column Layout */}
+        <div className="px-8 pb-8 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* LEFT: Activity Feed (2/3 width) */}
+        <div className="lg:col-span-2 space-y-6">
+          <h3 className="font-bold text-lg text-slate-900 px-2">Recent Activity</h3>
+          
+          {/* Activity Item 1 */}
+          <Card className="bg-white border-gray-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                {/* Left Border */}
+                <div className="w-1 h-24 bg-gradient-to-b from-purple-500 to-purple-300 rounded-full flex-shrink-0" />
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">Completed Pull Day B</p>
+                      <p className="text-xs text-gray-500">2 hours ago</p>
+                    </div>
+                    <Badge className="bg-green-100 text-green-700 border-0 flex-shrink-0">+3 PRs Set</Badge>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="gap-2 text-gray-600 hover:text-red-500 border-gray-200"
+                    >
+                      <Heart className="w-4 h-4" />
+                      Cheer
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="gap-2 text-gray-600 border-gray-200"
+                    >
+                      📋 Copy Routine
+                    </Button>
                   </div>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Activity Item 2 */}
+          <Card className="bg-white border-gray-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-1 h-20 bg-gradient-to-b from-blue-500 to-blue-300 rounded-full flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">Earned 200 Workout Club Badge</p>
+                      <p className="text-xs text-gray-500">1 day ago</p>
+                    </div>
+                    <span className="text-xl flex-shrink-0">🏆</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Activity Item 3 */}
+          <Card className="bg-white border-gray-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-1 h-16 bg-gradient-to-b from-green-500 to-green-300 rounded-full flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-900">New Personal Record: Deadlift 315 lbs</p>
+                  <p className="text-xs text-gray-500">3 days ago</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* RIGHT: Gamification (1/3 width) */}
+        <div className="space-y-6">
+          
+          {/* Trophy Case */}
+          <Card className="bg-white border-gray-100">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                Trophy Case
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Badge 1 */}
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 border-2 border-yellow-200">
+                  <span className="text-xl">🏆</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">200 Workout Club</p>
+                  <p className="text-xs text-gray-500">Completed 200 workouts</p>
+                </div>
+              </div>
+
+              {/* Badge 2 */}
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border-2 border-blue-200">
+                  <span className="text-xl">🎖️</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">Consistency King</p>
+                  <p className="text-xs text-gray-500">30 day streak</p>
+                </div>
+              </div>
+
+              {/* Badge 3 */}
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 border-2 border-purple-200">
+                  <span className="text-xl">💪</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">PR Crusher</p>
+                  <p className="text-xs text-gray-500">Set 50 personal records</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Head to Head Comparison */}
+          <Card className="bg-indigo-900 text-white border-indigo-800 shadow-lg relative overflow-hidden">
+            {/* Background decoration */}
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full -mr-20 -mt-20 pointer-events-none" />
+            
+            <CardContent className="p-6 relative z-10">
+              <h3 className="font-bold text-sm uppercase tracking-wider text-indigo-200 mb-4">Head to Head</h3>
+              
+              {/* Names */}
+              <div className="flex items-center justify-between mb-3 text-xs font-medium text-indigo-200">
+                <span>You</span>
+                <span>{user.name}</span>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <div className="flex mb-2 items-center justify-between text-xs font-semibold text-white">
+                  <span>{currentUserWorkoutCount} vs {userWorkoutCount} Workouts</span>
+                </div>
+                <div className="overflow-hidden h-3 rounded-full bg-indigo-800 flex gap-1">
+                  <div 
+                    style={{width: `${Math.max(currentUserPercentage, 5)}%`}} 
+                    className="bg-pink-500 transition-all duration-500 rounded-full"
+                  />
+                  <div 
+                    style={{width: `${Math.max(userPercentage, 5)}%`}} 
+                    className="bg-indigo-400 transition-all duration-500 rounded-full"
+                  />
+                </div>
+              </div>
+
+              {/* Message */}
+              <p className="text-xs text-indigo-300 italic mb-4 h-10 flex items-center">
+                {userPercentage > currentUserPercentage 
+                  ? `${user.name} is beating you` 
+                  : 'You are ahead! Keep up the momentum!'}
+              </p>
+
+              {/* Nudge Button */}
+              <Button 
+                className="w-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2.5 border border-white/30 transition-colors"
+              >
+                Nudge {user.name} 👋
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+        </div>
+      </div>
     </div>
   );
 }
