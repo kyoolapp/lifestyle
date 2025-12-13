@@ -283,12 +283,20 @@ export async function getWaterHistory(userId, days = 7) {
 
 // ============ ACTIVITY FEED API ============
 
-export async function getUserActivities(userId, limit = 50) {
-  const res = await fetch(`${BASE_URL}/users/${userId}/activities?limit=${limit}`);
-  if (!res.ok) {
-    console.error('Failed to fetch user activities');
+export async function getUserActivities(userId, limit = 10) {
+  try {
+    const res = await fetch(`${BASE_URL}/users/${userId}/activities?limit=${limit}`);
+    if (!res.ok) {
+      console.error(`Failed to fetch user activities: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      console.error('Error response:', errorText);
+      return [];
+    }
+    const data = await res.json();
+    console.log(`Got activities for user ${userId}:`, data);
+    return data.activities || [];
+  } catch (error) {
+    console.error('Error fetching user activities:', error);
     return [];
   }
-  const data = await res.json();
-  return data.activities || [];
 }

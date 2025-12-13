@@ -1142,7 +1142,7 @@ class FirestoreUserService:
                         glasses_word = 'glass' if glasses == 1 else 'glasses'
                         activities.append({
                             'type': 'nutrition',
-                            'title': f'You logged water intake',
+                            'title': f'{user_name} logged water intake',
                             'description': f'Logged {glasses} {glasses_word} of water',
                             'timestamp': created_at,
                             'user': {
@@ -1167,7 +1167,7 @@ class FirestoreUserService:
                             glasses_word = 'glass' if glasses == 1 else 'glasses'
                             activities.append({
                                 'type': 'nutrition',
-                                'title': f'You logged water intake',
+                                'title': f'{user_name} logged water intake',
                                 'description': f'Logged {glasses} {glasses_word} of water',
                                 'timestamp': created_at,
                                 'user': {
@@ -1192,7 +1192,7 @@ class FirestoreUserService:
                     if body_fat_pct > 0 and created_at:
                         activities.append({
                             'type': 'achievement',
-                            'title': f'You logged body measurements',
+                            'title': f'{user_name} logged body measurements',
                             'description': f'Body fat: {body_fat_pct}%',
                             'timestamp': created_at,
                             'user': {
@@ -1225,7 +1225,7 @@ class FirestoreUserService:
                             
                             activities.append({
                                 'type': 'social',
-                                'title': f'You added a friend',
+                                'title': f'{user_name} added a friend',
                                 'description': f'Added {friend_name}',
                                 'timestamp': updated_at,
                                 'user': {
@@ -1289,7 +1289,7 @@ class FirestoreUserService:
                         
                         activities.append({
                             'type': 'fitness',
-                            'title': f'You completed {routine_name}',
+                            'title': f'{user_name} completed {routine_name}',
                             'description': description,
                             'timestamp': timestamp,
                             'user': {
@@ -1325,7 +1325,7 @@ class FirestoreUserService:
                             activities.append({
                                 'type': 'achievement',
                                 'title': f'{streak_emoji} {current_streak}-day {streak_type} streak!',
-                                'description': f'Keep it up! Your {streak_type} streak is going strong',
+                                'description': f'Keep it up! {user_name}\'s {streak_type} streak is going strong',
                                 'timestamp': updated_at,
                                 'user': {
                                     'name': user_name,

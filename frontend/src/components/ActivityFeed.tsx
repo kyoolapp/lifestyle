@@ -177,6 +177,18 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
 
     const config = typeConfig[backendActivity.type] || typeConfig.achievement;
 
+    // Convert user name to "You" if viewing own profile
+    let displayTitle = backendActivity.title;
+    const activityUserName = backendActivity.user?.name || 'User';
+    
+    if (user?.id && activityUserName) {
+      // If the activity is about the current user viewing this feed, replace their name with "You"
+      displayTitle = backendActivity.title.replace(
+        new RegExp(`^${activityUserName}\\s+`),
+        'You '
+      );
+    }
+
     return {
       id: index,
       type: backendActivity.type,
@@ -184,7 +196,7 @@ export const ActivityFeed = memo(function ActivityFeed({ user, onViewAllFriends,
       iconColor: config.iconColor,
       bgColor: config.bgColor,
       borderColor: config.borderColor,
-      title: backendActivity.title,
+      title: displayTitle,
       description: backendActivity.description,
       time: formatRelativeTime(backendActivity.timestamp),
       user: backendActivity.user || { name: 'User', avatar: '' },

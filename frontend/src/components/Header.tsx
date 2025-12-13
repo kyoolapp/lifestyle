@@ -416,6 +416,9 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
     }
   ];
 
+  const handleViewProfile = (friendId: string) => {
+    navigate(`/user/${friendId}`);
+  };
   const completedGoals = todaysGoals.filter(goal => goal.completed).length;
 
   // activeFriends state is already managed above
@@ -584,7 +587,10 @@ export function Header({ user, activeTab, safeZone, setSafeZone }: HeaderProps) 
                     ) : (
                       <div className="max-h-64 overflow-y-auto space-y-2">
                         {onlineFriends.map((friend: any) => (
-                          <div key={friend.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                          <div key={friend.id} 
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors"
+                          onClick={() => handleViewProfile(friend.id)}
+                          >
                             <div className="relative">
                               <Avatar className="w-8 h-8">
                                 <AvatarImage src={friend.avatar} />

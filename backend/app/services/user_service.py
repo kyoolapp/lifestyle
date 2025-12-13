@@ -44,3 +44,7 @@ class UserService:
 
     def get_following(self, user_id: str) -> List[Dict[str, Any]]:
         raise NotImplementedError
+
+    # Activities
+    def get_user_activities(self, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        raise NotImplementedError

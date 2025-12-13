@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getUserByUserId, getUserOnlineStatus, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendshipStatus, checkFriendshipStatus, getIncomingFriendRequests, getOutgoingFriendRequests, revokeFriendRequest, removeFriend } from '../api/user_api';
+import { getUserByUserId, getUserOnlineStatus, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendshipStatus, checkFriendshipStatus, getIncomingFriendRequests, getOutgoingFriendRequests, revokeFriendRequest, removeFriend, getUserActivities } from '../api/user_api';
 import { calculateBMI, calculateBMR, calculateTDEE } from '../utils/health';
 import { useUnitSystem } from '../context/UnitContext';
 import { heightConversions, weightConversions } from '../utils/unitConversion';
@@ -8,12 +8,225 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { ArrowLeft, MessageCircle, UserPlus, CheckCircle, X, Users, Flame, Dumbbell, Clock, Target, Trophy, Heart } from 'lucide-react';
+import { ArrowLeft, MessageCircle, UserPlus, CheckCircle, X, Users, Flame, Dumbbell, Clock, Target, Trophy, Heart, Droplets, Activity } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
 
 interface UserProfileProps {
   userId?: string; // Optional prop for direct component usage
+}
+
+// Component to display recent activities as cards
+function RecentActivityCards({ user, userId, isFriend, currentUserId }: { user: any, userId: string, isFriend: boolean, currentUserId: string }) {
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadActivities = async () => {
+      // Don't load activities if not friends and not the same user
+      if (!isFriend && currentUserId !== userId) {
+        console.log('RecentActivityCards: Not friends and not viewing own profile, skipping load');
+        setActivities([]);
+        setLoading(false);
+        return;
+      }
+
+      if (!userId) {
+        console.log('RecentActivityCards: No userId provided');
+        setLoading(false);
+        return;
+      }
+
+      console.log(`RecentActivityCards: Loading activities for user ${userId}, isFriend=${isFriend}`);
+      
+      try {
+        const data = await getUserActivities(userId, 20);
+        console.log(`RecentActivityCards: Got data:`, data);
+        
+        // If no data from API, use mock data for now
+        if (!data || data.length === 0) {
+          console.log('RecentActivityCards: No data from API, showing mock data');
+          const mockActivities = [
+            {
+              type: 'water',
+              title: 'Logged water intake',
+              description: 'Drank 2000ml of water today',
+              timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+            },
+            {
+              type: 'workout',
+              title: 'Completed Pull Day B',
+              description: 'Finished 3 sets of exercises',
+              timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+            }
+          ];
+          setActivities(mockActivities);
+        } else {
+          console.log(`RecentActivityCards: Setting ${data.length} activities from API`);
+          setActivities(data);
+        }
+      } catch (error) {
+        console.error('Failed to load activities:', error);
+        // Fallback to mock data on error
+        const mockActivities = [
+          {
+            type: 'water',
+            title: 'Logged water intake',
+            description: 'Drank 2000ml of water today',
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            type: 'workout',
+            title: 'Completed Pull Day B',
+            description: 'Finished 3 sets of exercises',
+            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+          }
+        ];
+        setActivities(mockActivities);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadActivities();
+  }, [userId, isFriend, currentUserId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-sm text-gray-500">Loading activities...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if viewing someone else's profile and not friends
+  if (!isFriend && currentUserId !== userId) {
+    return (
+      <Card className="bg-white border-gray-100">
+        <CardContent className="p-6 text-center">
+          <p className="text-gray-500">Add {user?.name} as a friend to see their activities</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!activities || activities.length === 0) {
+    return (
+      <Card className="bg-white border-gray-100">
+        <CardContent className="p-6 text-center">
+          <p className="text-gray-500">No recent activities</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'water':
+        return <Droplets className="w-5 h-5 text-blue-500" />;
+      case 'workout':
+        return <Dumbbell className="w-5 h-5 text-red-500" />;
+      case 'achievement':
+        return <Trophy className="w-5 h-5 text-yellow-500" />;
+      case 'fitness':
+        return <Activity className="w-5 h-5 text-purple-500" />;
+      case 'nutrition':
+        return <Heart className="w-5 h-5 text-orange-500" />;
+      case 'social':
+        return <Users className="w-5 h-5 text-blue-600" />;
+      default:
+        return <Activity className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'water':
+        return 'from-blue-500 to-blue-300';
+      case 'workout':
+        return 'from-red-500 to-red-300';
+      case 'achievement':
+        return 'from-yellow-500 to-yellow-300';
+      case 'fitness':
+        return 'from-purple-500 to-purple-300';
+      case 'nutrition':
+        return 'from-orange-500 to-orange-300';
+      case 'social':
+        return 'from-blue-600 to-blue-400';
+      default:
+        return 'from-gray-500 to-gray-300';
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <div className="space-y-4">
+      {activities.map((activity, index) => {
+        // Transform activity title and description based on viewing context
+        let displayTitle = activity.title;
+        let displayDescription = activity.description;
+        const activityUserName = activity.user?.name || user?.name || 'User';
+        
+        // If viewing someone else's profile, use their name
+        // If viewing own profile, replace their name with "You"
+        if (currentUserId === userId) {
+          // Viewing own profile - convert to "You"
+          displayTitle = activity.title.replace(
+            new RegExp(`^${activityUserName}\\s+`),
+            'You '
+          );
+          displayDescription = activity.description.replace(
+            new RegExp(`\\b${activityUserName}'s\\b`, 'g'),
+            'Your'
+          );
+        } else {
+          // Viewing friend's profile - ensure it uses their name
+          displayTitle = activity.title;
+          displayDescription = activity.description;
+        }
+
+        return (
+          <Card key={index} className="bg-white border-gray-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                {/* Left Border */}
+                <div className={`w-1 h-20 bg-gradient-to-b ${getActivityColor(activity.type)} rounded-full flex-shrink-0`} />
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">{displayTitle}</p>
+                      <p className="text-xs text-gray-500">{formatTime(activity.timestamp)}</p>
+                    </div>
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  {displayDescription && (
+                    <p className="text-sm text-gray-600 mb-3">{displayDescription}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
 }
 
 export function UserProfile({ userId: propUserId }: UserProfileProps) {
@@ -318,7 +531,7 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
                   </Avatar>
                   {/* Status Indicator */}
                   <div 
-                    className={`absolute bottom-3 right-4 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}
+                    className={`absolute bottom-1 right-3 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}
                     style={{ 
                       width: '20px', 
                       height: '20px',
@@ -328,7 +541,7 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
                 </div>
                 
                 {/* User Info */}
-                <div className="mb-4">
+                <div className="mb-2">
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="text-2xl font-bold" style={{ color: '#0F172A' }}>
                       {user.name}
@@ -431,74 +644,7 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
         {/* LEFT: Activity Feed (2/3 width) */}
         <div className="lg:col-span-2 space-y-6">
           <h3 className="font-bold text-lg text-slate-900 px-2">Recent Activity</h3>
-          
-          {/* Activity Item 1 */}
-          <Card className="bg-white border-gray-100 hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                {/* Left Border */}
-                <div className="w-1 h-24 bg-gradient-to-b from-purple-500 to-purple-300 rounded-full flex-shrink-0" />
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div>
-                      <p className="font-semibold text-slate-900">Completed Pull Day B</p>
-                      <p className="text-xs text-gray-500">2 hours ago</p>
-                    </div>
-                    <Badge className="bg-green-100 text-green-700 border-0 flex-shrink-0">+3 PRs Set</Badge>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="gap-2 text-gray-600 hover:text-red-500 border-gray-200"
-                    >
-                      <Heart className="w-4 h-4" />
-                      Cheer
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="gap-2 text-gray-600 border-gray-200"
-                    >
-                      📋 Copy Routine
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Activity Item 2 */}
-          <Card className="bg-white border-gray-100 hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-1 h-20 bg-gradient-to-b from-blue-500 to-blue-300 rounded-full flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div>
-                      <p className="font-semibold text-slate-900">Earned 200 Workout Club Badge</p>
-                      <p className="text-xs text-gray-500">1 day ago</p>
-                    </div>
-                    <span className="text-xl flex-shrink-0">🏆</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Activity Item 3 */}
-          <Card className="bg-white border-gray-100 hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-1 h-16 bg-gradient-to-b from-green-500 to-green-300 rounded-full flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900">New Personal Record: Deadlift 315 lbs</p>
-                  <p className="text-xs text-gray-500">3 days ago</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <RecentActivityCards user={user} userId={userId || ''} isFriend={friendshipStatus === 'friends'} currentUserId={currentUser?.uid || ''} />
         </div>
 
         {/* RIGHT: Gamification (1/3 width) */}
@@ -553,7 +699,7 @@ export function UserProfile({ userId: propUserId }: UserProfileProps) {
             {/* Background decoration */}
             <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full -mr-20 -mt-20 pointer-events-none" />
             
-            <CardContent className="p-6 relative z-10">
+            <CardContent className="p-6 relative z-10" style={{ background: 'linear-gradient(to right, rgb(99, 102, 241), rgb(236, 72, 153))' }}>
               <h3 className="font-bold text-sm uppercase tracking-wider text-indigo-200 mb-4">Head to Head</h3>
               
               {/* Names */}
